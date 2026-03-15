@@ -65,7 +65,6 @@ function App() {
           )}
         </nav>
       </header>
-      <PropsTest name={userName}/>
       
       <main style={{ padding: '40px' }}>
         {view === 'gallery' && <Gallery places={places} onDelete={deletePlace} />}
