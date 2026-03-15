@@ -20,7 +20,7 @@ function Signup() {
 
   try {
     // 🚀 백엔드 주방으로 주문서(POST) 넣기!
-    const response = await fetch('http://localhost:3000/signup', {
+    const response = await fetch('http://13.125.248.178:3000/signup', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

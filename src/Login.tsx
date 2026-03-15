@@ -18,7 +18,7 @@ function Login({ onLoginSuccess, onGoToSignup }: LoginProps) {
     }
 
     try {
-      const response = await fetch('http://localhost:3000/login', {
+      const response = await fetch('http://13.125.248.178:3000/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
