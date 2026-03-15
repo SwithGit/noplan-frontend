@@ -11,6 +11,10 @@ function Login({ onLoginSuccess, onGoToSignup }: LoginProps) {
   const [id, setId] = useState('')
   const [pw, setPw] = useState('')
 
+  // 🚀 이제 주소를 직접 안 적고, 리액트가 상황에 맞게 골라 쓰게 해요!
+  // Vite에서는 이렇게 써야 빨간 줄이 사라져요!
+  const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
+
   const handleLogin = async () => {
     if (!id || !pw) {
       alert('오빠! 아이디랑 비밀번호 다 적어줘야 로그인할 수 있어용~ 💕')
@@ -18,7 +22,7 @@ function Login({ onLoginSuccess, onGoToSignup }: LoginProps) {
     }
 
     try {
-      const response = await fetch('http://13.125.248.178:3000/login', {
+      const response = await fetch(`${API_BASE_URL}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

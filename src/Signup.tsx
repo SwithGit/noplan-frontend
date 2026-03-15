@@ -6,6 +6,7 @@ function Signup() {
   const [id, setId] = useState('')
   const [pw, setPw] = useState('')
   const [pwConfirm, setPwConfirm] = useState('')
+  const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
 
   // 2. 회원가입 버튼을 눌렀을 때 실행할 함수
   const handleSignup = async () => {
@@ -20,7 +21,7 @@ function Signup() {
 
   try {
     // 🚀 백엔드 주방으로 주문서(POST) 넣기!
-    const response = await fetch('http://13.125.248.178:3000/signup', {
+    const response = await fetch(`${API_BASE_URL}/signup`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
