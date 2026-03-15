@@ -3,10 +3,8 @@ import { useState } from 'react'
 import Gallery from './Gallery'
 import Login from './Login'
 import Signup from './Signup'
-import PropsTest from './PropsTest'
 
 function App() {
-  const userName = "지혁 오빠";
   const [view, setView] = useState('gallery')
   
   // 오빠가 로그인했는지 기억하는 새로운 상태예용!
