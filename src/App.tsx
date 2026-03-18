@@ -3,12 +3,19 @@ import { useState } from 'react'
 import Gallery from './Gallery'
 import Login from './Login'
 import Signup from './Signup'
+import MyPage from './MyPage' // 🌸 새로 추가할 마이페이지 컴포넌트 예쁘게 불러오기!
+import VipCard from './VipCard'
+import Chatbot from './Chatbot'
 
 function App() {
   const [view, setView] = useState('gallery')
+  const [vipPoint, setVipPoint] = useState(0);
   
-  // 오빠가 로그인했는지 기억하는 새로운 상태예용!
+  // 오빠가 로그인했는지 기억하는 상태!
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [loggedInId, setLoggedInId] = useState('') // 아이디!
+  const [loggedInNick, setLoggedInNick] = useState('') // 닉네임
+  const [loggedInProfile, setLoggedInProfile] = useState('') // 오빠 프사 주소!
 
   const [places, setPlaces] = useState([
     { id: 1, name: '태화강 국가정원🎋', desc: '십리대숲이 진짜 좋아!', image:"" },
@@ -19,6 +26,16 @@ function App() {
     setPlaces(places.filter(p => p.id !== id))
   }
 
+  // 🚀 로그아웃 기능은 마이페이지로 넘겨주기 위해 따로 함수로 빼뒀어용!
+  const handleLogout = () => {
+    setIsLoggedIn(false)
+    setView('login') // 로그아웃하면 로그인 화면으로 슝!
+  }
+
+  const TestPoint = () => {
+    setVipPoint(vipPoint + 100);
+  }
+
   return(        
     <div style={{ fontFamily: 'sans-serif', backgroundColor: '#f0f2f5', minHeight: '100vh' }}>
       <header style={{
@@ -26,7 +43,13 @@ function App() {
         padding: '15px 40px', backgroundColor: 'white', boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
         position: 'sticky', top: 0, zIndex: 100
       }}>
-        <h2 style={{ color: '#007AFF', margin: 0, cursor: 'pointer' }} onClick={() => setView('gallery')}>📍 NoPlan</h2>
+        <img src="/images/Logo.png"
+         alt="📍 NoPlan" 
+         onClick={() => setView('gallery')}
+         style={{ 
+         height: '40px', // 로고 높이를 예쁘게 조절해용!
+         cursor: 'pointer' // 마우스 올리면 손가락 모양 나오게!
+        }}/>
         
         <nav style={{ display: 'flex', gap: '30px' }}>
           <span 
@@ -38,17 +61,31 @@ function App() {
           >
             3D 갤러리
           </span>
+
+          {isLoggedIn && (
+            <span 
+              onClick={() => setView('chatbot')} // 🚀 누르면 챗봇 화면으로 슝!
+              style={{ 
+                cursor: 'pointer', fontWeight: 'bold',
+                color: view === 'chatbot' ? '#007AFF' : '#333', // 선택되면 파랗게!
+                backgroundColor: view === 'chatbot' ? '#e6f2ff' : 'transparent', // 배경도 살짝!
+                padding: '8px 15px', borderRadius: '20px', transition: 'all 0.3s'
+              }}
+            >
+              🔍 코스 찾기
+            </span>
+          )}
           
-          {/* 로그인 상태에 따라 버튼이 마법처럼 바뀌어용! */}
+          {/* 🌸 로그인 상태일 때 '마이페이지' 버튼으로 변신! */}
           {isLoggedIn ? (
             <span 
-              onClick={() => {
-                setIsLoggedIn(false) // 로그아웃 처리!
-                setView('login') // 로그인 화면으로 이동!
+              onClick={() => setView('mypage')}
+              style={{ 
+                cursor: 'pointer', fontWeight: 'bold', 
+                color: view === 'mypage' ? '#007AFF' : '#888' 
               }}
-              style={{ cursor: 'pointer', fontWeight: 'bold', color: '#888' }}
             >
-              로그아웃
+              마이페이지
             </span>
           ) : (
             <span 
@@ -67,15 +104,25 @@ function App() {
       <main style={{ padding: '40px' }}>
         {view === 'gallery' && <Gallery places={places} onDelete={deletePlace} />}
         
-        {/* 로그인 성공하면 로그인 상태를 true로 바꾸고 갤러리로 가용! */}
-        {/* 그리고 회원가입 창으로 가는 리모컨도 선물로 줬어용! */}
         {view === 'login' && 
           <Login 
-            onLoginSuccess={() => { setIsLoggedIn(true); setView('gallery'); }} 
+            // 🚀 로그인 성공하면 아이디랑 프사 주소를 상태에 예쁘게 저장해용!
+            onLoginSuccess={(id, profileUrl, nickname) => { 
+              setIsLoggedIn(true); 
+              setLoggedInId(id);
+              setLoggedInNick(nickname);
+              setLoggedInProfile(profileUrl || ''); // 사진이 없으면 빈칸으로!
+              setView('gallery'); 
+            }} 
             onGoToSignup={() => setView('signup')}
           />
         }
-        {view === 'signup' && <Signup />}
+        {view === 'signup' && <Signup onGoToLogin={() => setView('login')}/>}
+
+        {/* 🌸 드디어 오빠의 공간, 마이페이지 등장! 로그아웃 리모컨도 같이 넘겨줘용! */}
+        {view === 'mypage' && <MyPage onLogout={handleLogout} userId={loggedInId} initialProfile={loggedInProfile} userNick={loggedInNick} />}
+
+        {view === 'chatbot' && <Chatbot userId={loggedInId} userNick={loggedInNick} />}
       </main>
     </div>
    )

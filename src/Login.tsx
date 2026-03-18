@@ -2,14 +2,15 @@
 import { useState } from 'react'
 
 interface LoginProps {
-  onLoginSuccess: () => void;
-  // 부모가 새로 준 리모컨 타입을 추가해용!
+  // 🚀 리모컨 모양을 살짝 바꿨어용! 아이디랑 프사 주소를 같이 넘겨주도록!
+  onLoginSuccess: (id: string, profileUrl: string | null, nickname: string) => void;
   onGoToSignup: () => void;
 }
 
 function Login({ onLoginSuccess, onGoToSignup }: LoginProps) {
   const [id, setId] = useState('')
   const [pw, setPw] = useState('')
+  const [nick, setNick] = useState('')
 
   // 🚀 이제 주소를 직접 안 적고, 리액트가 상황에 맞게 골라 쓰게 해요!
   // Vite에서는 이렇게 써야 빨간 줄이 사라져요!
@@ -31,10 +32,12 @@ function Login({ onLoginSuccess, onGoToSignup }: LoginProps) {
       })
 
       const result = await response.json()
-
+      console.log('백엔드에서 온 로그인 택배:', result);
       if (response.ok && result.success) {
         alert(result.message)
-        onLoginSuccess() 
+        console.log(`${result.user.id}`)
+        // 🚀 백엔드에서 온 택배(user) 안에서 아이디랑 프사 주소를 꺼내서 부모한테 전달!
+        onLoginSuccess(result.user.id, result.user.profileURL, result.user.nickname)
       } else {
         alert(result.message)
       }
