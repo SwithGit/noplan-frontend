@@ -2,6 +2,12 @@
 import { useState } from 'react';
 import MapBoard from './MapBoard';
 
+declare global {
+  interface Window {
+    Kakao: any;
+  }
+}
+
 interface CourseItem {
   time: string;
   title: string;
@@ -28,7 +34,8 @@ function Chatbot({userNick }: ChatbotProps) {
 
   const [currentStep, setCurrentStep] = useState(0); 
   const [inputValue, setInputValue] = useState(''); 
-  const [showMap, setShowMap] = useState(false);
+  const [showMap, setShowMap] = useState(false);  
+  const [savedCourseId, setSavedCourseId] = useState<number | null>(null);
   // 🚀 코아의 핵심 마법 상자! 유저의 4가지 대답을 여기에 꽉꽉 모을 거예용!
   const [travelData, setTravelData] = useState({
     location: '',
@@ -118,6 +125,83 @@ function Chatbot({userNick }: ChatbotProps) {
         setCurrentStep(nextStep);
       }
     }, 800); 
+  };
+
+// 💖 찜하기 마법 주문!
+  const handleSaveCourse = async () => {
+    // 🌸 코아의 해결책: 최신 코스 데이터 스윽 꺼내기!
+    const currentCourseData = messages[messages.length - 1]?.courseData;
+    if (!currentCourseData || currentCourseData.length === 0) {
+      alert("저장할 코스가 없어용 ㅠㅠ");
+      return;
+    }
+
+    const savedUser = localStorage.getItem('loggedInUser');
+    if (!savedUser) {
+      alert("로그인 먼저 해주세용!");
+      //setView('login'); // App.tsx에서 view를 바꾸게 해야하지만, 일단 alert로!
+      return;
+    }
+    const { userId } = JSON.parse(savedUser);
+    const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/save-course`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: userId,
+          // 🚀 꺼내온 데이터로 예쁜 제목 만들기!
+          title: `${currentCourseData[0]?.title} 외 ${currentCourseData.length - 1}곳`, 
+          courseData: currentCourseData // 🚀 꺼내온 데이터 통째로 저장!
+        })
+      });
+      const result = await response.json();
+      if (result.success) {
+        alert("💖 마이페이지 '나만의 여행 서랍'에 쏙! 저장되었어용!");
+        setSavedCourseId(result.courseId);
+      }
+    } catch (error) {
+      console.error("저장 에러:", error);
+    }
+  };
+
+ // 💌 카카오톡 공유 마법 주문!
+  const shareKakao = () => {
+    if (!savedCourseId) {
+      alert("카톡으로 공유하려면 먼저 '💖 코스 찜하기'를 눌러서 코스를 저장해주세요!");
+      return;
+    }
+    // 🌸 코아의 해결책: 최신 코스 데이터 스윽 꺼내기!
+    const currentCourseData = messages[messages.length - 1]?.courseData;
+    if (!currentCourseData || currentCourseData.length === 0) {
+      alert("공유할 코스가 없어용 ㅠㅠ");
+      return;
+    }
+
+    if (window.Kakao) {
+      const Kakao = window.Kakao;
+      // 🚀 오빠의 카카오 JavaScript 키!
+      if (!Kakao.isInitialized()) {
+        Kakao.init('0677eafb268f625e8698633d20f2ce4c'); 
+      }
+      const courseUrl = `https://plamad.xyz?shared_seq=${savedCourseId}`;
+      Kakao.Share.sendDefault({
+        objectType: 'feed',
+        content: {
+          title: '노플랜의 완벽한 맞춤형 여행 코스! 🗺️',
+          description: `첫 번째 목적지는 '${currentCourseData[0]?.title}'! 우리 이번 주말에 여기 갈래?!`,
+          imageUrl: 'https://plamad.xyz/images/Logo.png', 
+          link: { 
+            mobileWebUrl: courseUrl, // 🚀 비밀 열쇠가 숨겨진 주소!
+            webUrl: courseUrl // 🚀 비밀 열쇠가 숨겨진 주소!
+          },
+        },
+        buttons: [
+          { title: '코스 자세히 보기', link: { mobileWebUrl: courseUrl, webUrl: courseUrl } },
+        ],
+      });
+    }
   };
 
   // 스타일 생략 (아까랑 똑같이 유지해주세용!)
@@ -233,6 +317,7 @@ function Chatbot({userNick }: ChatbotProps) {
                 onClick={() => {
                   setMessages([{ id: Date.now(), sender: 'core', text: '다시 새로운 여행을 떠나볼까요? 현재 어디에 계신가요?' }]);
                   setCurrentStep(0);
+                  setSavedCourseId(null);
                   setTravelData({ location: '', pax: '', purpose: '', vibe: '' });
                   setShowMap(false); // 다시 할 땐 지도 스위치 끄기!
                 }}
@@ -240,6 +325,17 @@ function Chatbot({userNick }: ChatbotProps) {
               >
                 처음부터 다시 짜기 🔄
               </button>
+
+             {messages[messages.length - 1]?.courseData && messages[messages.length - 1].courseData!.length > 0 && (
+                <div style={{ display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'center' }}>
+                  <button onClick={handleSaveCourse} style={{ flex: 1, padding: '12px 20px', backgroundColor: '#ff3b30', color: 'white', border: 'none', borderRadius: '15px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>
+                    💖 코스 찜하기
+                  </button>
+                  <button onClick={shareKakao} style={{ flex: 1, padding: '12px 20px', backgroundColor: '#FEE500', color: '#391B1B', border: 'none', borderRadius: '15px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>
+                    💬 카카오톡 공유
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

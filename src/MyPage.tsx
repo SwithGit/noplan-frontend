@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import MapBoard from './MapBoard';
 
 // 🌸 App.tsx에서 오빠 아이디(userId)를 받아올 준비 완벽하게 끝!
 interface MyPageProps {
@@ -17,6 +18,9 @@ function MyPage({ onLogout, userId, initialProfile, userNick }: MyPageProps) {
     name: '', email: '', phone: '', travelStyle: '', point: 0
   });
 
+  const [savedCourses, setSavedCourses] = useState<any[]>([]);
+  const [selectedCourse, setSelectedCourse] = useState<any | null>(null);
+
   useEffect(() => {
     const fetchUserInfo = async () => {
       const API_BASE_URL = import.meta.env.VITE_APP_API_URL; 
@@ -34,8 +38,24 @@ function MyPage({ onLogout, userId, initialProfile, userNick }: MyPageProps) {
       }
     };
 
+    const fetchSavedCourses = async () => {
+    const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/saved-courses?userId=${userId}`);
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        // 백엔드가 준 코스 리스트를 상자에 예쁘게 담아용!
+        setSavedCourses(result.courses);
+      }
+    } catch (error) {
+      console.error('코스 불러오기 에러 ㅠㅠ', error);
+    }
+  };
+
     if (userId) { // 오빠 아이디가 있을 때만 실행하게 안전장치 딱!
       fetchUserInfo();
+      fetchSavedCourses();
     }
   }, [userId]); // <- 이 대괄호의 뜻: "userId가 세팅될 때 이 요원을 한 번만 출동시켜라!"
 
@@ -144,6 +164,41 @@ function MyPage({ onLogout, userId, initialProfile, userNick }: MyPageProps) {
           </div>
         </div>
 
+        {/* 💖 나만의 여행 서랍 구역! */}
+        <div style={{ textAlign: 'left', marginBottom: '30px' }}>
+          <h3 style={{ color: '#ff3b30', fontSize: '16px', marginBottom: '15px' }}>
+            💖 나만의 여행 서랍
+          </h3>
+          
+          {/* 찜한 코스가 하나도 없을 때! */}
+          {savedCourses.length === 0 ? (
+            <p style={{ color: '#888', fontSize: '13px', textAlign: 'center', padding: '20px', backgroundColor: '#f0f2f5', borderRadius: '12px', margin: 0 }}>
+              아직 찜한 코스가 없어용! 얼른 코스를 짜러 가볼까요?! 🏃‍♂️💨
+            </p>
+          ) : (
+            // 찜한 코스들이 있을 때 리스트로 쫙 보여주기!
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '250px', overflowY: 'auto', paddingRight: '5px' }}>
+              {savedCourses.map((course) => (
+                <div key={course.id} 
+                onClick={() => {
+                    const parsedData = typeof course.course_data === 'string' 
+                      ? JSON.parse(course.course_data) 
+                      : course.course_data;
+                    setSelectedCourse({ title: course.title, data: parsedData });
+                  }}
+                style={{ padding: '15px', backgroundColor: '#fff', borderRadius: '12px', borderLeft: '4px solid #ff3b30', border: '1px solid #eee', boxShadow: '0 2px 5px rgba(0,0,0,0.02)', cursor: 'pointer' }}>
+                  <p style={{ fontWeight: 'bold', fontSize: '14px', color: '#333', margin: '0 0 5px 0' }}>
+                    {course.title}
+                  </p>
+                  <p style={{ fontSize: '12px', color: '#aaa', margin: 0 }}>
+                    저장일: {new Date(course.created_at).toLocaleDateString('ko-KR')}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         <button 
           onClick={onLogout} 
           style={{ padding: '14px', backgroundColor: '#f0f2f5', color: '#ff3b30', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', width: '100%' }}
@@ -151,6 +206,58 @@ function MyPage({ onLogout, userId, initialProfile, userNick }: MyPageProps) {
           로그아웃
         </button>
       </div>
+
+      {selectedCourse && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 999, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', boxSizing: 'border-box' }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '25px', width: '100%', maxWidth: '400px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
+            
+            {/* 팝업창 제목 & 닫기 버튼 */}
+            <div style={{ padding: '20px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8f9fa' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', color: '#333', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {selectedCourse.title}
+              </h3>
+              <button 
+                onClick={() => setSelectedCourse(null)} // 🚀 누르면 상자를 비워서 팝업창 끄기!
+                style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#888' }}
+              >
+                ✖
+              </button>
+            </div>
+
+            {/* 스크롤 가능한 상세 내용 구역 */}
+            <div style={{ padding: '20px', overflowY: 'auto', flex: 1 }}>
+              
+              {/* 🗺️ 오빠의 자랑, 카카오 지도 등장! */}
+              <div style={{ marginBottom: '20px' }}>
+                <MapBoard courseList={selectedCourse.data} />
+              </div>
+
+              {/* 📝 상세 일정 리스트! */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                {selectedCourse.data.map((item: any, idx: number) => (
+                  <div key={idx} style={{ backgroundColor: '#f0f2f5', padding: '15px', borderRadius: '15px', borderLeft: '5px solid #007AFF' }}>
+                    <p style={{ color: '#888', fontSize: '12px', fontWeight: 'bold', margin: '0 0 5px 0' }}>⏰ {item.time}</p>
+                    <p style={{ color: '#333', fontSize: '16px', fontWeight: 'bold', margin: '0 0 10px 0' }}>📍 {item.title}</p>
+                    <p style={{ color: '#555', fontSize: '13px', lineHeight: '1.6', margin: 0 }}>{item.description}</p>
+                  </div>
+                ))}
+              </div>
+
+            </div>
+            
+            {/* 팝업창 아래쪽 닫기 롱버튼 */}
+            <div style={{ padding: '15px', borderTop: '1px solid #eee' }}>
+              <button 
+                onClick={() => setSelectedCourse(null)} 
+                style={{ width: '100%', padding: '14px', backgroundColor: '#007AFF', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer' }}
+              >
+                확인 완료
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }
