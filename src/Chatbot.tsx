@@ -130,15 +130,19 @@ function Chatbot({userNick }: ChatbotProps) {
 // 💖 찜하기 마법 주문!
   const handleSaveCourse = async () => {
     // 🌸 코아의 해결책: 최신 코스 데이터 스윽 꺼내기!
+    if (savedCourseId) {
+      alert("이미 마이페이지 서랍에 소중하게 보관해 뒀어요!");
+      return; 
+    }
     const currentCourseData = messages[messages.length - 1]?.courseData;
     if (!currentCourseData || currentCourseData.length === 0) {
-      alert("저장할 코스가 없어용 ㅠㅠ");
+      alert("저장할 코스가 없어요 ㅠㅠ");
       return;
     }
 
     const savedUser = localStorage.getItem('loggedInUser');
     if (!savedUser) {
-      alert("로그인 먼저 해주세용!");
+      alert("로그인 먼저 해주세요!");
       //setView('login'); // App.tsx에서 view를 바꾸게 해야하지만, 일단 alert로!
       return;
     }
@@ -158,7 +162,7 @@ function Chatbot({userNick }: ChatbotProps) {
       });
       const result = await response.json();
       if (result.success) {
-        alert("💖 마이페이지 '나만의 여행 서랍'에 쏙! 저장되었어용!");
+        alert("💖 마이페이지 '나만의 여행 서랍'에 쏙! 저장되었어요!");
         setSavedCourseId(result.courseId);
       }
     } catch (error) {
