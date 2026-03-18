@@ -14,7 +14,6 @@ function App() {
   const [loggedInId, setLoggedInId] = useState('') // 아이디!
   const [loggedInNick, setLoggedInNick] = useState('') // 닉네임
   const [loggedInProfile, setLoggedInProfile] = useState('') // 오빠 프사 주소!
-  const [userInfo, setUserInfo] = useState(null);
 
   const [places, setPlaces] = useState([
     { id: 1, name: '태화강 국가정원🎋', desc: '십리대숲이 진짜 좋아!', image:"" },
@@ -29,7 +28,6 @@ function App() {
     const savedUser = localStorage.getItem('loggedInUser');
     if (savedUser) {
       const parsedUser = JSON.parse(savedUser);
-      setUserInfo(parsedUser);
       setIsLoggedIn(true);
       
       // 🚀 코아의 해결책: 빈칸을 꽉꽉 채워주세용!
@@ -43,7 +41,6 @@ function App() {
   const handleLogout = () => {
     localStorage.removeItem('loggedInUser');
     setIsLoggedIn(false);
-    setUserInfo(null);
     setView('login') // 로그아웃하면 로그인 화면으로 슝!
   }
 
