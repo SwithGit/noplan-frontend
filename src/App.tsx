@@ -1,5 +1,5 @@
 // App.tsx
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Gallery from './Gallery'
 import Login from './Login'
 import Signup from './Signup'
@@ -14,6 +14,7 @@ function App() {
   const [loggedInId, setLoggedInId] = useState('') // 아이디!
   const [loggedInNick, setLoggedInNick] = useState('') // 닉네임
   const [loggedInProfile, setLoggedInProfile] = useState('') // 오빠 프사 주소!
+  const [userInfo, setUserInfo] = useState(null);
 
   const [places, setPlaces] = useState([
     { id: 1, name: '태화강 국가정원🎋', desc: '십리대숲이 진짜 좋아!', image:"" },
@@ -24,9 +25,25 @@ function App() {
     setPlaces(places.filter(p => p.id !== id))
   }
 
+  useEffect(() => {
+    const savedUser = localStorage.getItem('loggedInUser');
+    if (savedUser) {
+      const parsedUser = JSON.parse(savedUser);
+      setUserInfo(parsedUser);
+      setIsLoggedIn(true);
+      
+      // 🚀 코아의 해결책: 빈칸을 꽉꽉 채워주세용!
+      setLoggedInId(parsedUser.userId); // 아까 저장할 때 userId로 넣었어용!
+      setLoggedInNick(parsedUser.userNick);
+      setLoggedInProfile(parsedUser.profileURL || '');
+    }
+  }, []);
+
   // 🚀 로그아웃 기능은 마이페이지로 넘겨주기 위해 따로 함수로 빼뒀어용!
   const handleLogout = () => {
-    setIsLoggedIn(false)
+    localStorage.removeItem('loggedInUser');
+    setIsLoggedIn(false);
+    setUserInfo(null);
     setView('login') // 로그아웃하면 로그인 화면으로 슝!
   }
 
@@ -100,12 +117,22 @@ function App() {
         
         {view === 'login' && 
           <Login 
-            // 🚀 로그인 성공하면 아이디랑 프사 주소를 상태에 예쁘게 저장해용!
+            // 🚀 로그인 성공하면 아이디랑 프사 주소, 닉네임을 가져와용!
             onLoginSuccess={(id, profileUrl, nickname) => { 
+              // 🌸 코아의 해결책 1: 금고에 넣을 보따리를 더 빵빵하게 만들어용!
+              const userToSave = { 
+                userId: id, 
+                userNick: nickname,
+                // 🚀 사진 주소도 꼭! 같이 금고에 넣어줘야 해용!
+                profileURL: profileUrl || '' 
+              };
+              localStorage.setItem('loggedInUser', JSON.stringify(userToSave));
+              
               setIsLoggedIn(true); 
               setLoggedInId(id);
               setLoggedInNick(nickname);
-              setLoggedInProfile(profileUrl || ''); // 사진이 없으면 빈칸으로!
+              // 프로필 상태도 세팅! (이건 원래 잘하셨어용!)
+              setLoggedInProfile(profileUrl || ''); 
               setView('gallery'); 
             }} 
             onGoToSignup={() => setView('signup')}

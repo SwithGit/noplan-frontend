@@ -61,8 +61,16 @@ function MyPage({ onLogout, userId, initialProfile, userNick }: MyPageProps) {
       const result = await response.json();
       
       if (response.ok) {
-        alert('프로필 사진이 성공적으로 등록되었습니다.'); // 🚨 코아 말투 압수! 깔끔하게!
+        alert('프로필 사진이 성공적으로 등록되었습니다.'); 
         setProfileUrl(result.profileURL);
+
+        // 🚀 코아의 해결책 3: 마이페이지에서 사진 바꾸면 금고도 새 걸로 업데이트!
+        const savedUser = localStorage.getItem('loggedInUser');
+        if (savedUser) {
+          const userObj = JSON.parse(savedUser);
+          userObj.profileURL = result.profileURL; // 새 사진 주소로 싹!
+          localStorage.setItem('loggedInUser', JSON.stringify(userObj)); // 다시 금고에!
+        }
       } else {
         alert(result.message);
       }

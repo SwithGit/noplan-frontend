@@ -6,6 +6,7 @@ interface CourseItem {
   time: string;
   title: string;
   description: string;
+  searchKeyword?: string; // 🚀 코아가 추가한 마법의 비밀 열쇠!
 }
 
 interface Message {
