@@ -172,6 +172,44 @@ function App() {
 
         {view === 'chatbot' && <Chatbot userNick={loggedInNick} />}
       </main>
+
+      {/* 🚀 카톡 타고 온 손님을 위한 환영 팝업창!! */}
+      {sharedCourse && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', boxSizing: 'border-box' }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '25px', width: '100%', maxWidth: '400px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
+            
+            <div style={{ padding: '20px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8f9fa' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', color: '#333' }}>
+                {sharedCourse.title}
+              </h3>
+              <button onClick={() => setSharedCourse(null)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#888' }}>
+                ✖
+              </button>
+            </div>
+
+            <div style={{ padding: '20px', overflowY: 'auto', flex: 1 }}>
+              <div style={{ marginBottom: '20px' }}>
+                <MapBoard courseList={sharedCourse.data} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                {sharedCourse.data.map((item: any, idx: number) => (
+                  <div key={idx} style={{ backgroundColor: '#f0f2f5', padding: '15px', borderRadius: '15px', borderLeft: '5px solid #007AFF' }}>
+                    <p style={{ color: '#888', fontSize: '12px', fontWeight: 'bold', margin: '0 0 5px 0' }}>⏰ {item.time}</p>
+                    <p style={{ color: '#333', fontSize: '16px', fontWeight: 'bold', margin: '0 0 10px 0' }}>📍 {item.title}</p>
+                    <p style={{ color: '#555', fontSize: '13px', lineHeight: '1.6', margin: 0 }}>{item.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div style={{ padding: '15px', borderTop: '1px solid #eee' }}>
+              <button onClick={() => setSharedCourse(null)} style={{ width: '100%', padding: '14px', backgroundColor: '#007AFF', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer' }}>
+                확인 완료
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
    )
 }
