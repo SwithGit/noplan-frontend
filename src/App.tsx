@@ -5,6 +5,7 @@ import Login from './Login'
 import Signup from './Signup'
 import MyPage from './MyPage' // 🌸 새로 추가할 마이페이지 컴포넌트 예쁘게 불러오기!
 import Chatbot from './Chatbot'
+import MapBoard from './MapBoard'
 
 function App() {
   const [view, setView] = useState('gallery')
@@ -14,6 +15,7 @@ function App() {
   const [loggedInId, setLoggedInId] = useState('') // 아이디!
   const [loggedInNick, setLoggedInNick] = useState('') // 닉네임
   const [loggedInProfile, setLoggedInProfile] = useState('') // 오빠 프사 주소!
+  const [sharedCourse, setSharedCourse] = useState<any | null>(null);
 
   const [places, setPlaces] = useState([
     { id: 1, name: '태화강 국가정원🎋', desc: '십리대숲이 진짜 좋아!', image:"" },
@@ -33,8 +35,36 @@ function App() {
       // 🚀 코아의 해결책: 빈칸을 꽉꽉 채워주세용!
       setLoggedInId(parsedUser.userId); // 아까 저장할 때 userId로 넣었어용!
       setLoggedInNick(parsedUser.userNick);
-      setLoggedInProfile(parsedUser.profileURL || '');
+      setLoggedInProfile(parsedUser.profileURL || '');      
     }
+
+    const checkSharedLink = async () => {
+      // 주소창에서 '?shared_seq=번호' 이 부분을 쏙 빼와용!
+      const urlParams = new URLSearchParams(window.location.search);
+      const sharedSeq = urlParams.get('shared_seq');
+
+      // 비밀 열쇠가 있다면?!
+      if (sharedSeq) {
+        const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
+        try {
+          // 백엔드한테 "이 번호 코스 내놔!" 하고 뺏어오기! (아까 오빠가 만든 그 API예용!)
+          const response = await fetch(`${API_BASE_URL}/api/get-shared-course?seq=${sharedSeq}`);
+          const result = await response.json();
+
+          if (response.ok && result.success) {
+            // 가져온 JSON 데이터를 예쁘게 풀어서 팝업 상자에 쏙!
+            const parsedData = typeof result.course.course_data === 'string' 
+              ? JSON.parse(result.course.course_data) 
+              : result.course.course_data;
+
+            setSharedCourse({ title: result.course.title, data: parsedData });
+          }
+        } catch (error) {
+          console.error("공유된 코스 불러오기 실패 ㅠㅠ:", error);
+        }
+      }
+    };
+    checkSharedLink();
   }, []);
 
   // 🚀 로그아웃 기능은 마이페이지로 넘겨주기 위해 따로 함수로 빼뒀어용!
