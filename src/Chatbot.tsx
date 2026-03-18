@@ -16,11 +16,10 @@ interface Message {
 }
 
 interface ChatbotProps {
-  userId: string;
   userNick: string;
 }
 
-function Chatbot({ userId, userNick }: ChatbotProps) {
+function Chatbot({userNick }: ChatbotProps) {
   const [messages, setMessages] = useState<Message[]>([
     { id: 1, sender: 'core', text: `안녕하세요, ${userNick}님! 여행 계획을 함께 세워드릴 AI 가이드 코아입니다. 😊` },
     { id: 2, sender: 'core', text: '먼저, 현재 어디에 계신가요? (예: 인사동 쌈지길, 해운대 등)' },

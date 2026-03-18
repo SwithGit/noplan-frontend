@@ -4,12 +4,10 @@ import Gallery from './Gallery'
 import Login from './Login'
 import Signup from './Signup'
 import MyPage from './MyPage' // 🌸 새로 추가할 마이페이지 컴포넌트 예쁘게 불러오기!
-import VipCard from './VipCard'
 import Chatbot from './Chatbot'
 
 function App() {
   const [view, setView] = useState('gallery')
-  const [vipPoint, setVipPoint] = useState(0);
   
   // 오빠가 로그인했는지 기억하는 상태!
   const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -30,10 +28,6 @@ function App() {
   const handleLogout = () => {
     setIsLoggedIn(false)
     setView('login') // 로그아웃하면 로그인 화면으로 슝!
-  }
-
-  const TestPoint = () => {
-    setVipPoint(vipPoint + 100);
   }
 
   return(        
@@ -122,7 +116,7 @@ function App() {
         {/* 🌸 드디어 오빠의 공간, 마이페이지 등장! 로그아웃 리모컨도 같이 넘겨줘용! */}
         {view === 'mypage' && <MyPage onLogout={handleLogout} userId={loggedInId} initialProfile={loggedInProfile} userNick={loggedInNick} />}
 
-        {view === 'chatbot' && <Chatbot userId={loggedInId} userNick={loggedInNick} />}
+        {view === 'chatbot' && <Chatbot userNick={loggedInNick} />}
       </main>
     </div>
    )

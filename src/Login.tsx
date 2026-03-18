@@ -10,8 +10,6 @@ interface LoginProps {
 function Login({ onLoginSuccess, onGoToSignup }: LoginProps) {
   const [id, setId] = useState('')
   const [pw, setPw] = useState('')
-  const [nick, setNick] = useState('')
-
   // 🚀 이제 주소를 직접 안 적고, 리액트가 상황에 맞게 골라 쓰게 해요!
   // Vite에서는 이렇게 써야 빨간 줄이 사라져요!
   const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
