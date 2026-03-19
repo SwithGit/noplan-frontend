@@ -327,6 +327,14 @@ function Chatbot({userNick }: ChatbotProps) {
     );
   };
 
+  const carouselCardStyle: React.CSSProperties = { 
+    minWidth: '260px', // 스마트폰 화면에 딱 맞게 조금 줄였어용!
+    backgroundColor: '#fff', padding: '15px', borderRadius: '20px', 
+    boxShadow: '0 4px 15px rgba(0,0,0,0.05)', scrollSnapAlign: 'start', margin: '0 5px', 
+    display: 'flex', flexDirection: 'column', gap: '8px', cursor: 'pointer', borderLeft: '5px solid #007AFF',
+    flexShrink: 0 // 🚨 카드가 찌그러지지 않게 방어!
+  };
+
   // 스타일 생략 (아까랑 똑같이 유지해주세용!)
   const inputStyle = { padding: '12px', border: '1px solid #ddd', borderRadius: '20px', fontSize: '14px', width: 'calc(100% - 70px)', boxSizing: 'border-box' as const, marginRight: '10px' };
   // 🌸 코아의 센스! AI가 줄바꿈(\n) 해준 걸 그대로 예쁘게 보여주려면 'pre-wrap'이 꼭 필요해용!
@@ -340,137 +348,145 @@ function Chatbot({userNick }: ChatbotProps) {
   return (
     <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '30px', paddingBottom: '50px' }}>
       
-      {/* 🚀 1. 메인 상자에 overflow: hidden 추가!! */}
-      <div style={{ padding: '30px', backgroundColor: 'white', borderRadius: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', width: '400px', height: '600px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      {/* 🚀 메인 상자 */}
+      <div style={{ 
+        padding: '30px', 
+        backgroundColor: 'white', 
+        borderRadius: '25px', 
+        boxShadow: '0 4px 20px rgba(0,0,0,0.1)', 
+        
+        // 🌸 넓이 마법: 스마트폰에선 화면의 90%만 차지하고, PC에선 최대 700px까지만 넓어져라 얍!
+        width: '90%', 
+        maxWidth: '700px', 
+        
+        // 🌸 높이 마법: 화면 높이의 80%를 차지하되, 너무 작아지면 600px은 유지해라 얍!
+        height: '80vh', 
+        minHeight: '600px', 
+        
+        display: 'flex', 
+        flexDirection: 'column', 
+        overflow: 'hidden' 
+      }}>
         <h3 style={{ textAlign: 'center', color: '#007AFF', marginBottom: '20px' }}>NoPlan AI 가이드 🤖</h3>
 
-        {/* --- 🌸 VIEW AREA (설명글 구역 + 지도 구역 통합!) --- */}
+        {/* --- 🌸 VIEW AREA (대화창/결과창 통합!) --- */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', marginBottom: '15px' }}>
           
-          {/* 대화 창 구역 (flexible & scrollable) */}
-          <div id="messages" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', paddingRight: '10px' }}>
-            {messages.map((msg) => {
+          {/* 🚀 Conditional Rendering: 코스 생성 완료(Step 5) & 지도 보기 모드일 때만 변신! */}
+          {currentStep === 5 ? (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               
-              if (msg.text) { return ( <div key={msg.id} style={msg.sender === 'core' ? coreMsgStyle : userMsgStyle}>{msg.text}</div> ); }
+              {/* 🗺️ 1. 지도 영역 (높이 250px 고정, 안 찌그러지게 flexShrink: 0) */}
+              <div style={{ height: '250px', flexShrink: 0, border: '1px solid #eee', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', marginBottom: '5px' }}>
+                <MapBoard courseList={messages[messages.length - 1]?.courseData || []} />
+              </div>
 
-              if (msg.courseData) {
-                return (
-                  <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '20px', width: '100%' }}>
-                    <p style={{ color: '#007AFF', fontWeight: 'bold', margin: '0 0 5px 10px', fontSize: '15px' }}>✨ 코아의 맞춤형 추천 코스 도착!</p>
+              {/* 🚀 2. 예쁜 캐러셀 카드 구역!! (가로 스크롤) */}
+              <div style={{ display: 'flex', overflowX: 'auto', gap: '15px', padding: '10px 5px', alignItems: 'stretch' }}>
+                {messages[messages.length - 1]?.courseData?.map((item, index) => (
+                  <div 
+                    key={index} 
+                    onClick={() => {
+                        const keyword = item.searchKeyword || item.title;
+                        const detailData = MOCK_STORE_DETAILS[keyword] || {
+                          name: keyword,
+                          hanjul: '노플랜 추천 핫플레이스!',
+                          description: '아직 상세 정보를 불러오기 전이라 임시 화면을 보여드리고 있어요! 나중에 찐 데이터로 꽉꽉 채워질 거예요!',
+                          imageUrl: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400',
+                          recommendedMenu: { name: '노플랜 시그니처 메뉴', price: 15000 },
+                          hours: '10:00 ~ 22:00',
+                          parking: true,
+                          ratings: { combined: 4.5, stars: 4 },
+                          reviewLinks: {} 
+                        };
+                        setSelectedStoreDetail(detailData); 
+                    }}
+                    style={{
+                      flex: '0 0 260px', // 🚨 핵심 마법! 카드 넓이를 260px로 완전 고정! 절대 안 늘어나용!
+                      backgroundColor: '#f8f9fa', 
+                      padding: '15px', 
+                      borderRadius: '20px', 
+                      boxShadow: '0 4px 10px rgba(0,0,0,0.03)',
+                      borderLeft: '5px solid #007AFF',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column'
+                    }}
+                  >
+                    <p style={{ color: '#888', fontSize: '12px', fontWeight: 'bold', margin: '0 0 5px 0' }}>⏰ {item.time}</p>
                     
-                    {msg.courseData.map((item, index) => (
-                      /* 🚀 코아가 추가한 마법! 카드 전체를 클릭 가능하게 만들고, 손가락 모양 추가! */
-                      <div 
-                        key={index} 
-                        /* 🚀 코아가 수정한 마법! 어떤 장소든 무조건 팝업창 열어주기! */
-                        onClick={() => {
-                          const keyword = item.searchKeyword || item.title;
-                          
-                          // 상자에 똑같은 이름이 있으면 그거 쓰고, 없으면 '만능 임시 데이터'를 뚝딱 만들어서 줘용!
-                          const detailData = MOCK_STORE_DETAILS[keyword] || {
-                            name: keyword, // 가게 이름은 AI가 찾아온 찐 이름으로 딱!
-                            hanjul: '노플랜이 추천하는 핫플레이스!',
-                            description: '아직 상세 정보를 불러오기 전이라 임시 화면을 보여드리고 있어요! 나중에 백엔드 API가 완벽하게 연결되면 여기에 진짜 리뷰랑 정보들이 꽉꽉 채워질 거예요!',
-                            imageUrl: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400', // 예쁜 기본 이미지!
-                            recommendedMenu: { name: '노플랜 시그니처 메뉴', price: 15000 },
-                            hours: '10:00 ~ 22:00',
-                            parking: true,
-                            ratings: { combined: 4.5, stars: 4 },
-                            reviewLinks: {} 
-                          };
-
-                          // 튕겨내는 alert 창은 쿨하게 없애버리고, 무조건 팝업창 켜기!!
-                          setSelectedStoreDetail(detailData); 
-                        }}
-                        style={{ backgroundColor: '#f0f2f5', padding: '15px', borderRadius: '15px', borderLeft: '5px solid #007AFF', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', cursor: 'pointer' }}
-                      >
-                        <p style={{ color: '#888', fontSize: '12px', fontWeight: 'bold', margin: '0 0 5px 0' }}>⏰ {item.time}</p>
-                        
-                        {/* 까만색 감성 제목 + 파란색 진짜 핫플 가게명 */}
-                        <p style={{ color: '#333', fontSize: '15px', fontWeight: 'bold', margin: '0 0 5px 0' }}>✨ {item.title}</p>
-                        <p style={{ color: '#007AFF', fontSize: '16px', fontWeight: 'bold', margin: '0 0 10px 0' }}>📍 {item.searchKeyword || item.title}</p>
-
-                        <p style={{ color: '#555', fontSize: '13px', lineHeight: '1.6', margin: 0 }}>{item.description}</p>
-                      </div>
-                    ))}
+                    {/* 🚨 글자가 길어도 카드 밖으로 안 나가게 줄바꿈 마법(wordBreak) 추가! */}
+                    <p style={{ color: '#333', fontSize: '15px', fontWeight: 'bold', margin: '0 0 5px 0', whiteSpace: 'normal', wordBreak: 'keep-all' }}>✨ {item.title}</p>
+                    <p style={{ color: '#007AFF', fontSize: '14px', fontWeight: 'bold', margin: '0 0 8px 0', whiteSpace: 'normal', wordBreak: 'keep-all' }}>📍 {item.searchKeyword || item.title}</p>
+                    
+                    <p style={{ color: '#555', fontSize: '13px', lineHeight: '1.5', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', whiteSpace: 'normal' }}>
+                      {item.description}
+                    </p>
                   </div>
-                );
-              }
-              return null;
-            })}
-            <div ref={messagesEndRef} /> {/* 스크롤용 div */}
-          </div>
-
-          {/* 🚀 3. 🗺️ 지도 영역 (고정 높이 설정!) - 대화창 아래, 푸터 위에 렌더링하도록 이동! */}
-          {currentStep === 5 && showMap && (
-            <div style={{ height: '220px', marginTop: '15px', border: '1px solid #eee', borderRadius: '15px', overflow: 'hidden', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
-              <MapBoard courseList={messages[messages.length - 1]?.courseData || []} />
+                ))}
+              </div>
+            </div>
+          ) : (
+            // ❌ 기존 대화 창 구역 (Results View가 아닐 때 보여줌)
+            <div id="messages" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', paddingRight: '10px' }}>
+              {messages.map((msg) => {
+                if (msg.text) { return ( <div key={msg.id} style={msg.sender === 'core' ? coreMsgStyle : userMsgStyle}>{msg.text}</div> ); }
+                // standard courseData rendering ( Results View에선 가로 캐러셀로 보여주니까 지워도 되지만, 
+                // 혹시 모르니 Step 5가 아니거나 지도 안 볼 때만 보여주게 안전장치! )
+                if (msg.courseData && currentStep !== 5) {
+                    return (
+                        <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '20px', width: '100%' }}>
+                            <p style={{ color: '#007AFF', fontWeight: 'bold', margin: '0 0 5px 10px', fontSize: '15px' }}>✨ 코아의 맞춤형 추천 코스 도착!</p>
+                            {msg.courseData.map((item, index) => ( <div key={index} onClick={() => { /* 팝업창 로직 */ }} style={{ /* 기존 standard card style */ }}><p style={{ /* 기존 styles */ }}>✨ {item.title}</p><p style={{ /* 기존 styles */ }}>📍 {item.searchKeyword || item.title}</p></div> ))}
+                        </div>
+                    );
+                }
+                return null;
+              })}
+              <div ref={messagesEndRef} />
             </div>
           )}
         </div>
         
         {/* --- 🌸 FOOTER AREA (Buttons 구역) --- */}
-        <div style={{ borderTop: '1px solid #eee', paddingTop: '15px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ borderTop: '1px solid #eee', paddingTop: '15px', display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
           
-          {/* Steps 0-3 Inputs logic (기존 코드 유지) ... */}
+          {/* Steps 0-3 Inputs logic (기존 그대로 유지) */}
           {(currentStep === 0 || currentStep === 2 || currentStep === 3) && ( 
               <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-                
-                {/* 🚀 코아가 추가한 '내 위치로 찾기' 버튼! (처음 물어보는 0단계에서만 보여용!) */}
-                {currentStep === 0 && (
-                  <button 
-                    onClick={handleMyLocation} 
-                    style={{ marginBottom: '10px', padding: '12px', backgroundColor: '#e8f0fe', color: '#007AFF', border: '1px solid #007AFF', borderRadius: '15px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}
-                  >
-                    📍 내 현재 위치로 핫플 찾기
-                  </button>
-                )}
-
-                {/* 원래 있던 입력창이랑 전송 버튼을 가로로 묶어줘용! */}
-                <div style={{ display: 'flex', width: '100%' }}>
-                  <input type="text" placeholder={currentStep === 3 ? "원하는 분위기를 자유롭게 적어주세요!" : "입력해 주세요."} value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSendMessage(inputValue)} style={inputStyle} /> 
-                  <button onClick={() => handleSendMessage(inputValue)} style={{ padding: '12px', backgroundColor: '#007AFF', color: 'white', border: 'none', borderRadius: '20px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}>전송</button> 
-                </div>
-
+                  {/* 내 위치로 찾기 버튼 (처음 질문 0단계에서만 보여용!) */}
+                  {currentStep === 0 && ( <button onClick={handleMyLocation} style={{ marginBottom: '10px', padding: '12px', backgroundColor: '#e8f0fe', color: '#007AFF', border: '1px solid #007AFF', borderRadius: '15px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}> 📍 내 현재 위치로 핫플 찾기 </button> )}
+                  <div style={{ display: 'flex', width: '100%' }}>
+                      <input type="text" placeholder={currentStep === 3 ? "원하는 분위기를 자유롭게 적어주세요!" : "입력해 주세요."} value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSendMessage(inputValue)} style={inputStyle} /> 
+                      <button onClick={() => handleSendMessage(inputValue)} style={{ padding: '12px', backgroundColor: '#007AFF', color: 'white', border: 'none', borderRadius: '20px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}>전송</button> 
+                  </div>
               </div>
-            )}
+          )}
+
           {currentStep === 1 && ( <div style={{ display: 'flex', gap: '10px', width: '100%', justifyContent: 'center' }}> {[1, 2, 3, 4, 5].map((num) => ( <button key={num} onClick={() => handleSendMessage(`${num}명`)} style={{ flex: 1, padding: '10px', backgroundColor: 'white', border: '2px solid #007AFF', color: '#007AFF', borderRadius: '15px', fontWeight: 'bold', cursor: 'pointer' }}> {num}명 </button> ))} </div> )}
           {currentStep === 4 && ( <p style={{ width: '100%', textAlign: 'center', color: '#888', fontSize: '14px', margin: 0 }}> 코아가 열심히 코스를 짜고 있어요... 🚀 </p> )}
 
-          {/* Step 5 결과 버튼 구역 - 🚀 <MapBoard> 렌더링 로직은 여기서 제거! */}
+          {/* Step 5 결과 버튼 구역 (지도는 Results View에서 고정으로 보여주니까, 지도 보기 버튼은 없애고 나머지만!) */}
           {currentStep === 5 && (
             <div style={{ width: '100%', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
-              
-              {/* 추천 코스 지도로 한눈에 보기 버튼 (지도 안 켜져 있을 때만 보여주기!) */}
-              {!showMap && (
-                <button 
-                  onClick={() => setShowMap(true)}
-                  style={{ padding: '12px 20px', backgroundColor: 'rgb(0, 122, 255)', color: 'white', border: 'none', borderRadius: '15px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '5px', width: '100%' }}
-                >
-                  추천 코스 지도로 한눈에 보기 🗺️
-                </button>
-              )}
+              <button onClick={() => { setMessages([{ id: Date.now(), sender: 'core', text: '다시 새로운 여행을 떠나볼까요? 현재 어디에 계신가요?' }]); setCurrentStep(0); setSavedCourseId(null); setSearchCourseId(null); setTravelData({ location: '', pax: '', purpose: '', vibe: '' }); setShowMap(false); setSelectedStoreDetail(null); // 처음부터 다시 짤 땐 상세 정보 상자도 비워용!
+              }} style={{ padding: '10px 20px', backgroundColor: 'rgb(240, 242, 245)', color: 'rgb(51, 51, 51)', border: 'none', borderRadius: '15px', fontWeight: 'bold', cursor: 'pointer', width: '100%' }}> 처음부터 다시 짜기 🔄 </button>
 
-              {/* 처음부터 다시 짜기 버튼 (기존 코드 유지) */}
-              <button 
-                onClick={() => { setMessages([{ id: Date.now(), sender: 'core', text: '다시 새로운 여행을 떠나볼까요? 현재 어디에 계신가요?' }]); setCurrentStep(0); setSavedCourseId(null); setTravelData({ location: '', pax: '', purpose: '', vibe: '' }); setShowMap(false); }}
-                style={{ padding: '10px 20px', backgroundColor: 'rgb(240, 242, 245)', color: 'rgb(51, 51, 51)', border: 'none', borderRadius: '15px', fontWeight: 'bold', cursor: 'pointer', width: '100%' }}
-              >
-                처음부터 다시 짜기 🔄
-              </button>
-
-              {/* Save/Share Buttons logic (기존 코드 유지) */}
               {messages[messages.length - 1]?.courseData && messages[messages.length - 1].courseData!.length > 0 && (
                 <div style={{ display: 'flex', gap: '10px', marginTop: '15px', justifyContent: 'center', width: '100%' }}>
                   <button onClick={handleSaveCourse} style={{ flex: 1, padding: '12px 20px', backgroundColor: '#ff3b30', color: 'white', border: 'none', borderRadius: '15px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>💖 코스 찜하기</button>
-                  <button onClick={handleCopyLink} style={{ flex: 1, padding: '12px 20px', backgroundColor: '#FEE500', color: '#391B1B', border: 'none', borderRadius: '15px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>💬 공유하기</button>
+                  <button onClick={handleCopyLink} style={{ flex: 1, padding: '12px 20px', backgroundColor: '#fedc3e', color: '#391b1b', border: 'none', borderRadius: '15px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>💬 링크 복사</button> 
                 </div>
               )}
             </div>
           )}
         </div>
-      </div>
+
+      </div> {/* Chatbot 메인 박스 끝 */}
+
+      {/* 가게 상세 정보 팝업창 등장!! */}
       <StoreDetailModal detail={selectedStoreDetail} onClose={() => setSelectedStoreDetail(null)} />
+
     </div>
   );
 }
