@@ -196,7 +196,7 @@ function App() {
                 {sharedCourse.data.map((item: any, idx: number) => (
                   <div key={idx} style={{ backgroundColor: '#f0f2f5', padding: '15px', borderRadius: '15px', borderLeft: '5px solid #007AFF' }}>
                     <p style={{ color: '#888', fontSize: '12px', fontWeight: 'bold', margin: '0 0 5px 0' }}>⏰ {item.time}</p>
-                    <p style={{ color: '#333', fontSize: '16px', fontWeight: 'bold', margin: '0 0 10px 0' }}>📍 {item.title}</p>
+                    <p style={{ color: '#333', fontSize: '16px', fontWeight: 'bold', margin: '0 0 10px 0' }}>📍 {item.searchKeyword}</p>
                     <p style={{ color: '#555', fontSize: '13px', lineHeight: '1.6', margin: 0 }}>{item.description}</p>
                   </div>
                 ))}
