@@ -189,7 +189,8 @@ function App() {
 
             <div style={{ padding: '20px', overflowY: 'auto', flex: 1 }}>
               <div style={{ marginBottom: '20px' }}>
-                <MapBoard courseList={sharedCourse.data} />
+                <MapBoard courseList={sharedCourse.data} 
+                userLocation= {sharedCourse.data[0]?.searchKeyword?.split(' ')[0] || sharedCourse.title?.split(' ')[0] || '서울'} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                 {sharedCourse.data.map((item: any, idx: number) => (

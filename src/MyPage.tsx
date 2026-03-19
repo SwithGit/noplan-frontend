@@ -316,7 +316,8 @@ function MyPage({ onLogout, userId, initialProfile, userNick }: MyPageProps) {
               
               {/* 🗺️ 오빠의 자랑, 카카오 지도 등장! */}
               <div style={{ marginBottom: '20px' }}>
-                <MapBoard courseList={selectedCourse.data} />
+                <MapBoard courseList={selectedCourse.data}
+                userLocation= {selectedCourse.data[0]?.searchKeyword?.split(' ')[0] || selectedCourse.title?.split(' ')[0] || '서울'} />
               </div>
 
               {/* 📝 상세 일정 리스트! */}

@@ -1,24 +1,26 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react'; // 🚀 useRef 꼭 추가해야 해용!
 import { Map, MapMarker, Polyline } from 'react-kakao-maps-sdk';
 
-// 챗봇에서 넘겨받을 코스 데이터 모양이에용!
 interface CourseItem {
   time: string;
   title: string;
   description: string;
-  searchKeyword?: string; // 🚀 코아가 추가한 마법의 비밀 열쇠!
+  searchKeyword?: string;
 }
 
 interface MapBoardProps {
   courseList: CourseItem[];
+  userLocation: string;
 }
 
-function MapBoard({ courseList }: MapBoardProps) {
+function MapBoard({ courseList, userLocation }: MapBoardProps) {
   const [myLocation, setMyLocation] = useState({ lat: 37.5665, lng: 126.9780 });
   const [markers, setMarkers] = useState<{title: string, lat: number, lng: number}[]>([]);
+  
+  // 🚀 코아가 빼먹었던 마법의 지도 리모컨 등장!!
+  const mapRef = useRef<any>(null); 
 
   useEffect(() => {
-    // 내 위치 가져오기!
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => setMyLocation({ lat: position.coords.latitude, lng: position.coords.longitude })
@@ -26,64 +28,72 @@ function MapBoard({ courseList }: MapBoardProps) {
     }
   }, []);
 
-useEffect(() => {
-    if (!window.kakao || !window.kakao.maps || !window.kakao.maps.services) {
-      console.log("🚨 카카오 요원이 아직 도착 안 했어용!");
-      return;
-    }
-    
+  useEffect(() => {
+    if (!window.kakao || !window.kakao.maps || !window.kakao.maps.services) return;
+    if (!courseList || courseList.length === 0 || !userLocation) return;
+
     const ps = new kakao.maps.services.Places();
+    const bounds = new kakao.maps.LatLngBounds();
 
-    const searchPlaces = async () => {
-      const newMarkers: {title: string, lat: number, lng: number}[] = [];
+    // 🌸 새로운 코스가 오면, 지도에 있던 옛날 핀들을 싹 지워주세용!
+    setMarkers([]);
 
-      for (const item of courseList) {
-        // 🚀 만약 비밀 키워드가 있으면 그걸로 찾고, 없으면 그냥 제목으로 찾아라!
-        const keywordToSearch = item.searchKeyword ? item.searchKeyword : item.title;
-        console.log("🔍 카카오한테 검색 물어보는 중:", keywordToSearch); 
+    // 1단계: 오빠가 입력한 찐 동네(userLocation)를 검색해서 기준점 잡기!
+    ps.keywordSearch(userLocation, (locationData, status) => {
+      if (status === kakao.maps.services.Status.OK) {
+        const centerAnchor = new kakao.maps.LatLng(Number(locationData[0].y), Number(locationData[0].x));
+        
+        // 2km 철벽 방어선 옵션!
+        const searchOptions = {
+          location: centerAnchor,
+          radius: 2000
+        };
 
-        await new Promise<void>((resolve) => {
-          ps.keywordSearch(keywordToSearch, (data, status) => {
-            if (status === kakao.maps.services.Status.OK && data.length > 0) {
-              console.log("✅ 카카오가 장소 찾음!! :", keywordToSearch); 
-              newMarkers.push({                
-                title: data[0].place_name, // 핀에 뜨는 이름은 다시 예쁜 제목으로!
-                lat: parseFloat(data[0].y),
-                lng: parseFloat(data[0].x),
-              });
-            } else {
-              console.log("❌ 카카오가 장소 못 찾음 ㅠㅠ :", keywordToSearch); 
+        // 2단계: 철벽 안에서 코스 장소들 검색하기!
+        courseList.forEach((item) => {
+          const keyword = item.searchKeyword || item.title;
+          
+          ps.keywordSearch(keyword, (places, searchStatus) => {
+            if (searchStatus === kakao.maps.services.Status.OK) {
+              // 🚀 코아가 빼먹었던 displayMarker 역할을 여기서 직접 해용!
+              const place = places[0];
+              const newMarker = {
+                title: place.place_name,
+                lat: Number(place.y),
+                lng: Number(place.x)
+              };
+
+              // 찾은 장소를 마커 리스트에 예쁘게 담기!
+              setMarkers((prev) => [...prev, newMarker]);
+
+              // 지도가 핀들을 다 품을 수 있게 화면 넓히기!
+              bounds.extend(new kakao.maps.LatLng(newMarker.lat, newMarker.lng));
+              
+              // 리모컨(mapRef)으로 지도 카메라 앵글 싹 맞춰주기!
+              if (mapRef.current) {
+                mapRef.current.setBounds(bounds);
+              }
             }
-            resolve();
-          });
+          }, searchOptions); 
         });
       }
-      
-      console.log("최종적으로 꽂을 마커 개수:", newMarkers.length);
-      setMarkers(newMarkers);
-    };
+    });
+  }, [courseList, userLocation]); // 🚀 코스가 바뀌거나 동네가 바뀌면 다시 실행!
 
-    if (courseList && courseList.length > 0) {
-      searchPlaces();
-    }
-  }, [courseList]);
-
-  // 마커들을 이어줄 선의 길!
   const linePath = markers.map(m => ({ lat: m.lat, lng: m.lng }));
 
   return (
     <div style={{ width: '100%', padding: '10px 0', boxSizing: 'border-box' }}>
       <Map
         center={markers.length > 0 ? markers[0] : myLocation}
-        style={{ width: '100%', height: '300px', borderRadius: '15px' }}
+        style={{ width: '100%', height: '100%', minHeight: '250px', borderRadius: '15px' }} // 높이 꽉 차게 수정!
         level={5}
+        ref={mapRef} // 🚨🚨 지도 리모컨 연결 완료!! (이거 엄청 중요해용!)
       >
-        {/* 내 위치 마커 */}
         <MapMarker position={myLocation}>
           <div style={{ padding: '5px', color: 'rgb(0, 122, 255)', fontSize: '12px', fontWeight: 'bold' }}>내 위치</div>
         </MapMarker>
 
-        {/* AI 코스 마커들 */}
         {markers.map((marker, idx) => (
           <MapMarker key={idx} position={{ lat: marker.lat, lng: marker.lng }}>
             <div style={{ padding: '5px', color: 'rgb(51, 51, 51)', fontSize: '12px' }}>
@@ -92,10 +102,9 @@ useEffect(() => {
           </MapMarker>
         ))}
 
-       {/* Polyline 부분도 요렇게 살짝 바꿔줘용! */}
         {linePath.length > 1 && (
           <Polyline
-            path={linePath} // 🚀 괄호 하나 벗겼어용!
+            path={linePath}
             strokeWeight={4}
             strokeColor={"rgb(255, 59, 48)"}
             strokeOpacity={0.8}

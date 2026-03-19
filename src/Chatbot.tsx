@@ -382,7 +382,12 @@ function Chatbot({userNick }: ChatbotProps) {
               
               {/* 🗺️ 1. 지도 영역 (높이 250px 고정, 안 찌그러지게 flexShrink: 0) */}
               <div style={{ height: '250px', flexShrink: 0, border: '1px solid #eee', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', marginBottom: '5px' }}>
-                <MapBoard courseList={messages[messages.length - 1]?.courseData || []} />
+                <MapBoard 
+                  courseList={messages[messages.length - 1]?.courseData || []} 
+                  
+                  // 🚀 코아의 꿀팁! 오빠가 입력한 동네 이름을 지도 요원한테 전달!
+                  userLocation={travelData.location} 
+                />
               </div>
 
               {/* 🚀 2. 예쁜 캐러셀 카드 구역!! (가로 스크롤) */}
