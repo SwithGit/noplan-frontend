@@ -46,8 +46,8 @@ useEffect(() => {
           ps.keywordSearch(keywordToSearch, (data, status) => {
             if (status === kakao.maps.services.Status.OK && data.length > 0) {
               console.log("✅ 카카오가 장소 찾음!! :", keywordToSearch); 
-              newMarkers.push({
-                title: item.title, // 핀에 뜨는 이름은 다시 예쁜 제목으로!
+              newMarkers.push({                
+                title: data[0].place_name, // 핀에 뜨는 이름은 다시 예쁜 제목으로!
                 lat: parseFloat(data[0].y),
                 lng: parseFloat(data[0].x),
               });

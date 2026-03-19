@@ -42,13 +42,13 @@ function App() {
       // 주소창에서 '?shared_seq=번호' 이 부분을 쏙 빼와용!
       const urlParams = new URLSearchParams(window.location.search);
       const sharedSeq = urlParams.get('shared_seq');
-
+      const sharedType = urlParams.get('type') || 'saved'; // 🚀 혹시 type이 없으면 옛날 링크니까 saved로 간주!
       // 비밀 열쇠가 있다면?!
       if (sharedSeq) {
         const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
         try {
           // 백엔드한테 "이 번호 코스 내놔!" 하고 뺏어오기! (아까 오빠가 만든 그 API예용!)
-          const response = await fetch(`${API_BASE_URL}/api/get-shared-course?seq=${sharedSeq}`);
+          const response = await fetch(`${API_BASE_URL}/api/get-shared-course?seq=${sharedSeq}&type=${sharedType}`);
           const result = await response.json();
 
           if (response.ok && result.success) {

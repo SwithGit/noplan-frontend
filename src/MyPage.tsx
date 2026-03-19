@@ -19,6 +19,7 @@ function MyPage({ onLogout, userId, initialProfile, userNick }: MyPageProps) {
   });
 
   const [savedCourses, setSavedCourses] = useState<any[]>([]);
+  const [recentCourses, setRecentCourses] = useState<any[]>([]);  
   const [selectedCourse, setSelectedCourse] = useState<any | null>(null);
 
   useEffect(() => {
@@ -53,9 +54,28 @@ function MyPage({ onLogout, userId, initialProfile, userNick }: MyPageProps) {
     }
   };
 
+    const fetchCourses = async () => {
+      const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
+      try {
+        // 기존 찜한 코스 불러오기
+        const savedRes = await fetch(`${API_BASE_URL}/api/saved-courses?userId=${userId}`);
+        const savedData = await savedRes.json();
+        if (savedData.success) setSavedCourses(savedData.courses);
+
+        // 🚀 최근 검색 코스 불러오기 추가!
+        const recentRes = await fetch(`${API_BASE_URL}/api/recent-courses?userId=${userId}`);
+        const recentData = await recentRes.json();
+        if (recentData.success) setRecentCourses(recentData.courses);
+        
+      } catch (error) {
+        console.error('코스 불러오기 에러 ㅠㅠ', error);
+      }
+    };
+
     if (userId) { // 오빠 아이디가 있을 때만 실행하게 안전장치 딱!
       fetchUserInfo();
       fetchSavedCourses();
+      fetchCourses();
     }
   }, [userId]); // <- 이 대괄호의 뜻: "userId가 세팅될 때 이 요원을 한 번만 출동시켜라!"
 
@@ -173,7 +193,7 @@ function MyPage({ onLogout, userId, initialProfile, userNick }: MyPageProps) {
           {/* 찜한 코스가 하나도 없을 때! */}
           {savedCourses.length === 0 ? (
             <p style={{ color: '#888', fontSize: '13px', textAlign: 'center', padding: '20px', backgroundColor: '#f0f2f5', borderRadius: '12px', margin: 0 }}>
-              아직 찜한 코스가 없어용! 얼른 코스를 짜러 가볼까요?! 🏃‍♂️💨
+              아직 찜한 코스가 없어요! 얼른 코스를 짜러 가볼까요?! 🏃‍♂️💨
             </p>
           ) : (
             // 찜한 코스들이 있을 때 리스트로 쫙 보여주기!
@@ -193,6 +213,73 @@ function MyPage({ onLogout, userId, initialProfile, userNick }: MyPageProps) {
                   <p style={{ fontSize: '12px', color: '#aaa', margin: 0 }}>
                     저장일: {new Date(course.created_at).toLocaleDateString('ko-KR')}
                   </p>
+
+                  <button 
+                      onClick={(e) => {
+                        e.stopPropagation(); // 🚨 방어막 작동! 팝업창 뜨는 걸 막아줘용!
+                        
+                        // 🌸 찜한 코스 목록이면 type=saved, 검색 코스 목록이면 type=search 로 바꿔주세용!
+                        const linkToCopy = `https://plamad.xyz?type=saved&seq=${course.id}`;
+                        
+                        navigator.clipboard.writeText(linkToCopy).then(() => {
+                          alert("💖 링크가 예쁘게 복사되었어요!");
+                        });
+                      }}
+                      style={{ padding: '6px 12px', fontSize: '12px', backgroundColor: '#f0f2f5', border: 'none', borderRadius: '8px', cursor: 'pointer', color: '#555', fontWeight: 'bold' }}
+                    >
+                      🔗 공유
+                    </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* 💖 나만의 여행 서랍 구역! */}
+        <div style={{ textAlign: 'left', marginBottom: '30px' }}>
+          <h3 style={{ color: '#ff3b30', fontSize: '16px', marginBottom: '15px' }}>
+            💖 검색 기록
+          </h3>
+          
+          {/* 찜한 코스가 하나도 없을 때! */}
+          {recentCourses.length === 0 ? (
+            <p style={{ color: '#888', fontSize: '13px', textAlign: 'center', padding: '20px', backgroundColor: '#f0f2f5', borderRadius: '12px', margin: 0 }}>
+              아직 기록이 없어요! 얼른 코스를 짜러 가볼까요?! 🏃‍♂️💨
+            </p>
+          ) : (
+            // 찜한 코스들이 있을 때 리스트로 쫙 보여주기!
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '250px', overflowY: 'auto', paddingRight: '5px' }}>
+              {recentCourses.map((course) => (
+                <div key={course.id} 
+                onClick={() => {
+                    const parsedData = typeof course.course_data === 'string' 
+                      ? JSON.parse(course.course_data) 
+                      : course.course_data;
+                    setSelectedCourse({ title: course.title, data: parsedData });
+                  }}
+                style={{ padding: '15px', backgroundColor: '#fff', borderRadius: '12px', borderLeft: '4px solid #ff3b30', border: '1px solid #eee', boxShadow: '0 2px 5px rgba(0,0,0,0.02)', cursor: 'pointer' }}>
+                  <p style={{ fontWeight: 'bold', fontSize: '14px', color: '#333', margin: '0 0 5px 0' }}>
+                    {course.title}
+                  </p>
+                  <p style={{ fontSize: '12px', color: '#aaa', margin: 0 }}>
+                    저장일: {new Date(course.created_at).toLocaleDateString('ko-KR')}
+                  </p>
+
+                  <button 
+                      onClick={(e) => {
+                        e.stopPropagation(); // 🚨 방어막 작동! 팝업창 뜨는 걸 막아줘용!
+                        
+                        // 🌸 찜한 코스 목록이면 type=saved, 검색 코스 목록이면 type=search 로 바꿔주세용!
+                        const linkToCopy = `https://plamad.xyz?type=saved&seq=${course.id}`;
+                        
+                        navigator.clipboard.writeText(linkToCopy).then(() => {
+                          alert("💖 링크가 예쁘게 복사되었어요!");
+                        });
+                      }}
+                      style={{ padding: '6px 12px', fontSize: '12px', backgroundColor: '#f0f2f5', border: 'none', borderRadius: '8px', cursor: 'pointer', color: '#555', fontWeight: 'bold' }}
+                    >
+                      🔗 공유
+                    </button>
                 </div>
               ))}
             </div>
@@ -237,7 +324,7 @@ function MyPage({ onLogout, userId, initialProfile, userNick }: MyPageProps) {
                 {selectedCourse.data.map((item: any, idx: number) => (
                   <div key={idx} style={{ backgroundColor: '#f0f2f5', padding: '15px', borderRadius: '15px', borderLeft: '5px solid #007AFF' }}>
                     <p style={{ color: '#888', fontSize: '12px', fontWeight: 'bold', margin: '0 0 5px 0' }}>⏰ {item.time}</p>
-                    <p style={{ color: '#333', fontSize: '16px', fontWeight: 'bold', margin: '0 0 10px 0' }}>📍 {item.title}</p>
+                    <p style={{ color: '#333', fontSize: '16px', fontWeight: 'bold', margin: '0 0 10px 0' }}>📍 {item.searchKeyword}</p>
                     <p style={{ color: '#555', fontSize: '13px', lineHeight: '1.6', margin: 0 }}>{item.description}</p>
                   </div>
                 ))}
