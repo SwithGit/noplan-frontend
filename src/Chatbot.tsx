@@ -292,9 +292,14 @@ function Chatbot({userNick }: ChatbotProps) {
   // 🚀 코아의 특급 마법! 내 위치 찾아서 챗봇한테 바로 전송하기!
   const handleMyLocation = () => {
     if (!navigator.geolocation) {
-      alert("앗! 오빠 브라우저에서는 위치 확인을 지원하지 않아요 ㅠㅠ");
+      alert("앗! 이 브라우저에서는 위치 확인을 지원하지 않아요 ㅠㅠ");
       return;
     }
+
+    setMessages((prev) => [
+      ...prev,
+      { id: Date.now(), sender: 'core', text: "위치를 위성으로 찾고 있어요! 조금만 기다려주세요... 🛰️✨" }
+    ]);
 
     // 오빠의 GPS 위치를 찾아라!
     navigator.geolocation.getCurrentPosition(
@@ -302,22 +307,16 @@ function Chatbot({userNick }: ChatbotProps) {
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
 
-        // 🚀 카카오 요원한테 이 좌표가 무슨 동네인지 물어봐용!
         if (window.kakao && window.kakao.maps && window.kakao.maps.services) {
           const geocoder = new kakao.maps.services.Geocoder();
           geocoder.coord2RegionCode(lng, lat, (result: any, status: any) => {
             if (status === kakao.maps.services.Status.OK) {
-              // 읍/면/동 이름만 쏙 빼오기! (예: 역삼동, 상봉동)
               const regionName = result.find((r: any) => r.region_type === 'H')?.address_name || result[0].address_name;
               
-              // 찾은 동네 이름으로 바로 채팅 전송해 버리기!!
+              // 🚀 2단계: 주소 찾으면 그때 동네 이름을 슝!
               handleSendMessage(regionName); 
-            } else {
-              alert("위치를 주소로 바꾸는 데 실패했어요 ㅠㅠ 동네 이름을 직접 입력해 주세요!");
             }
           });
-        } else {
-          alert("카카오 지도가 아직 준비 안 됐어요 ㅠㅠ 조금만 있다가 다시 눌러주세요!");
         }
       },
       (error) => {
