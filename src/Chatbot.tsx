@@ -82,7 +82,7 @@ function Chatbot({userNick }: ChatbotProps) {
 
   const [currentStep, setCurrentStep] = useState(0); 
   const [inputValue, setInputValue] = useState(''); 
-  const [showMap, setShowMap] = useState(false);  
+  //const [showMap, setShowMap] = useState(false);  
   const [savedCourseId, setSavedCourseId] = useState<number | null>(null);
   const [searchCourseId, setSearchCourseId] = useState<number | null>(null);
   const [selectedStoreDetail, setSelectedStoreDetail] = useState<StoreDetail | null>(null);
@@ -328,11 +328,15 @@ function Chatbot({userNick }: ChatbotProps) {
   };
 
   const carouselCardStyle: React.CSSProperties = { 
-    minWidth: '260px', // 스마트폰 화면에 딱 맞게 조금 줄였어용!
-    backgroundColor: '#fff', padding: '15px', borderRadius: '20px', 
-    boxShadow: '0 4px 15px rgba(0,0,0,0.05)', scrollSnapAlign: 'start', margin: '0 5px', 
-    display: 'flex', flexDirection: 'column', gap: '8px', cursor: 'pointer', borderLeft: '5px solid #007AFF',
-    flexShrink: 0 // 🚨 카드가 찌그러지지 않게 방어!
+    flex: '0 0 260px', // 🚨 핵심 마법! 카드 넓이를 260px로 완전 고정! 절대 안 늘어나용!
+    backgroundColor: '#f8f9fa', 
+    padding: '15px', 
+    borderRadius: '20px', 
+    boxShadow: '0 4px 10px rgba(0,0,0,0.03)',
+    borderLeft: '5px solid #007AFF',
+    cursor: 'pointer',
+    display: 'flex',
+    flexDirection: 'column'
   };
 
   // 스타일 생략 (아까랑 똑같이 유지해주세용!)
@@ -401,17 +405,7 @@ function Chatbot({userNick }: ChatbotProps) {
                         };
                         setSelectedStoreDetail(detailData); 
                     }}
-                    style={{
-                      flex: '0 0 260px', // 🚨 핵심 마법! 카드 넓이를 260px로 완전 고정! 절대 안 늘어나용!
-                      backgroundColor: '#f8f9fa', 
-                      padding: '15px', 
-                      borderRadius: '20px', 
-                      boxShadow: '0 4px 10px rgba(0,0,0,0.03)',
-                      borderLeft: '5px solid #007AFF',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      flexDirection: 'column'
-                    }}
+                    style={carouselCardStyle}
                   >
                     <p style={{ color: '#888', fontSize: '12px', fontWeight: 'bold', margin: '0 0 5px 0' }}>⏰ {item.time}</p>
                     
@@ -469,7 +463,7 @@ function Chatbot({userNick }: ChatbotProps) {
           {/* Step 5 결과 버튼 구역 (지도는 Results View에서 고정으로 보여주니까, 지도 보기 버튼은 없애고 나머지만!) */}
           {currentStep === 5 && (
             <div style={{ width: '100%', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
-              <button onClick={() => { setMessages([{ id: Date.now(), sender: 'core', text: '다시 새로운 여행을 떠나볼까요? 현재 어디에 계신가요?' }]); setCurrentStep(0); setSavedCourseId(null); setSearchCourseId(null); setTravelData({ location: '', pax: '', purpose: '', vibe: '' }); setShowMap(false); setSelectedStoreDetail(null); // 처음부터 다시 짤 땐 상세 정보 상자도 비워용!
+              <button onClick={() => { setMessages([{ id: Date.now(), sender: 'core', text: '다시 새로운 여행을 떠나볼까요? 현재 어디에 계신가요?' }]); setCurrentStep(0); setSavedCourseId(null); setSearchCourseId(null); setTravelData({ location: '', pax: '', purpose: '', vibe: '' }); setSelectedStoreDetail(null); // 처음부터 다시 짤 땐 상세 정보 상자도 비워용!
               }} style={{ padding: '10px 20px', backgroundColor: 'rgb(240, 242, 245)', color: 'rgb(51, 51, 51)', border: 'none', borderRadius: '15px', fontWeight: 'bold', cursor: 'pointer', width: '100%' }}> 처음부터 다시 짜기 🔄 </button>
 
               {messages[messages.length - 1]?.courseData && messages[messages.length - 1].courseData!.length > 0 && (
