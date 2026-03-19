@@ -41,7 +41,7 @@ function App() {
     const checkSharedLink = async () => {
       // 주소창에서 '?shared_seq=번호' 이 부분을 쏙 빼와용!
       const urlParams = new URLSearchParams(window.location.search);
-      const sharedSeq = urlParams.get('shared_seq');
+      const sharedSeq = urlParams.get('seq');
       const sharedType = urlParams.get('type') || 'saved'; // 🚀 혹시 type이 없으면 옛날 링크니까 saved로 간주!
       // 비밀 열쇠가 있다면?!
       if (sharedSeq) {
