@@ -39,43 +39,48 @@ function MapBoard({ courseList, userLocation }: MapBoardProps) {
     setMarkers([]);
 
     // 1단계: 오빠가 입력한 찐 동네(userLocation)를 검색해서 기준점 잡기!
-    ps.keywordSearch(userLocation, (locationData, status) => {
+    ps.keywordSearch(userLocation, async (locationData, status) => {
       if (status === kakao.maps.services.Status.OK) {
         const centerAnchor = new kakao.maps.LatLng(Number(locationData[0].y), Number(locationData[0].x));
-        
-        // 2km 철벽 방어선 옵션!
-        const searchOptions = {
-          location: centerAnchor,
-          radius: 2000
-        };
+        const searchOptions = { location: centerAnchor, radius: 2000 };
 
-        // 2단계: 철벽 안에서 코스 장소들 검색하기!
-        courseList.forEach((item) => {
-          const keyword = item.searchKeyword || item.title;
-          
-          ps.keywordSearch(keyword, (places, searchStatus) => {
-            if (searchStatus === kakao.maps.services.Status.OK) {
-              // 🚀 코아가 빼먹었던 displayMarker 역할을 여기서 직접 해용!
-              const place = places[0];
-              const newMarker = {
-                title: place.place_name,
-                lat: Number(place.y),
-                lng: Number(place.x)
-              };
-
-              // 찾은 장소를 마커 리스트에 예쁘게 담기!
-              setMarkers((prev) => [...prev, newMarker]);
-
-              // 지도가 핀들을 다 품을 수 있게 화면 넓히기!
-              bounds.extend(new kakao.maps.LatLng(newMarker.lat, newMarker.lng));
-              
-              // 리모컨(mapRef)으로 지도 카메라 앵글 싹 맞춰주기!
-              if (mapRef.current) {
-                mapRef.current.setBounds(bounds);
+        // 🚀 2단계: 순서대로 줄 세우기 마법 (Promise.all)
+        // 모든 장소 검색이 끝날 때까지 기다렸다가 '원래 순서'대로 결과를 모아용!
+        const searchPromises = courseList.map((item) => {
+          return new Promise<{title: string, lat: number, lng: number} | null>((resolve) => {
+            const keyword = item.searchKeyword || item.title;
+            ps.keywordSearch(keyword, (places, searchStatus) => {
+              if (searchStatus === kakao.maps.services.Status.OK) {
+                const place = places[0];
+                resolve({
+                  title: place.place_name,
+                  lat: Number(place.y),
+                  lng: Number(place.x)
+                });
+              } else {
+                resolve(null); // 못 찾으면 아쉽지만 패스!
               }
-            }
-          }, searchOptions); 
+            }, searchOptions);
+          });
         });
+
+        // 🚀 모든 장소 검색이 완료될 때까지 "기다려!"
+        const results = await Promise.all(searchPromises);
+        
+        // 못 찾은 장소(null)는 빼고 진짜 마커들만 걸러내기!
+        const validMarkers = results.filter((r): r is {title: string, lat: number, lng: number} => r !== null);
+
+        // 🌸 이제 순서가 완벽하게 보장된 마커들을 한꺼번에 세팅해용!
+        setMarkers(validMarkers);
+
+        // 지도 범위 맞추기
+        validMarkers.forEach(marker => {
+          bounds.extend(new kakao.maps.LatLng(marker.lat, marker.lng));
+        });
+
+        if (mapRef.current && validMarkers.length > 0) {
+          mapRef.current.setBounds(bounds);
+        }
       }
     });
   }, [courseList, userLocation]); // 🚀 코스가 바뀌거나 동네가 바뀌면 다시 실행!
