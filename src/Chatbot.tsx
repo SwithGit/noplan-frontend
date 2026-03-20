@@ -138,16 +138,21 @@ function Chatbot({userNick }: ChatbotProps) {
         nextStep = 5; // 로딩 중 화면으로 전환!
         
         const fetchAICourse = async () => {
+          // 🚀 유저 정보 가져오는 곳 주석 풀어주세용! (로그인 안 했으면 null로 들어감!)
           const savedUser = localStorage.getItem('loggedInUser');
           const currentUserId = savedUser ? JSON.parse(savedUser).userId : null;
 
           const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
+          
           try {
+            // 🚨 코아가 빼먹었던 마법의 옵션 보따리 부활!! (GET이 아니라 POST로 출동!!)
             const response = await fetch(`${API_BASE_URL}/generate-course`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
+              // 오빠가 5단계에 걸쳐 모은 travelData 보따리에 유저 ID까지 합쳐서 슝!
               body: JSON.stringify({ ...updatedData, userId: currentUserId }),
             });
+            
             const result = await response.json();
 
             if (response.ok && result.success) {
@@ -156,11 +161,14 @@ function Chatbot({userNick }: ChatbotProps) {
                 ...prev, 
                 { id: Date.now() + 2, sender: 'core', courseData: result.course }
               ]);
+              // 🌸 대성공! 6단계(지도 뷰)로 짠! 넘어갑니당!
+              setCurrentStep(6); 
             } else {
               setMessages((prev) => [
                 ...prev, 
                 { id: Date.now() + 2, sender: 'core', text: '죄송합니다. 코스를 생성하는 중에 문제가 발생했습니다. 다시 시도해 주세요. 😢' }
               ]);
+              setCurrentStep(4); 
             }
           } catch (error) {
             console.error('AI 호출 에러 ㅠㅠ:', error);
@@ -168,9 +176,7 @@ function Chatbot({userNick }: ChatbotProps) {
               ...prev, 
               { id: Date.now() + 2, sender: 'core', text: '서버와의 연결이 원활하지 않습니다.' }
             ]);
-          } finally {
-            // 🚀 결과창 스텝 번호가 5에서 6으로 밀려났어용!
-            setCurrentStep(6); 
+            setCurrentStep(4); 
           }
         };
 
