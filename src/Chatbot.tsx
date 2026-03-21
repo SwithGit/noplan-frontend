@@ -50,7 +50,6 @@ const MOCK_STORE_DETAILS: { [key: string]: StoreDetail } = {
     ratings: { combined: 4.8, stars: 5 },
     reviewLinks: { naver: 'https://m.place.naver.com/restaurant/37397775/home', kakao: 'https://place.map.kakao.com/27494553' }
   }
-  // 🌸 필요하면 다른 가짜 데이터도 더 넣어주세용!
 };
 
 function Chatbot({userNick }: ChatbotProps) {
@@ -122,7 +121,6 @@ function Chatbot({userNick }: ChatbotProps) {
           const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
           
           try {
-            // 🌸 오빠랑 고쳤던 그 완벽한 POST 통신!
             const response = await fetch(`${API_BASE_URL}/generate-course`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -245,7 +243,6 @@ function Chatbot({userNick }: ChatbotProps) {
   const userMsgStyle = { backgroundColor: '#007AFF', color: 'white', padding: '12px 18px', borderRadius: '18px 0 18px 18px', maxWidth: '85%', alignSelf: 'flex-end', fontSize: '15px', marginBottom: '15px', lineHeight: '1.5', boxShadow: '0 2px 5px rgba(0,122,255,0.2)' };
 
   return (
-    // 🌸 코아의 마법: 화면을 꽉 채우고 좌우로 반 가르기! (Split View)
     <div style={{ 
       display: 'flex', 
       flexDirection: isMobile ? 'column' : 'row', 
@@ -255,16 +252,17 @@ function Chatbot({userNick }: ChatbotProps) {
       overflow: 'hidden', boxShadow: '0 10px 40px rgba(0,0,0,0.08)' 
     }}>
       
-      {/* 🚀 왼쪽 화면: 코아와의 챗봇 채팅방! (고정 너비) */}
+      {/* 🚀 왼쪽/위쪽 화면: 코아와의 챗봇 채팅방! */}
       <div style={{ 
-        // 폰이면 너비를 100%로! 6단계(결과창)일 때는 폰에서 위쪽 40%만 차지하게 줄여용!
         width: isMobile ? '100%' : '400px', 
-        height: isMobile && currentStep === 6 ? '45%' : (isMobile ? '100%' : 'auto'),
+        // 🚨 코아의 해결책 1: 폰에서 결과창(6단계)일 때는 채팅방이 지도를 누르지 않게 40%로 예쁘게 고정!
+        height: isMobile && currentStep === 6 ? '40%' : (isMobile ? '100%' : 'auto'),
         display: 'flex', flexDirection: 'column', 
         borderRight: isMobile ? 'none' : '1px solid #eee', 
         borderBottom: isMobile ? '1px solid #eee' : 'none',
         backgroundColor: '#fff', zIndex: 10,
-        flexShrink: 0 // 찌그러짐 방지!
+        flexShrink: 0, 
+        minHeight: 0 // 🚨 몬스터 방지 부적! 채팅방이 자기 자리를 넘어서 팽창하는 걸 막아줘요!
       }}>
         
         {/* 채팅방 헤더 */}
@@ -301,8 +299,6 @@ function Chatbot({userNick }: ChatbotProps) {
         
        {/* 하단 입력창 구역 */}
         <div style={{ padding: '20px', borderTop: '1px solid #eee', backgroundColor: 'white' }}>
-          
-          {/* 🚀 0단계, 1단계일 때만 짠! 하고 나타나는 꿀팁 버튼들! */}
           {currentStep === 0 && ( 
             <button onClick={handleMyLocation} style={{ width: '100%', marginBottom: '10px', padding: '12px', backgroundColor: '#e8f0fe', color: '#007AFF', border: '1px solid #007AFF', borderRadius: '15px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s' }}> 
               📍 내 현재 위치로 핫플 찾기 
@@ -330,46 +326,106 @@ function Chatbot({userNick }: ChatbotProps) {
         </div>
       </div> 
 
-      {/* 🚀 오른쪽 화면: 지도와 코스 결과가 펼쳐지는 엄청난 뷰! (가변 너비) */}
-      {(!isMobile || currentStep === 6) && (
-        <div style={{ flex: 1, backgroundColor: '#f4f6f8', position: 'relative', display: 'flex', flexDirection: 'column' }}>
-          
-          {currentStep === 6 && messages[messages.length - 1]?.courseData ? (
-            <>
-              {/* 지도 구역 */}
-              <div style={{ flex: 1, width: '100%' }}>
-                <MapBoard courseList={messages[messages.length - 1].courseData!} userLocation={travelData.location} />
-              </div>
+      {/* 🚀 오른쪽/아래쪽 화면: 지도와 코스 결과가 펼쳐지는 엄청난 뷰! */}
+      {/* 🚨 해결책 2: 여기에도 minHeight: 0 부적을 붙여서 팽창을 막아요! */}
+      <div style={{ flex: 1, backgroundColor: '#f4f6f8', position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        {currentStep === 6 && messages[messages.length - 1]?.courseData ? (
+          <>
+            {/* 🌸 [PC 전용 뷰] 오빠의 PC 100점짜리 뷰! */}
+            {!isMobile && (
+              <>
+                <div style={{ flex: 1, width: '100%' }}>
+                  <MapBoard courseList={messages[messages.length - 1].courseData!} userLocation={travelData.location} />
+                </div>
+                <div style={{ position: 'absolute', bottom: '0', left: '0', width: '100%', padding: '20px 30px', display: 'flex', overflowX: 'auto', gap: '20px', boxSizing: 'border-box', background: 'linear-gradient(to top, rgba(255,255,255,1) 30%, rgba(255,255,255,0) 100%)' }}>
+                  {messages[messages.length - 1].courseData!.map((item, index) => (
+                    <div key={index} 
+                      onClick={() => {
+                          const keyword = item.searchKeyword || item.title;
+                          const detailData = MOCK_STORE_DETAILS[keyword] || { name: keyword, hanjul: '노플랜 핫플레이스!', description: item.description, imageUrl: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400', recommendedMenu: { name: '현장 확인 요망', price: 0 }, hours: '업체 확인 필요', parking: false, ratings: { combined: 4.5, stars: 4 }, reviewLinks: {} };
+                          setSelectedStoreDetail(detailData); 
+                      }}
+                      style={carouselCardStyle}
+                      onMouseOver={(e)=>e.currentTarget.style.transform='translateY(-5px)'} 
+                      onMouseOut={(e)=>e.currentTarget.style.transform='translateY(0)'}
+                    >
+                      <p style={{ color: '#888', fontSize: '12px', fontWeight: 'bold', margin: '0 0 5px 0' }}>⏰ {item.time}</p>
+                      <p style={{ color: '#333', fontSize: '16px', fontWeight: 'bold', margin: '0 0 5px 0', whiteSpace: 'normal', wordBreak: 'keep-all' }}>✨ {item.title}</p>
+                      <p style={{ color: '#007AFF', fontSize: '14px', fontWeight: 'bold', margin: '0 0 8px 0', whiteSpace: 'normal' }}>📍 {item.searchKeyword || item.title}</p>
+                      <p style={{ color: '#555', fontSize: '13px', lineHeight: '1.5', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', whiteSpace: 'normal' }}>
+                        {item.description}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
 
-              {/* 가로 스크롤 카드 리스트 (모바일에서는 크기랑 패딩을 살짝 줄여용!) */}
-              <div style={{ position: 'absolute', bottom: '0', left: '0', width: '100%', padding: isMobile ? '10px' : '20px 30px', display: 'flex', overflowX: 'auto', gap: isMobile ? '10px' : '20px', boxSizing: 'border-box', background: 'linear-gradient(to top, rgba(255,255,255,1) 20%, rgba(255,255,255,0) 100%)' }}>
-                {messages[messages.length - 1].courseData!.map((item, index) => (
-                  <div key={index} 
-                    // ... (onClick 등 기존 속성 유지) ...
-                    style={{ ...carouselCardStyle, flex: isMobile ? '0 0 220px' : '0 0 280px', padding: isMobile ? '12px' : '18px' }}
-                  >
-                    {/* ... (카드 내용 기존과 동일) ... */}
-                  </div>
-                ))}
+            {/* 🌸 [모바일 전용 뷰] 블러 해제! 완벽한 상하 스크롤 구조! */}
+            {isMobile && (
+              // 🚨 해결책 3: 지도와 리스트를 하나로 묶어주는 거대한 스크롤 박스!
+              <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                
+                {/* 상단 지도 구역: 높이를 딱 고정해서 절대 찌그러지거나 가려지지 않게! */}
+                <div style={{ flex: '0 0 320px', width: '100%', position: 'relative' }}>
+                  <MapBoard courseList={messages[messages.length - 1].courseData!} userLocation={travelData.location} />
+                </div>
+
+                {/* 하단 리스트 구역: 자연스럽게 스크롤 되면서 그림자 간섭(블러 현상) 제거! */}
+                <div style={{ 
+                  flex: 1, 
+                  backgroundColor: '#f4f6f8', 
+                  padding: '20px 15px', 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: '15px' 
+                }}>
+                  <p style={{ color: '#ff3b30', fontWeight: 'bold', margin: '0 0 5px 5px', fontSize: '15px' }}>⏰ 코스 상세 일정</p>
+                  <p style={{ fontSize: '12px', color: '#666', margin: '0 0 10px 5px' }}>아래로 스크롤해서 상세 일정을 확인하세요!</p>
+                  
+                  {messages[messages.length - 1].courseData!.map((item, index) => (
+                    <div key={index} 
+                      onClick={() => {
+                          const keyword = item.searchKeyword || item.title;
+                          const detailData = MOCK_STORE_DETAILS[keyword] || { name: keyword, hanjul: '노플랜 핫플레이스!', description: item.description, imageUrl: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400', recommendedMenu: { name: '현장 확인 요망', price: 0 }, hours: '업체 확인 필요', parking: false, ratings: { combined: 4.5, stars: 4 }, reviewLinks: {} };
+                          setSelectedStoreDetail(detailData); 
+                      }}
+                      style={{ 
+                        ...carouselCardStyle,
+                        flex: '0 0 auto', 
+                        width: '100%', 
+                        margin: 0 // 마진 제거로 깔끔하게!
+                      }}
+                    >
+                      <p style={{ color: '#888', fontSize: '12px', fontWeight: 'bold', margin: '0 0 5px 0' }}>⏰ {item.time}</p>
+                      <p style={{ color: '#333', fontSize: '16px', fontWeight: 'bold', margin: '0 0 5px 0', whiteSpace: 'normal', wordBreak: 'keep-all' }}>✨ {item.title}</p>
+                      <p style={{ color: '#007AFF', fontSize: '14px', fontWeight: 'bold', margin: '0 0 8px 0', whiteSpace: 'normal' }}>📍 {item.searchKeyword || item.title}</p>
+                      <p style={{ color: '#555', fontSize: '13px', lineHeight: '1.5', margin: 0, overflow: 'visible', textOverflow: 'clip', display: 'block', WebkitLineClamp: 'none', WebkitBoxOrient: 'horizontal', whiteSpace: 'normal' }}>
+                        {item.description}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </>
-          ) : (
-            /* 코스 나오기 전 안내 문구 (PC에서만 보임!) */
+            )}
+          </>
+        ) : (
+          !isMobile && (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#888' }}>
               <div style={{ fontSize: '50px', marginBottom: '20px' }}>🗺️</div>
               <h2 style={{ fontSize: '20px', color: '#333', margin: '0 0 10px 0' }}>코아와 대화를 시작해 보세요!</h2>
               <p style={{ fontSize: '15px', textAlign: 'center', lineHeight: '1.6' }}>몇 가지 질문에 답해주시면,<br />이 넓은 화면에 오빠만을 위한 완벽한 지도가 그려질 거예요 ✨</p>
             </div>
-          )}
-        </div>
-      )}
+          )
+        )}
+      </div>
 
-      <StoreDetailModal detail={selectedStoreDetail} onClose={() => setSelectedStoreDetail(null)} />
+      <StoreDetailModal detail={selectedStoreDetail} onClose={() => setSelectedStoreDetail(null)}/>
     </div>
   );
 }
 
-// StoreDetailModal 컴포넌트는 오빠가 아까 짜둔 코드 그대로 맨 아래에 붙여주세용! (생략 없이 다 넣어주세용!)
+// 오빠의 완벽한 모달창 코드는 그대로 유지!
 const StoreDetailModal = ({ detail, onClose }: { detail: StoreDetail | null; onClose: () => void }) => {
   if (!detail) return null; 
   const reviewBtnStyle = (color: string) => ({ width: '50px', height: '50px', borderRadius: '50%', border: `3px solid ${color}`, backgroundColor: 'white', color: color, fontWeight: 'bold', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', textAlign: 'center' as const, flexShrink: 0 });
