@@ -46,8 +46,8 @@ function Home({ onStartPlanner, userNick, onOpenPopup}: HomeProps) {
   return (
     <div style={{ paddingBottom: '50px' }}>
       {/* 최상단 히어로 섹션 (오빠가 고친 줄 간격 그대로 유지해용!) */}
-      <section style={{ textAlign: 'center', padding: '80px 20px', backgroundColor: '#e6f2ff', borderRadius: '30px', marginBottom: '50px' }}>
-        <h1 style={{ fontSize: '34px', color: '#333', marginBottom: '15px', fontWeight: 800, lineHeight: '1.4' }}>
+      <section style={{ textAlign: 'center', padding: '80px 10px', backgroundColor: '#e6f2ff', borderRadius: '30px', marginBottom: '50px' }}>
+        <h1 style={{ fontSize: '32px', color: '#333', marginBottom: '15px', fontWeight: 800, lineHeight: '1.4' }}>
           {userNick ? `${userNick}님,` : ''} 계획 없는 여행,<br />
           AI가 완벽하게 짜드릴게요.
         </h1>

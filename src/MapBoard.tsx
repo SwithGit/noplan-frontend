@@ -30,60 +30,67 @@ function MapBoard({ courseList, userLocation }: MapBoardProps) {
 
   useEffect(() => {
     if (!window.kakao || !window.kakao.maps || !window.kakao.maps.services) return;
-    if (!courseList || courseList.length === 0 || !userLocation) return;
+    if (!courseList || courseList.length === 0) return;
 
     const ps = new kakao.maps.services.Places();
     const bounds = new kakao.maps.LatLngBounds();
     
-    // 🌸 새로운 코스가 오면, 지도에 있던 옛날 핀들을 싹 지워주세용!
+    // 🌸 새로운 코스가 오면 옛날 핀들은 싹 치워주세용!
     setMarkers([]);
 
-    // 1단계: 오빠가 입력한 찐 동네(userLocation)를 검색해서 기준점 잡기!
-    ps.keywordSearch(userLocation, async (locationData, status) => {
-      if (status === kakao.maps.services.Status.OK) {
-        const centerAnchor = new kakao.maps.LatLng(Number(locationData[0].y), Number(locationData[0].x));
-        const searchOptions = { location: centerAnchor, radius: 2000 };
-
-        // 🚀 2단계: 순서대로 줄 세우기 마법 (Promise.all)
-        // 모든 장소 검색이 끝날 때까지 기다렸다가 '원래 순서'대로 결과를 모아용!
-        const searchPromises = courseList.map((item) => {
-          return new Promise<{title: string, lat: number, lng: number} | null>((resolve) => {
-            const keyword = item.searchKeyword || item.title;
-            ps.keywordSearch(keyword, (places, searchStatus) => {
-              if (searchStatus === kakao.maps.services.Status.OK) {
-                const place = places[0];
-                resolve({
-                  title: place.place_name,
-                  lat: Number(place.y),
-                  lng: Number(place.x)
-                });
-              } else {
-                resolve(null); // 못 찾으면 아쉽지만 패스!
-              }
-            }, searchOptions);
+    const findPlaces = async () => {
+      // 🚀 1. 반경 2km 제한(searchOptions)을 완전히 삭제하고 전국구로 쿨하게 검색!!
+      const searchPromises = courseList.map((item) => {
+        return new Promise<{title: string, lat: number, lng: number} | null>((resolve) => {
+          const keyword = item.searchKeyword || item.title;
+          
+          ps.keywordSearch(keyword, (places, searchStatus) => {
+            if (searchStatus === kakao.maps.services.Status.OK) {
+              const place = places[0];
+              resolve({ title: place.place_name, lat: Number(place.y), lng: Number(place.x) });
+            } else {
+              // 🌸 혹시 이름이 너무 길어서 못 찾으면, 그냥 '제목(title)'으로 한 번 더 찾아보는 코아의 센스!
+              ps.keywordSearch(item.title, (fbPlaces, fbStatus) => {
+                if (fbStatus === kakao.maps.services.Status.OK) {
+                   const fbPlace = fbPlaces[0];
+                   resolve({ title: fbPlace.place_name, lat: Number(fbPlace.y), lng: Number(fbPlace.x) });
+                } else {
+                   resolve(null); // 그래도 없으면 쿨하게 패스!
+                }
+              });
+            }
           });
         });
+      });
 
-        // 🚀 모든 장소 검색이 완료될 때까지 "기다려!"
-        const results = await Promise.all(searchPromises);
-        
-        // 못 찾은 장소(null)는 빼고 진짜 마커들만 걸러내기!
-        const validMarkers = results.filter((r): r is {title: string, lat: number, lng: number} => r !== null);
+      // 모든 장소 검색이 끝날 때까지 기다려용!
+      const results = await Promise.all(searchPromises);
+      const validMarkers = results.filter((r): r is {title: string, lat: number, lng: number} => r !== null);
 
-        // 🌸 이제 순서가 완벽하게 보장된 마커들을 한꺼번에 세팅해용!
-        setMarkers(validMarkers);
+      // 찾은 찐 마커들만 지도에 콕콕 박아줘용!
+      setMarkers(validMarkers);
 
-        // 지도 범위 맞추기
-        validMarkers.forEach(marker => {
-          bounds.extend(new kakao.maps.LatLng(marker.lat, marker.lng));
-        });
-
-        if (mapRef.current && validMarkers.length > 0) {
+      // 🚀 2. 지도 범위 예쁘게 쫙! 당겨주기
+      if (validMarkers.length > 0) {
+        validMarkers.forEach(marker => bounds.extend(new kakao.maps.LatLng(marker.lat, marker.lng)));
+        if (mapRef.current) {
           mapRef.current.setBounds(bounds);
         }
+      } else {
+        // 🚨 최후의 보루: 만약 핀을 진짜 하나도 못 찾았다면, 동네 이름(userLocation)으로라도 지도 옮겨주기!
+        if (userLocation) {
+          ps.keywordSearch(userLocation, (locData, locStatus) => {
+            if (locStatus === kakao.maps.services.Status.OK && mapRef.current) {
+              const center = new kakao.maps.LatLng(Number(locData[0].y), Number(locData[0].x));
+              mapRef.current.setCenter(center);
+            }
+          });
+        }
       }
-    });
-  }, [courseList, userLocation]); // 🚀 코스가 바뀌거나 동네가 바뀌면 다시 실행!
+    };
+
+    findPlaces();
+  }, [courseList, userLocation]);
 
   useEffect(() => {
     // 화면이 그려지고 0.1초 뒤에 리모컨으로 '새로고침' 버튼을 띡! 누르는 거예용!
