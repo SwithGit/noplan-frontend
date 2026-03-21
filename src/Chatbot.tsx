@@ -345,7 +345,7 @@ const inputStyle = {
                   <button onClick={() => { 
                       setMessages((prev) => [
                         ...prev, 
-                        { id: Date.now(), sender: 'core', text: '오빠! 어떤 부분을 살짝 바꿔볼까요? (예: 노래방 빼고 카페로 등) 자유롭게 적어주세요! ✍️' }
+                        { id: Date.now(), sender: 'core', text: '어떤 부분을 살짝 바꿔볼까요? (예: 노래방 빼고 카페로 등) 자유롭게 적어주세요! ✍️' }
                       ]); 
                       setCurrentStep(4); 
                       setSavedCourseId(null); 
