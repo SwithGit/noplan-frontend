@@ -20,9 +20,58 @@ function MyPage({ onLogout, userId, initialProfile, userNick, onOpenPopup }: MyP
 
   const [savedCourses, setSavedCourses] = useState<any[]>([]);
   const [recentCourses, setRecentCourses] = useState<any[]>([]);  
+
+  //추억 보관 상자들
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
+  const [reviewText, setReviewText] = useState('');
+  const [reviewImage, setReviewImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   
   // 🌸 코아의 트렌디 마법: '찜한 코스'랑 '검색 기록'을 왔다 갔다 할 수 있는 탭 상태!
   const [activeTab, setActiveTab] = useState<'saved' | 'recent'>('saved');
+
+  //리뷰기능 추가
+const handleSubmitReview = async () => {
+    if (!selectedCourseId) return;
+
+    const savedUser = localStorage.getItem('loggedInUser');
+    if (!savedUser) return;
+    const { userId } = JSON.parse(savedUser);
+
+    // 🚀 사진 파일이 있으니까 일반 JSON이 아니라 'FormData'라는 특별한 박스에 포장해용!
+    const formData = new FormData();
+    formData.append('courseId', selectedCourseId.toString());
+    formData.append('reviewText', reviewText);
+    formData.append('userId', userId);
+    console.log(userId);
+    if (reviewImage) {
+      formData.append('reviewImage', reviewImage); // 사진 쏙!
+    }
+
+    try {
+      const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
+      const response = await fetch(`${API_BASE_URL}/api/add-record`, {
+        method: 'POST',
+        body: formData, // 이 특별한 택배 상자 그대로 전송!
+      });
+      const result = await response.json();
+
+      if (result.success) {        
+        setReviewModalOpen(false);
+        setReviewText('');
+        setReviewImage(null);
+        setImagePreview(null);
+        
+        // 🚀 저장하고 나서 화면에 바로 보이게 새로고침 해주는 센스!
+        window.location.reload(); 
+      } else {
+        alert(result.message);
+      }
+    } catch (error) {
+      console.error("리뷰 저장 에러 ㅠㅠ:", error);
+    }
+  };
 
   useEffect(() => {
     const fetchUserInfo = async () => {
@@ -205,10 +254,63 @@ function MyPage({ onLogout, userId, initialProfile, userNick, onOpenPopup }: MyP
                   🔗 친구에게 공유하기
                 </button>
               </div>
+
+              {course.is_visited ? (
+                <div style={{ marginTop: '15px', padding: '15px', backgroundColor: '#f0f8ff', borderRadius: '15px' }}>
+                  <p style={{ margin: 0, fontWeight: 'bold', color: '#007AFF' }}>✅ 코아가 추천한 곳 다녀오셨군요!</p>
+                  {course.review_text && <p style={{ fontSize: '13px', color: '#555', marginTop: '8px', lineHeight: '1.4' }}>"{course.review_text}"</p>}
+                  {course.review_image && <img src={course.review_image} alt="인증샷" style={{ width: '100%', height: '120px', borderRadius: '10px', marginTop: '10px', objectFit: 'cover' }} />}
+                </div>
+              ) : (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedCourseId(course.id);
+                    setReviewModalOpen(true);
+                  }}
+                  style={{ width: '100%', marginTop: '15px', padding: '12px', backgroundColor: '#fedc3e', color: '#391b1b', border: 'none', borderRadius: '15px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}
+                >
+                  📸 다녀왔어요! 인증하기
+                </button>
+              )}
             </div>
           ))
         )}
       </div>
+
+      {reviewModalOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
+          <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '25px', width: '320px', display: 'flex', flexDirection: 'column', gap: '15px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
+            <h3 style={{ margin: 0, color: '#333' }}>📸 소중한 여행 기록 남기기</h3>
+            
+            <textarea 
+              placeholder= "이번 노플랜 여행은 어땠나요? 감상평을 적어주세요!"
+              value={reviewText}
+              onChange={(e) => setReviewText(e.target.value)}
+              style={{ width: '100%', height: '90px', padding: '15px', borderRadius: '15px', border: '1px solid #ddd', boxSizing: 'border-box', outline: 'none', resize: 'none', color: '#333' }}
+            />
+
+            <input 
+              type="file" 
+              accept="image/*" 
+              onChange={(e) => {
+                if (e.target.files && e.target.files[0]) {
+                  setReviewImage(e.target.files[0]);
+                  setImagePreview(URL.createObjectURL(e.target.files[0]));
+                }
+              }}
+              style={{ fontSize: '12px' }}
+            />
+            
+            {imagePreview && <img src={imagePreview} alt="미리보기" style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '15px' }} />}
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+              <button onClick={() => { setReviewModalOpen(false); setImagePreview(null); setReviewImage(null); setReviewText(''); }} style={{ flex: 1, padding: '12px', backgroundColor: '#f0f2f5', color: '#555', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' }}>취소</button>
+              <button onClick={handleSubmitReview} style={{ flex: 1, padding: '12px', backgroundColor: '#007AFF', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' }}>저장하기</button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

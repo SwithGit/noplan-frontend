@@ -26,6 +26,8 @@ interface CourseItem {
   description: string;
   searchKeyword?: string;  
   type:string;
+  lat?:number | string;
+  lng?:number | string;
 }
 
 interface Message {
@@ -95,7 +97,7 @@ function Chatbot({userNick }: ChatbotProps) {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [flippedCardIndex, setFlippedCardIndex] = useState<number | null>(null);
   const [backupPlaces, setBackupPlaces] = useState<any[]>([]);
-
+  const [showCourseMap, setShowCourseMap] = useState(false);
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     window.addEventListener('resize', handleResize);
@@ -353,6 +355,17 @@ const inputStyle = {
                   <button onClick={() => { setFlippedCardIndex(null); setMessages([{ id: Date.now(), sender: 'core', text: '다시 새로운 여행을 떠나볼까요? 현재 어디에 계신가요?' }]); setCurrentStep(0); setSavedCourseId(null); setSearchCourseId(null); setTravelData({ location: '', startTime: '', pax: '', purpose: '', vibe: '' }); }} style={{ padding: '10px', backgroundColor: '#f0f2f5', color: '#333', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', width: '100%', fontSize: '12px', marginTop: '5px' }}> 
                     🔄 아예 처음부터 다시 짜기 
                   </button>
+                  <button 
+                    onClick={() => {
+                      // 🌸 코스 데이터를 "이름,위도,경도" 덩어리로 만들고 슬래시(/)로 이어붙여용!
+                      const pathString = msg.courseData!.map(p => `${encodeURIComponent(p.searchKeyword || p.title)},${p.lat},${p.lng}`).join('/');
+                      const fullRouteUrl = `https://map.kakao.com/link/by/walk/${pathString}`;
+                      window.open(fullRouteUrl, '_blank');
+                    }} 
+                    style={{ padding: '12px', backgroundColor: '#007AFF', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', width: '100%', fontSize: '14px', marginBottom: '5px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 4px 10px rgba(0,122,255,0.3)' }}
+                  > 
+                    🗺️ 카카오맵에서 전체 코스 동선 보기 
+                  </button>
                 </div>
               );
             }
@@ -415,6 +428,17 @@ const inputStyle = {
                           {item.description}
                         </p>
                         <button onClick={(e) => { e.stopPropagation(); setFlippedCardIndex(index); }} style={{ position: 'absolute', bottom: '15px', right: '15px', padding: '5px 10px', fontSize: '11px', backgroundColor: '#e6f2ff', color: '#007AFF', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}> 🔄 다른 곳 추천 </button>
+                        <button 
+          onClick={(e) => { 
+            e.stopPropagation(); 
+            // 🌸 목적지만 정확히(위도/경도 포함) 던져주면 출발지는 내 위치로 자동 세팅돼용!
+            const routeUrl = `https://map.kakao.com/link/to/${encodeURIComponent(item.searchKeyword || item.title)},${item.lat},${item.lng}`;
+            window.open(routeUrl, '_blank');
+          }} 
+          style={{ position: 'absolute', bottom: '15px', left: '15px', padding: '5px 12px', fontSize: '11px', backgroundColor: '#fff', color: '#007AFF', border: '1px solid #007AFF', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px' }}
+        > 
+          📍 목적지로 길찾기 
+        </button>
                       </div>
                       <div style={{ ...cardBackStyle, transform: flippedCardIndex === index ? 'rotateY(0deg)' : 'rotateY(180deg)' }}>
                         <p style={{ color: '#007AFF', fontSize: '13px', fontWeight: 'bold', margin: '0 0 10px 0', textAlign: 'center' }}>🔄 근처의 다른 핫플이에요!</p>
@@ -534,6 +558,14 @@ const inputStyle = {
         )}
       </div>
 
+        {showCourseMap && messages[messages.length - 1]?.courseData && (
+        <CourseMap 
+          courseList={messages[messages.length - 1].courseData!} 
+          userLocation={travelData.location} 
+          onClose={() => setShowCourseMap(false)} 
+        />
+      )}
+
       <StoreDetailModal detail={selectedStoreDetail} onClose={() => setSelectedStoreDetail(null)}/>
     </div>
   );
@@ -588,6 +620,53 @@ const StoreDetailModal = ({ detail, onClose }: { detail: StoreDetail | null; onC
           <button onClick={onClose} style={{ width: '100%', padding: '14px', backgroundColor: '#007AFF', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer' }}>확인</button>
         </div>
       </div>
+    </div>
+  );
+};
+
+const CourseMap = ({ courseList, userLocation, onClose }: { courseList: CourseItem[]; userLocation: string; onClose: () => void }) => {
+  const mapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!window.kakao || !window.kakao.maps || !window.kakao.maps.services || !mapRef.current) return;
+    
+    const ps = new kakao.maps.services.Places();
+    const bounds = new kakao.maps.LatLngBounds();
+    const map = new kakao.maps.Map(mapRef.current, { center: new kakao.maps.LatLng(37.566826, 126.9786567), level: 3 });
+
+    const findPlaces = async () => {
+      const searchPromises = courseList.map((item) => {
+        return new Promise<{title: string, lat: number, lng: number} | null>((resolve) => {
+          const keyword = item.searchKeyword || item.title;
+          const localKeyword = `${userLocation} ${keyword}`;
+          ps.keywordSearch(localKeyword, (places, searchStatus) => {
+            if (searchStatus === kakao.maps.services.Status.OK) {
+              const place = places[0];
+              resolve({ title: place.place_name, lat: Number(place.y), lng: Number(place.x) });
+            } else { ps.keywordSearch(keyword, (fbPlaces, fbStatus) => { if (fbStatus === kakao.maps.services.Status.OK) { const fbPlace = fbPlaces[0]; resolve({ title: fbPlace.place_name, lat: Number(fbPlace.y), lng: Number(fbPlace.x) }); } else resolve(null); }); }
+          });
+        });
+      });
+      const results = await Promise.all(searchPromises);
+      const validMarkers = results.filter((r): r is {title: string, lat: number, lng: number} => r !== null);
+      
+      // 마커 찍기!
+      validMarkers.forEach(marker => {
+        new kakao.maps.Marker({ map: map, position: new kakao.maps.LatLng(marker.lat, marker.lng), title: marker.title });
+        bounds.extend(new kakao.maps.LatLng(marker.lat, marker.lng));
+      });
+      if (validMarkers.length > 0) map.setBounds(bounds);
+    };
+    findPlaces();
+  }, [courseList, userLocation]);
+
+  return (
+    <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'white', zIndex: 10000, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #eee' }}>
+        <h2 style={{ margin: 0, fontSize: '18px' }}>🗺️ 노플랜 전체 동선 맵</h2>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#888' }}>✖</button>
+      </div>
+      <div ref={mapRef} style={{ flex: 1, width: '100%' }} />
     </div>
   );
 };
