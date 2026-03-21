@@ -553,7 +553,7 @@ const inputStyle = {
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#888' }}>
               <div style={{ fontSize: '50px', marginBottom: '20px' }}>🗺️</div>
               <h2 style={{ fontSize: '20px', color: '#333', margin: '0 0 10px 0' }}>코아와 대화를 시작해 보세요!</h2>
-              <p style={{ fontSize: '15px', textAlign: 'center', lineHeight: '1.6' }}>몇 가지 질문에 답해주시면,<br />이 넓은 화면에 오빠만을 위한 완벽한 지도가 그려질 거예요 ✨</p>
+              <p style={{ fontSize: '15px', textAlign: 'center', lineHeight: '1.6' }}>몇 가지 질문에 답해주시면,<br />이 넓은 화면에 {userNick}님만을 위한 완벽한 지도가 그려질 거예요 ✨</p>
             </div>
           )
         )}
