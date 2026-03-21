@@ -288,6 +288,21 @@ function Chatbot({userNick }: ChatbotProps) {
                     <button onClick={handleSaveCourse} style={{ flex: 1, padding: '10px', backgroundColor: '#ff3b30', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>💖 코스 찜하기</button>
                     <button onClick={handleCopyLink} style={{ flex: 1, padding: '10px', backgroundColor: '#fedc3e', color: '#391b1b', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>💬 링크 복사</button> 
                   </div>
+                  <button 
+                    onClick={() => { 
+                      // 🌸 마법의 뒤로 감기! 챗봇이 다시 물어보게 만들고 4단계로 슝!
+                      setMessages((prev) => [
+                        ...prev, 
+                        { id: Date.now(), sender: 'core', text: `${userNick}님! 어떤 부분을 살짝 바꿔볼까요? (예: 노래방 빼고 카페로, 오후 2시로 시작 시간 변경 등) 자유롭게 적어주세요! ✍️` }
+                      ]); 
+                      setCurrentStep(4); // 4단계(분위기/조건 입력)로 롤백!
+                      setSavedCourseId(null); 
+                      setSearchCourseId(null); 
+                    }} 
+                    style={{ padding: '10px', backgroundColor: '#e6f2ff', color: '#007AFF', border: '1px solid #007AFF', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', width: '100%', fontSize: '12px', marginTop: '10px' }}
+                  > 
+                    ⏪ 마지막 조건만 살짝 수정하기 
+                  </button>
                   <button onClick={() => { setMessages([{ id: Date.now(), sender: 'core', text: '다시 새로운 여행을 떠나볼까요? 현재 어디에 계신가요?' }]); setCurrentStep(0); setSavedCourseId(null); setSearchCourseId(null); setTravelData({ location: '', startTime: '', pax: '', purpose: '', vibe: '' }); }} style={{ padding: '10px', backgroundColor: '#f0f2f5', color: '#333', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', width: '100%', fontSize: '12px', marginTop: '5px' }}> 🔄 처음부터 다시 짜기 </button>
                 </div>
               );

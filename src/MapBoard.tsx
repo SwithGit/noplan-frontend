@@ -44,18 +44,22 @@ function MapBoard({ courseList, userLocation }: MapBoardProps) {
         return new Promise<{title: string, lat: number, lng: number} | null>((resolve) => {
           const keyword = item.searchKeyword || item.title;
           
-          ps.keywordSearch(keyword, (places, searchStatus) => {
+          // 🌸 핵심 포인트: "성수" + " " + "오드비" = "성수 오드비"
+          const localKeyword = `${userLocation} ${keyword}`; 
+          
+          // 첫 번째 시도: 동네 이름 붙여서 정확하게 찾기! (수원 납치 방어!)
+          ps.keywordSearch(localKeyword, (places, searchStatus) => {
             if (searchStatus === kakao.maps.services.Status.OK) {
               const place = places[0];
               resolve({ title: place.place_name, lat: Number(place.y), lng: Number(place.x) });
             } else {
-              // 🌸 혹시 이름이 너무 길어서 못 찾으면, 그냥 '제목(title)'으로 한 번 더 찾아보는 코아의 센스!
-              ps.keywordSearch(item.title, (fbPlaces, fbStatus) => {
+              // 🌸 두 번째 시도 (방어막): 
+              ps.keywordSearch(keyword, (fbPlaces, fbStatus) => {
                 if (fbStatus === kakao.maps.services.Status.OK) {
                    const fbPlace = fbPlaces[0];
                    resolve({ title: fbPlace.place_name, lat: Number(fbPlace.y), lng: Number(fbPlace.x) });
                 } else {
-                   resolve(null); // 그래도 없으면 쿨하게 패스!
+                   resolve(null); // 그래도 없으면 진짜 없는 거니까 쿨하게 패스!
                 }
               });
             }
