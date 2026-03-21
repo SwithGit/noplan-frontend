@@ -34,7 +34,7 @@ function MapBoard({ courseList, userLocation }: MapBoardProps) {
 
     const ps = new kakao.maps.services.Places();
     const bounds = new kakao.maps.LatLngBounds();
-
+    
     // 🌸 새로운 코스가 오면, 지도에 있던 옛날 핀들을 싹 지워주세용!
     setMarkers([]);
 
@@ -85,10 +85,33 @@ function MapBoard({ courseList, userLocation }: MapBoardProps) {
     });
   }, [courseList, userLocation]); // 🚀 코스가 바뀌거나 동네가 바뀌면 다시 실행!
 
+  useEffect(() => {
+    // 화면이 그려지고 0.1초 뒤에 리모컨으로 '새로고침' 버튼을 띡! 누르는 거예용!
+    const timer = setTimeout(() => {
+      if (mapRef.current) {
+        mapRef.current.relayout(); // "지도야, 화면 꽉 찼으니까 크기 다시 재!"
+        
+        // 크기를 다시 재고 나서 중심이 살짝 틀어질 수 있으니, 첫 번째 마커로 앵글을 다시 잡아줘용!
+        if (markers.length > 0) {
+          mapRef.current.setCenter(new kakao.maps.LatLng(markers[0].lat, markers[0].lng));
+        } else {
+          mapRef.current.setCenter(new kakao.maps.LatLng(myLocation.lat, myLocation.lng));
+        }
+      }
+    }, 100); // 100ms(0.1초)의 찰나의 시간을 주는 게 핵심이에용!
+
+    return () => clearTimeout(timer); // 정리 정돈!
+  }, [markers, myLocation]);
+
   const linePath = markers.map(m => ({ lat: m.lat, lng: m.lng }));
 
   return (
-    <div style={{ width: '100%', padding: '10px 0', boxSizing: 'border-box' }}>
+    <div style={{ 
+      width: '100%', 
+      height:'65%' ,
+      padding: '0', 
+      boxSizing: 'border-box'
+       }}>
       <Map
         center={markers.length > 0 ? markers[0] : myLocation}
         style={{ width: '100%', height: '100%', minHeight: '250px', borderRadius: '15px' }} // 높이 꽉 차게 수정!

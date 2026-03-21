@@ -1,14 +1,15 @@
 // App.tsx
 import { useState, useEffect } from 'react'
-import Gallery from './Gallery'
+import Home from './Home'
 import Login from './Login'
 import Signup from './Signup'
 import MyPage from './MyPage' // 🌸 새로 추가할 마이페이지 컴포넌트 예쁘게 불러오기!
 import Chatbot from './Chatbot'
 import MapBoard from './MapBoard'
+import Explore from './Explore'
 
 function App() {
-  const [view, setView] = useState('gallery')
+  const [view, setView] = useState('home')
   
   // 오빠가 로그인했는지 기억하는 상태!
   const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -17,14 +18,6 @@ function App() {
   const [loggedInProfile, setLoggedInProfile] = useState('') // 오빠 프사 주소!
   const [sharedCourse, setSharedCourse] = useState<any | null>(null);
 
-  const [places, setPlaces] = useState([
-    { id: 1, name: '태화강 국가정원🎋', desc: '십리대숲이 진짜 좋아!', image:"" },
-    { id: 2, name: '간절곶 ☀️', desc: '해 뜰 때 가보자용!',  image:"" }
-  ])
-
-  const deletePlace = (id: number) => {
-    setPlaces(places.filter(p => p.id !== id))
-  }
 
   useEffect(() => {
     const savedUser = localStorage.getItem('loggedInUser');
@@ -38,119 +31,114 @@ function App() {
       setLoggedInProfile(parsedUser.profileURL || '');      
     }
 
-    const checkSharedLink = async () => {
-      // 주소창에서 '?shared_seq=번호' 이 부분을 쏙 빼와용!
-      const urlParams = new URLSearchParams(window.location.search);
-      const sharedSeq = urlParams.get('seq');
-      const sharedType = urlParams.get('type') || 'saved'; // 🚀 혹시 type이 없으면 옛날 링크니까 saved로 간주!
-      // 비밀 열쇠가 있다면?!
-      if (sharedSeq) {
-        const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
-        try {
-          // 백엔드한테 "이 번호 코스 내놔!" 하고 뺏어오기! (아까 오빠가 만든 그 API예용!)
-          const response = await fetch(`${API_BASE_URL}/api/get-shared-course?seq=${sharedSeq}&type=${sharedType}`);
-          const result = await response.json();
-
-          if (response.ok && result.success) {
-            // 가져온 JSON 데이터를 예쁘게 풀어서 팝업 상자에 쏙!
-            const parsedData = typeof result.course.course_data === 'string' 
-              ? JSON.parse(result.course.course_data) 
-              : result.course.course_data;
-
-            setSharedCourse({ title: result.course.title, data: parsedData });
-          }
-        } catch (error) {
-          console.error("공유된 코스 불러오기 실패 ㅠㅠ:", error);
-        }
-      }
-    };
-    checkSharedLink();
+    const urlParams = new URLSearchParams(window.location.search);
+    const sharedSeq = urlParams.get('seq');
+    const sharedType = urlParams.get('type') || 'saved';
+    
+    // 주소창에 번호가 있으면 코아의 리모컨을 띡! 눌러줘용!
+    if (sharedSeq) {
+      openCoursePopup(Number(sharedSeq), sharedType);
+    }
   }, []);
 
   // 🚀 로그아웃 기능은 마이페이지로 넘겨주기 위해 따로 함수로 빼뒀어용!
   const handleLogout = () => {
     localStorage.removeItem('loggedInUser');
     setIsLoggedIn(false);
-    setView('login') // 로그아웃하면 로그인 화면으로 슝!
+    setView('home') // 로그아웃하면 로그인 화면으로 슝!
   }
 
+  const navItemStyle = (active: boolean): React.CSSProperties => ({
+    cursor: 'pointer', fontWeight: 'bold', fontSize: '15px',
+    color: active ? '#007AFF' : '#555',
+    textDecoration: 'none', transition: 'all 0.2s',
+    display: 'flex', alignItems: 'center', gap: '8px'
+  });
+
+  const openCoursePopup = async (seq: number, type: string) => {
+    const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/get-shared-course?seq=${seq}&type=${type}`);
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        const parsedData = typeof result.course.course_data === 'string' 
+          ? JSON.parse(result.course.course_data) 
+          : result.course.course_data;
+
+        setSharedCourse({ title: result.course.title, data: parsedData });
+      }
+    } catch (error) {
+      console.error("팝업 코스 불러오기 실패 ㅠㅠ:", error);
+    }
+  };
+
   return(        
-    <div style={{ fontFamily: 'sans-serif', backgroundColor: '#f0f2f5', minHeight: '100vh' }}>
+    <div style={{ fontFamily: '"Noto Sans KR", sans-serif', backgroundColor: '#f9fafb', minHeight: '100vh' }}>
+      
+      {/* 🚀 [Header] UX 전문가 코아의 트렌디 GNB! */}
       <header style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '15px 40px', backgroundColor: 'white', boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
+        padding: '10px 60px', backgroundColor: 'white', boxShadow: '0 1px 5px rgba(0,0,0,0.03)',
         position: 'sticky', top: 0, zIndex: 100
       }}>
-        <img src="/images/Logo.png"
-         alt="📍 NoPlan" 
-         onClick={() => setView('gallery')}
-         style={{ 
-         height: '40px', // 로고 높이를 예쁘게 조절해용!
-         cursor: 'pointer' // 마우스 올리면 손가락 모양 나오게!
-        }}/>
+        {/* 왼쪽: 로고 (누르면 홈으로!) */}
+        <div onClick={() => setView('home')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+          <img src="/images/Logo.png" alt="📍 NoPlan" style={{ height: '32px' }}/>
+        </div>
         
-        <nav style={{ display: 'flex', gap: '30px' }}>
-          <span 
-            onClick={() => setView('gallery')}
-            style={{ 
-              cursor: 'pointer', fontWeight: 'bold',
-              color: view === 'gallery' ? '#007AFF' : '#888' 
-            }}
-          >
-            3D 갤러리
-          </span>
-
+        {/* 가운데: 메인 메뉴들! (standard 메뉴 구성!) */}
+        <nav style={{ display: 'flex', gap: '35px', alignItems: 'center' }}>
+          <span onClick={() => setView('home')} style={navItemStyle(view === 'home')}>🏠 홈</span>
+          <span onClick={() => setView('chatbot')} style={navItemStyle(view === 'chatbot')}>🤖 AI 플래너</span>
+          <span onClick={() => setView('explore')} style={navItemStyle(view === 'explore')}>✨ 탐색</span>
           {isLoggedIn && (
-            <span 
-              onClick={() => setView('chatbot')} // 🚀 누르면 챗봇 화면으로 슝!
-              style={{ 
-                cursor: 'pointer', fontWeight: 'bold',
-                color: view === 'chatbot' ? '#007AFF' : '#333', // 선택되면 파랗게!
-                backgroundColor: view === 'chatbot' ? '#e6f2ff' : 'transparent', // 배경도 살짝!
-                padding: '8px 15px', borderRadius: '20px', transition: 'all 0.3s'
-              }}
-            >
-              🔍 코스 찾기
-            </span>
-          )}
-          
-          {/* 🌸 로그인 상태일 때 '마이페이지' 버튼으로 변신! */}
-          {isLoggedIn ? (
-            <span 
-              onClick={() => setView('mypage')}
-              style={{ 
-                cursor: 'pointer', fontWeight: 'bold', 
-                color: view === 'mypage' ? '#007AFF' : '#888' 
-              }}
-            >
-              마이페이지
-            </span>
-          ) : (
-            <span 
-              onClick={() => setView('login')}
-              style={{ 
-                cursor: 'pointer', fontWeight: 'bold',
-                color: view === 'login' ? '#007AFF' : '#888' 
-              }}
-            >
-              로그인
-            </span>
+            <span onClick={() => setView('mypage')} style={navItemStyle(view === 'mypage')}>💖 서랍장</span>
           )}
         </nav>
+          
+        {/* 오른쪽: 로그인/회원가입 버튼 or 프로필 영역! */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          {isLoggedIn ? (
+            // 🌸 로그인 후: 프사 + 드롭다운 아이콘 (UX 전문가 비주얼!)
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }} onClick={() => setView('mypage')}>
+              {loggedInProfile ? (
+                <img src={loggedInProfile} alt="프사" style={{ width: '35px', height: '35px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #e6f2ff' }} />
+              ) : (
+                <div style={{ width: '35px', height: '35px', borderRadius: '50%', backgroundColor: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', fontSize: '12px' }}>프로필</div>
+              )}
+              <span style={{ fontSize: '14px', color: '#333', fontWeight: 'bold' }}>{loggedInNick}님 ▼</span>
+            </div>
+          ) : (
+            // 로그인 전: 로그인 버튼 (디자인 포인트!)
+            <button 
+              onClick={() => setView('login')}
+              style={{
+                padding: '8px 18px', backgroundColor: 'transparent', color: '#007AFF',
+                border: '1.5px solid #007AFF', borderRadius: '20px', fontWeight: 'bold', fontSize: '13px',
+                cursor: 'pointer', transition: 'all 0.2s'
+              }}
+              onMouseOver={(e)=>e.currentTarget.style.backgroundColor='#e6f2ff'}
+              onMouseOut={(e)=>e.currentTarget.style.backgroundColor='transparent'}
+            >
+              로그인 / 회원가입
+            </button>
+          )}
+        </div>
       </header>
       
-      <main style={{ padding: '40px' }}>
-        {view === 'gallery' && <Gallery places={places} onDelete={deletePlace} />}
+      {/* 🚀 [Main] 내용 영역 (패딩 조절!) */}
+      <main style={{ padding: '30px 60px', maxWidth: '1200px', margin: '0 auto' }}>
+        
+        {/* 🌸 메인 홈 (Gallery 대신 등장!) */}
+        {view === 'home' && <Home onStartPlanner={() => setView('chatbot')} userNick={loggedInNick} onOpenPopup={openCoursePopup} />}
         
         {view === 'login' && 
           <Login 
-            // 🚀 로그인 성공하면 아이디랑 프사 주소, 닉네임을 가져와용!
             onLoginSuccess={(id, profileUrl, nickname) => { 
-              // 🌸 코아의 해결책 1: 금고에 넣을 보따리를 더 빵빵하게 만들어용!
               const userToSave = { 
                 userId: id, 
                 userNick: nickname,
-                // 🚀 사진 주소도 꼭! 같이 금고에 넣어줘야 해용!
                 profileURL: profileUrl || '' 
               };
               localStorage.setItem('loggedInUser', JSON.stringify(userToSave));
@@ -158,22 +146,22 @@ function App() {
               setIsLoggedIn(true); 
               setLoggedInId(id);
               setLoggedInNick(nickname);
-              // 프로필 상태도 세팅! (이건 원래 잘하셨어용!)
               setLoggedInProfile(profileUrl || ''); 
-              setView('gallery'); 
+              setView('home'); // 🚀 로그인하면 홈 화면으로!
             }} 
             onGoToSignup={() => setView('signup')}
           />
         }
         {view === 'signup' && <Signup onGoToLogin={() => setView('login')}/>}
 
-        {/* 🌸 드디어 오빠의 공간, 마이페이지 등장! 로그아웃 리모컨도 같이 넘겨줘용! */}
-        {view === 'mypage' && <MyPage onLogout={handleLogout} userId={loggedInId} initialProfile={loggedInProfile} userNick={loggedInNick} />}
+        {view === 'mypage' && <MyPage onLogout={handleLogout} userId={loggedInId} initialProfile={loggedInProfile} userNick={loggedInNick} onOpenPopup={openCoursePopup}/>}
 
         {view === 'chatbot' && <Chatbot userNick={loggedInNick} />}
+
+        {view === 'explore' && <Explore onOpenPopup={openCoursePopup}/>}
       </main>
 
-      {/* 🚀 카톡 타고 온 손님을 위한 환영 팝업창!! */}
+      {/* 🚀 공유 팝업 (기존 코드 그대로 유지!) */}
       {sharedCourse && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', boxSizing: 'border-box' }}>
           <div style={{ backgroundColor: 'white', borderRadius: '25px', width: '100%', maxWidth: '400px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
