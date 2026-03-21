@@ -118,18 +118,38 @@ function MyPage({ onLogout, userId, initialProfile, userNick, onOpenPopup }: MyP
         </div>
 
         {/* 🚀 노플랜 특별 정보 칸 */}
-        <div style={{ display: 'flex', gap: '15px' }}>
-          <div style={{ backgroundColor: '#f0f2f5', padding: '15px 25px', borderRadius: '15px', textAlign: 'center', minWidth: '100px' }}>
+        <div style={{ 
+          display: 'flex', 
+          gap: '10px', 
+          // 🌸 마법 1: 자리가 부족하면 자연스럽게 아랫줄로 넘어가게 해줘용!
+          flexWrap: 'wrap' 
+        }}>
+          <div style={{ flex: 1, backgroundColor: '#f0f2f5', padding: '15px 10px', borderRadius: '15px', textAlign: 'center', minWidth: '100px' }}>
             <p style={{ fontSize: '13px', color: '#888', margin: 0, fontWeight: 'bold' }}>포인트</p>
             <p style={{ fontSize: '20px', fontWeight: 'bold', margin: '5px 0 0', color: '#333' }}>{userInfo.point} P</p> 
           </div>
-          <div style={{ backgroundColor: '#e6f2ff', padding: '15px 25px', borderRadius: '15px', textAlign: 'center', minWidth: '100px' }}>
+          <div style={{ flex: 1, backgroundColor: '#e6f2ff', padding: '15px 10px', borderRadius: '15px', textAlign: 'center', minWidth: '100px' }}>
             <p style={{ fontSize: '13px', color: '#007AFF', margin: 0, fontWeight: 'bold' }}>여행 스타일</p>
             <p style={{ fontSize: '20px', fontWeight: 'bold', margin: '5px 0 0', color: '#007AFF' }}>
               {userInfo.travelStyle === 'J' ? '파워 J형' : userInfo.travelStyle === 'P' ? '자유로운 P형' : '미정'}
             </p> 
           </div>
-          <button onClick={onLogout} style={{ padding: '0 20px', backgroundColor: '#fff', color: '#ff3b30', border: '1px solid #ff3b30', borderRadius: '15px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s' }}>
+          <button 
+            onClick={onLogout} 
+            style={{ 
+              padding: '10px 20px', 
+              backgroundColor: '#fff', 
+              color: '#ff3b30', 
+              border: '1px solid #ff3b30', 
+              borderRadius: '15px', 
+              fontWeight: 'bold', 
+              fontSize: '14px', 
+              cursor: 'pointer', 
+              transition: 'all 0.2s',
+              // 🌸 마법 2: '로그아웃' 글씨가 절대 세로로 쪼개지지 않게 꽉 잡아줘용!
+              whiteSpace: 'nowrap', 
+              wordBreak: 'keep-all'
+            }}>
             로그아웃
           </button>
         </div>
