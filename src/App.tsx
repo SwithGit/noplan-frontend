@@ -7,6 +7,7 @@ import MyPage from './MyPage' // 🌸 새로 추가할 마이페이지 컴포넌
 import Chatbot from './Chatbot'
 import MapBoard from './MapBoard'
 import Explore from './Explore'
+import ExploreFeed from './ExploreFeed'
 
 function App() {
   const [view, setView] = useState('home')
@@ -73,7 +74,7 @@ function App() {
           ? JSON.parse(result.course.course_data) 
           : result.course.course_data;
 
-        setSharedCourse({ title: result.course.title, data: parsedData });
+        setSharedCourse({ title: result.course.title,location:result.course.location, data: parsedData });
       }
     } catch (error) {
       console.error("팝업 코스 불러오기 실패 ㅠㅠ:", error);
@@ -143,7 +144,12 @@ function App() {
       <main style={{ padding: isMobile ? '15px' : '30px 60px', maxWidth: '1200px', margin: '0 auto' }}>
         
         {/* 🌸 메인 홈 (Gallery 대신 등장!) */}
-        {view === 'home' && <Home onStartPlanner={() => setView('chatbot')} userNick={loggedInNick} onOpenPopup={openCoursePopup} />}
+        {view === 'home' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+            <ExploreFeed onOpenPopup={openCoursePopup}/> 
+            <Home onStartPlanner={() => setView('chatbot')} userNick={loggedInNick} onOpenPopup={openCoursePopup} />
+          </div>
+        )}
         
         {view === 'login' && 
           <Login 
@@ -170,7 +176,7 @@ function App() {
 
         {view === 'chatbot' && <Chatbot userNick={loggedInNick} />}
 
-        {view === 'explore' && <Explore onOpenPopup={openCoursePopup}/>}
+        {view === 'explore' && <Explore/>}
       </main>
 
       {/* 🚀 공유 팝업 (기존 코드 그대로 유지!) */}
@@ -190,7 +196,7 @@ function App() {
             <div style={{ padding: '20px', overflowY: 'auto', flex: 1 }}>
               <div style={{ marginBottom: '20px' }}>
                 <MapBoard courseList={sharedCourse.data} 
-                userLocation= {sharedCourse.data[0]?.searchKeyword?.split(' ')[0] || sharedCourse.title?.split(' ')[0] || '서울'} />
+                userLocation={sharedCourse.location || '서울'}/>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                 {sharedCourse.data.map((item: any, idx: number) => (

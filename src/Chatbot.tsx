@@ -206,6 +206,7 @@ function Chatbot({userNick }: ChatbotProps) {
         body: JSON.stringify({
           userId: userId,
           title: `${currentCourseData[0]?.title} 외 ${currentCourseData.length - 1}곳`, 
+          location: travelData.location,
           courseData: currentCourseData 
         })
       });

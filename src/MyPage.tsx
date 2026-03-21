@@ -26,10 +26,10 @@ function MyPage({ onLogout, userId, initialProfile, userNick, onOpenPopup }: MyP
   const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
   const [reviewText, setReviewText] = useState('');
   const [reviewImage, setReviewImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);  
   
-  // 🌸 코아의 트렌디 마법: '찜한 코스'랑 '검색 기록'을 왔다 갔다 할 수 있는 탭 상태!
-  const [activeTab, setActiveTab] = useState<'saved' | 'recent'>('saved');
+  // 탭 상태!
+  const [activeTab, setActiveTab] = useState<'saved' | 'visited' | 'recent'>('saved');
 
   //리뷰기능 추가
 const handleSubmitReview = async () => {
@@ -70,6 +70,39 @@ const handleSubmitReview = async () => {
       }
     } catch (error) {
       console.error("리뷰 저장 에러 ㅠㅠ:", error);
+    }
+  };
+
+  const handleSaveRecent = async (e: any, course: any) => {
+    e.stopPropagation();
+    
+    const savedUser = localStorage.getItem('loggedInUser');
+    if (!savedUser) return;
+    const { userId } = JSON.parse(savedUser);
+
+    try {
+      const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
+      // 🚀 챗봇에서 썼던 찜하기 출입문 고대로 활용!
+      const response = await fetch(`${API_BASE_URL}/api/save-course`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: userId,
+          title: course.title,
+          location: course.location,
+          courseData: typeof course.course_data === 'string' ? JSON.parse(course.course_data) : (course.course_data || course.courseData)
+        })
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        alert("💖 마이페이지 '찜한 코스' 서랍에 쏙! 들어갔어요!");
+        window.location.reload(); // 새로고침해서 찜한 탭에서 바로 보이게!
+      } else {
+        alert("앗! 저장에 실패했어요 ㅠㅠ");
+      }
+    } catch (error) {
+      console.error("최근 코스 찜하기 에러 ㅠㅠ:", error);
     }
   };
 
@@ -143,9 +176,22 @@ const handleSubmitReview = async () => {
   const cardStyle: React.CSSProperties = { backgroundColor: 'white', padding: '20px', borderRadius: '20px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: '15px', cursor: 'pointer', transition: 'transform 0.2s', borderTop: '5px solid #ff3b30' };
   
   // 지금 선택된 탭에 따라 보여줄 리스트를 결정해용!
-  const currentList = activeTab === 'saved' ? savedCourses : recentCourses;
-  const currentType = activeTab === 'saved' ? 'saved' : 'search';
+  let currentList = activeTab === 'saved' ? savedCourses : recentCourses;
+  let currentType = activeTab === 'saved' ? 'saved' : 'search';
 
+if (activeTab === 'recent') {
+    currentList = recentCourses; // 오빠가 받아온 최근 본 코스들!
+    currentType = 'search';
+  } else if (activeTab === 'saved') {
+    // 찜한 것 중에 안 다녀온(is_visited가 없는) 애들만!
+    currentList = savedCourses.filter((course) => !course.is_visited);
+    currentType = 'saved';
+  } else if (activeTab === 'visited') {
+    // 다녀온(is_visited가 있는) 애들만!
+    currentList = savedCourses.filter((course) => course.is_visited);
+    currentType = 'saved';
+  }
+  
   return (
     <div style={{ paddingBottom: '50px' }}>
       
@@ -205,78 +251,102 @@ const handleSubmitReview = async () => {
       </div>
 
       {/* 🌸 트렌디한 탭(Tab) 메뉴 구역! */}
-      <div style={{ display: 'flex', gap: '30px', borderBottom: '2px solid #eee', marginBottom: '20px' }}>
-        <span onClick={() => setActiveTab('saved')} style={{ paddingBottom: '15px', cursor: 'pointer', fontSize: '18px', fontWeight: activeTab === 'saved' ? 'bold' : 'normal', color: activeTab === 'saved' ? '#333' : '#aaa', borderBottom: activeTab === 'saved' ? '4px solid #333' : '4px solid transparent', transition: 'all 0.2s' }}>
-          💖 찜한 코스 ({savedCourses.length})
-        </span>
-        <span onClick={() => setActiveTab('recent')} style={{ paddingBottom: '15px', cursor: 'pointer', fontSize: '18px', fontWeight: activeTab === 'recent' ? 'bold' : 'normal', color: activeTab === 'recent' ? '#333' : '#aaa', borderBottom: activeTab === 'recent' ? '4px solid #333' : '4px solid transparent', transition: 'all 0.2s' }}>
-          🕒 최근 검색 기록 ({recentCourses.length})
-        </span>
-      </div>
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+          <button 
+            onClick={() => setActiveTab('recent')} 
+            style={{ flex: 1, padding: '12px', borderRadius: '15px', fontWeight: 'bold', border: 'none', backgroundColor: activeTab === 'recent' ? '#007AFF' : '#f0f2f5', color: activeTab === 'recent' ? 'white' : '#888', cursor: 'pointer', transition: 'all 0.2s' }}>
+            👀 최근
+          </button>
+          <button 
+            onClick={() => setActiveTab('saved')} 
+            style={{ flex: 1, padding: '12px', borderRadius: '15px', fontWeight: 'bold', border: 'none', backgroundColor: activeTab === 'saved' ? '#007AFF' : '#f0f2f5', color: activeTab === 'saved' ? 'white' : '#888', cursor: 'pointer', transition: 'all 0.2s' }}>
+            💖 찜한 곳
+          </button>
+          <button 
+            onClick={() => setActiveTab('visited')} 
+            style={{ flex: 1, padding: '12px', borderRadius: '15px', fontWeight: 'bold', border: 'none', backgroundColor: activeTab === 'visited' ? '#007AFF' : '#f0f2f5', color: activeTab === 'visited' ? 'white' : '#888', cursor: 'pointer', transition: 'all 0.2s' }}>
+            📸 다녀옴
+          </button>
+        </div>
 
       {/* 🚀 바둑판 카드 리스트 구역! */}
       <div style={gridStyle}>
-        {currentList.length === 0 ? (
-          <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '50px 0', color: '#888' }}>
-            <p style={{ fontSize: '40px', margin: '0 0 15px 0' }}>📭</p>
-            아직 서랍이 텅 비어있어요! 얼른 코스를 짜러 가볼까요?! 🏃‍♂️💨
-          </div>
-        ) : (
-          currentList.map((course) => (
-            <div 
-              key={course.id} 
-              style={cardStyle} 
-              onMouseOver={(e)=>e.currentTarget.style.transform='translateY(-5px)'} 
-              onMouseOut={(e)=>e.currentTarget.style.transform='translateY(0)'}
-              // 🚀 팝업 리모컨 띡!
-              onClick={() => onOpenPopup(course.id, currentType)}
-            >
-              <h3 style={{ fontSize: '16px', color: '#333', margin: '0', wordBreak: 'keep-all', lineHeight: '1.4' }}>
-                {course.title}
-              </h3>
-              <p style={{ fontSize: '13px', color: '#888', margin: 0 }}>
-                저장일: {new Date(course.created_at).toLocaleDateString('ko-KR')}
-              </p>
-
-              <div style={{ marginTop: 'auto', borderTop: '1px solid #eee', paddingTop: '15px' }}>
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation(); // 🚨 팝업 안 뜨게 방어!
-                    const linkToCopy = `${window.location.origin}/?seq=${course.id}&type=${currentType}`;
-                    navigator.clipboard.writeText(linkToCopy).then(() => {
-                      alert("💖 링크가 예쁘게 복사되었어요!");
-                    });
-                  }}
-                  style={{ width: '100%', padding: '10px', fontSize: '13px', backgroundColor: '#f0f2f5', border: 'none', borderRadius: '10px', cursor: 'pointer', color: '#555', fontWeight: 'bold', transition: 'all 0.2s' }}
-                  onMouseOver={(e)=>e.currentTarget.style.backgroundColor='#e4e6e9'}
-                  onMouseOut={(e)=>e.currentTarget.style.backgroundColor='#f0f2f5'}
-                >
-                  🔗 친구에게 공유하기
-                </button>
-              </div>
-
-              {course.is_visited ? (
-                <div style={{ marginTop: '15px', padding: '15px', backgroundColor: '#f0f8ff', borderRadius: '15px' }}>
-                  <p style={{ margin: 0, fontWeight: 'bold', color: '#007AFF' }}>✅ 코아가 추천한 곳 다녀오셨군요!</p>
-                  {course.review_text && <p style={{ fontSize: '13px', color: '#555', marginTop: '8px', lineHeight: '1.4' }}>"{course.review_text}"</p>}
-                  {course.review_image && <img src={course.review_image} alt="인증샷" style={{ width: '100%', height: '120px', borderRadius: '10px', marginTop: '10px', objectFit: 'cover' }} />}
-                </div>
-              ) : (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedCourseId(course.id);
-                    setReviewModalOpen(true);
-                  }}
-                  style={{ width: '100%', marginTop: '15px', padding: '12px', backgroundColor: '#fedc3e', color: '#391b1b', border: 'none', borderRadius: '15px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}
-                >
-                  📸 다녀왔어요! 인증하기
-                </button>
-              )}
+          {currentList.length === 0 ? (
+            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '50px 0', color: '#888' }}>
+              {/* 빈 서랍 메시지도 탭에 따라 살짝 다르게 주면 더 센스 만점! */}
+              <p style={{ fontSize: '40px', margin: '0 0 15px 0' }}>📭</p>
+              {activeTab === 'recent' && '최근 본 코스가 없어요! AI랑 수다 떨러 갈까요?!'}
+              {activeTab === 'saved' && '아직 찜한 코스가 없어요! 맘에 드는 코스를 찜해봐요!'}
+              {activeTab === 'visited' && '아직 다녀온 코스가 없어요! 노플랜과 함께 떠나볼까요?! 🏃‍♂️💨'}
             </div>
-          ))
-        )}
-      </div>
+          ) : (
+            currentList.map((course) => (
+              <div 
+                key={course.id} 
+                style={cardStyle} 
+                onMouseOver={(e)=>e.currentTarget.style.transform='translateY(-5px)'} 
+                onMouseOut={(e)=>e.currentTarget.style.transform='translateY(0)'}
+                onClick={() => onOpenPopup(course.id, currentType)}
+              >
+                <h3 style={{ fontSize: '16px', color: '#333', margin: '0', wordBreak: 'keep-all', lineHeight: '1.4' }}>
+                  {course.title}
+                </h3>
+                <p style={{ fontSize: '13px', color: '#888', margin: 0 }}>
+                  저장일: {new Date(course.created_at).toLocaleDateString('ko-KR')}
+                </p>
+
+                <div style={{ marginTop: 'auto', borderTop: '1px solid #eee', paddingTop: '15px' }}>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation(); 
+                      const linkToCopy = `${window.location.origin}/?seq=${course.id}&type=${currentType}`;
+                      navigator.clipboard.writeText(linkToCopy).then(() => {
+                        alert("💖 링크가 예쁘게 복사되었어요!");
+                      });
+                    }}
+                    style={{ width: '100%', padding: '10px', fontSize: '13px', backgroundColor: '#f0f2f5', border: 'none', borderRadius: '10px', cursor: 'pointer', color: '#555', fontWeight: 'bold', transition: 'all 0.2s' }}
+                    onMouseOver={(e)=>e.currentTarget.style.backgroundColor='#e4e6e9'}
+                    onMouseOut={(e)=>e.currentTarget.style.backgroundColor='#f0f2f5'}
+                  >
+                    🔗 친구에게 공유하기
+                  </button>
+                </div>
+
+                {course.is_visited ? (
+                  <div style={{ marginTop: '15px', padding: '15px', backgroundColor: '#f0f8ff', borderRadius: '15px' }}>
+                    <p style={{ margin: 0, fontWeight: 'bold', color: '#007AFF' }}>✅ 코아가 추천한 곳 다녀오셨군요!</p>
+                    {course.review_text && <p style={{ fontSize: '13px', color: '#555', marginTop: '8px', lineHeight: '1.4' }}>"{course.review_text}"</p>}
+                    {course.review_image && <img src={course.review_image} alt="인증샷" style={{ width: '100%', height: '120px', borderRadius: '10px', marginTop: '10px', objectFit: 'cover' }} />}
+                  </div>
+                ) : (
+                  // 최근 본 코스(search) 탭일 때는 인증 버튼을 숨기는 센스!
+                  activeTab !== 'recent' && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedCourseId(course.id);
+                        setReviewModalOpen(true);
+                      }}
+                      style={{ width: '100%', marginTop: '15px', padding: '12px', backgroundColor: '#fedc3e', color: '#391b1b', border: 'none', borderRadius: '15px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}
+                    >
+                      📸 다녀왔어요! 인증하기
+                    </button>
+                  )
+                )}
+
+                {/* 🚀 최근 탭일 때는 '내 서랍으로 찜하기' 버튼 보여주기! */}
+                    {activeTab === 'recent' && (
+                      <button
+                        onClick={(e) => handleSaveRecent(e, course)}
+                        style={{ width: '100%', marginTop: '15px', padding: '12px', backgroundColor: '#ff5a5f', color: 'white', border: 'none', borderRadius: '15px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}
+                      >
+                        💖 내 서랍으로 찜하기
+                      </button>
+                    )}
+              </div>
+            ))
+          )}
+        </div>
 
       {reviewModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
