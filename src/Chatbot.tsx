@@ -281,7 +281,19 @@ function Chatbot({userNick }: ChatbotProps) {
   const cardFrontStyle: React.CSSProperties = { ...cardSideStyle, backgroundColor: 'white', borderLeft: '5px solid #007AFF' };
   const cardBackStyle: React.CSSProperties = { ...cardSideStyle, backgroundColor: '#f0f2f5', color: '#333', border: '2px dashed #007AFF' };
 
-  const inputStyle = { padding: '15px 20px', border: '1px solid #ddd', borderRadius: '25px', fontSize: '15px', flex: 1, backgroundColor: '#f8f9fa', outline: 'none' };
+  // Chatbot.tsx 의 inputStyle 부분!
+
+const inputStyle = { 
+  padding: '15px 20px', 
+  border: '1px solid #ddd', 
+  borderRadius: '25px', 
+  fontSize: '15px', 
+  flex: 1, 
+  backgroundColor: '#f8f9fa', 
+  outline: 'none',
+  // 🚀 코아의 마법: 폰에서도 글자가 선명하게 보이도록 색상을 딱! 정해줘용!
+  color: '#333' 
+};
   const coreMsgStyle = { backgroundColor: 'white', border: '1px solid #eee', color: '#333', padding: '12px 18px', borderRadius: '0 18px 18px 18px', maxWidth: '85%', alignSelf: 'flex-start', fontSize: '15px', marginBottom: '15px', lineHeight: '1.5', whiteSpace: 'pre-wrap', boxShadow: '0 2px 5px rgba(0,0,0,0.02)' };
   const userMsgStyle = { backgroundColor: '#007AFF', color: 'white', padding: '12px 18px', borderRadius: '18px 0 18px 18px', maxWidth: '85%', alignSelf: 'flex-end', fontSize: '15px', marginBottom: '15px', lineHeight: '1.5', boxShadow: '0 2px 5px rgba(0,122,255,0.2)' };
 
