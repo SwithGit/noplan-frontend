@@ -25,6 +25,7 @@ interface CourseItem {
   title: string;
   description: string;
   searchKeyword?: string;  
+  type:string;
 }
 
 interface Message {
@@ -406,24 +407,34 @@ function Chatbot({userNick }: ChatbotProps) {
                       <div style={{ ...cardBackStyle, transform: flippedCardIndex === index ? 'rotateY(0deg)' : 'rotateY(180deg)' }}>
                         <p style={{ color: '#007AFF', fontSize: '13px', fontWeight: 'bold', margin: '0 0 10px 0', textAlign: 'center' }}>🔄 근처의 다른 핫플이에요!</p>
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', paddingRight: '5px' }}>
-                          {backupPlaces.slice(0, 5).map((backupPlace, bIdx) => {
-                            // 카카오 요원의 데이터를 우리 노플랜 카드에 맞게 변신!
-                            const realPlace = {
-                              time: '언제든', 
-                              title: backupPlace.title || '노플랜 추천 핫플', // AI가 써준 예쁜 제목!
-                              description: backupPlace.description || '주소 확인 필요', // AI가 써준 예쁜 소개글!
-                              searchKeyword: backupPlace.searchKeyword || '이름 없음'
-                            };
-                          
-                            return (
-                              <div key={bIdx} 
-                                onClick={() => handleSwapPlace(messages[messages.length - 1].id, index, realPlace)}
-                                style={{ padding: '10px', backgroundColor: 'white', borderRadius: '10px', border: '1px solid #ddd', fontSize: '12px', color: '#333', cursor: 'pointer' }}>
-                                <p style={{ margin: 0, fontWeight: 'bold' }}>📍 {realPlace.searchKeyword}</p>
-                                <p style={{ margin: '3px 0 0 0', color: '#666', fontSize: '11px' }}>{realPlace.description}</p>
-                              </div>
-                            );
-                          })}
+                          {backupPlaces
+      .filter(bp => bp.type === item.type) // 🌸 마법의 한 줄! "타입이 같니?"
+      .slice(0, 10) // 너무 많으면 복잡하니까 그중 10개만!
+      .map((backupPlace, bIdx) => {
+        const realPlace = {
+          time: '언제든',
+          title: backupPlace.title,
+          description: backupPlace.description,
+          searchKeyword: backupPlace.searchKeyword,
+          type: backupPlace.type // 타입도 챙겨가용!
+        };
+
+        return (
+          <div key={bIdx} 
+            onClick={() => handleSwapPlace(messages[messages.length - 1].id, index, realPlace)}
+            style={{ padding: '10px', backgroundColor: 'white', borderRadius: '10px', border: '1px solid #ddd', fontSize: '12px', color: '#333', cursor: 'pointer' }}>
+            <p style={{ margin: 0, fontWeight: 'bold' }}>📍 {realPlace.searchKeyword}</p>
+            <p style={{ margin: '3px 0 0 0', color: '#666', fontSize: '11px' }}>{realPlace.title}</p>
+          </div>
+        );
+    })}
+
+    {/* 🌸 만약 해당 타입의 백업이 하나도 없다면? (방어 코드!) */}
+    {backupPlaces.filter(bp => bp.type === item.type).length === 0 && (
+      <p style={{ fontSize: '11px', color: '#888', textAlign: 'center', marginTop: '20px' }}>
+        앗! 이 주변엔 다른 비슷한 장소가 없나 봐요 ㅠㅠ 
+      </p>
+    )}
                         </div>
                         <button onClick={() => setFlippedCardIndex(null)} style={{ marginTop: '10px', padding: '5px 10px', fontSize: '11px', backgroundColor: '#fff', color: '#888', border: '1px solid #ddd', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', width: '100%' }}> ✖ 취소 </button>
                       </div>
@@ -463,24 +474,34 @@ function Chatbot({userNick }: ChatbotProps) {
                       <div style={{ ...cardBackStyle, transform: flippedCardIndex === index ? 'rotateY(0deg)' : 'rotateY(180deg)' }}>
                         <p style={{ color: '#007AFF', fontSize: '13px', fontWeight: 'bold', margin: '0 0 10px 0', textAlign: 'center' }}>🔄 근처의 다른 핫플이에요!</p>
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', paddingRight: '5px' }}>
-                          {backupPlaces.slice(0, 5).map((backupPlace, bIdx) => {
-                            // 카카오 요원의 데이터를 우리 노플랜 카드에 맞게 변신!
-                            const realPlace = {
-                              time: '언제든', 
-                              title: backupPlace.title || '노플랜 추천 핫플', // AI가 써준 예쁜 제목!
-                              description: backupPlace.description || '주소 확인 필요', // AI가 써준 예쁜 소개글!
-                              searchKeyword: backupPlace.searchKeyword || '이름 없음'
-                            };
+                          {backupPlaces
+      .filter(bp => bp.type === item.type) // 🌸 마법의 한 줄! "타입이 같니?"
+      .slice(0, 10) // 너무 많으면 복잡하니까 그중 10개만!
+      .map((backupPlace, bIdx) => {
+        const realPlace = {
+          time: '언제든',
+          title: backupPlace.title,
+          description: backupPlace.description,
+          searchKeyword: backupPlace.searchKeyword,
+          type: backupPlace.type // 타입도 챙겨가용!
+        };
 
-                            return (
-                              <div key={bIdx} 
-                                onClick={() => handleSwapPlace(messages[messages.length - 1].id, index, realPlace)}
-                                style={{ padding: '10px', backgroundColor: 'white', borderRadius: '10px', border: '1px solid #ddd', fontSize: '12px', color: '#333', cursor: 'pointer' }}>
-                                <p style={{ margin: 0, fontWeight: 'bold' }}>📍 {realPlace.searchKeyword}</p>
-                                <p style={{ margin: '3px 0 0 0', color: '#666', fontSize: '11px' }}>{realPlace.description}</p>
-                              </div>
-                            );
-                          })}
+        return (
+          <div key={bIdx} 
+            onClick={() => handleSwapPlace(messages[messages.length - 1].id, index, realPlace)}
+            style={{ padding: '10px', backgroundColor: 'white', borderRadius: '10px', border: '1px solid #ddd', fontSize: '12px', color: '#333', cursor: 'pointer' }}>
+            <p style={{ margin: 0, fontWeight: 'bold' }}>📍 {realPlace.searchKeyword}</p>
+            <p style={{ margin: '3px 0 0 0', color: '#666', fontSize: '11px' }}>{realPlace.title}</p>
+          </div>
+        );
+    })}
+
+    {/* 🌸 만약 해당 타입의 백업이 하나도 없다면? (방어 코드!) */}
+    {backupPlaces.filter(bp => bp.type === item.type).length === 0 && (
+      <p style={{ fontSize: '11px', color: '#888', textAlign: 'center', marginTop: '20px' }}>
+        앗! 이 주변엔 다른 비슷한 장소가 없나 봐요 ㅠㅠ 
+      </p>
+    )}
                         </div>
                         <button onClick={() => setFlippedCardIndex(null)} style={{ marginTop: '10px', padding: '5px 10px', fontSize: '11px', backgroundColor: '#fff', color: '#888', border: '1px solid #ddd', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', width: '100%' }}> ✖ 취소 </button>
                       </div>
