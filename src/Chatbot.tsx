@@ -49,8 +49,31 @@ const MOCK_STORE_DETAILS: { [key: string]: StoreDetail } = {
     parking: false,
     ratings: { combined: 4.8, stars: 5 },
     reviewLinks: { naver: 'https://m.place.naver.com/restaurant/37397775/home', kakao: 'https://place.map.kakao.com/27494553' }
+  },
+  '아우어베이커리': { 
+    name: '아우어베이커리', 
+    hanjul: '더티초코로 당 충전 완벽!', 
+    description: '감각적인 인테리어와 다양한 빵이 가득한 힙한 베이커리입니다.', 
+    imageUrl: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400', 
+    recommendedMenu: { name: '더티초코', price: 4800 }, 
+    hours: '09:00 ~ 22:00', 
+    parking: false, 
+    ratings: { combined: 4.5, stars: 4 }, 
+    reviewLinks: { naver: 'https://m.place.naver.com/restaurant/100000/home' } 
+  },
+  '동화고옥': { 
+    name: '동화고옥', 
+    hanjul: '고급스러운 궁중 요리로 힐링!', 
+    description: '프라이빗한 룸에서 즐기는 깔끔하고 정갈한 한식 코스 요리입니다.', 
+    imageUrl: 'https://images.unsplash.com/photo-1512132411229-c30391241dd8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400', 
+    recommendedMenu: { name: '궁중 갈비찜', price: 45000 }, 
+    hours: '11:00 ~ 22:00', 
+    parking: true, 
+    ratings: { combined: 4.7, stars: 5 }, 
+    reviewLinks: { naver: 'https://m.place.naver.com/restaurant/200000/home' } 
   }
 };
+
 
 function Chatbot({userNick }: ChatbotProps) {
   const [messages, setMessages] = useState<Message[]>([
@@ -69,6 +92,9 @@ function Chatbot({userNick }: ChatbotProps) {
   });
 
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [flippedCardIndex, setFlippedCardIndex] = useState<number | null>(null);
+  const [backupPlaces, setBackupPlaces] = useState<any[]>([]);
+
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     window.addEventListener('resize', handleResize);
@@ -130,6 +156,7 @@ function Chatbot({userNick }: ChatbotProps) {
 
             if (response.ok && result.success) {
               setSearchCourseId(result.searchCourseId);
+              setBackupPlaces(result.backupPlaces || []);
               setMessages((prev) => [
                 ...prev, 
                 { id: Date.now() + 2, sender: 'core', courseData: result.course }
@@ -231,12 +258,27 @@ function Chatbot({userNick }: ChatbotProps) {
     );
   };
 
-  const carouselCardStyle: React.CSSProperties = { 
-    flex: '0 0 280px', backgroundColor: 'white', padding: '18px', borderRadius: '20px', 
-    boxShadow: '0 4px 15px rgba(0,0,0,0.08)', borderLeft: '5px solid #007AFF',
-    cursor: 'pointer', display: 'flex', flexDirection: 'column',
-    transition: 'transform 0.2s', margin: '10px 0'
+  const handleSwapPlace = (msgId: number, cardIndex: number, newPlace: CourseItem) => {
+    // 오빠 아이디어대로 이미 AI가 예쁘게 써준 데이터를 0.1초 만에 그대로 덮어씌워용!
+    setMessages((prev) => prev.map(msg => {
+      if (msg.id === msgId && msg.courseData) {
+        const newCourseData = [...msg.courseData];
+        newCourseData[cardIndex] = { ...newPlace, time: newCourseData[cardIndex].time };
+        return { ...msg, courseData: newCourseData };
+      }
+      return msg;
+    }));
+    setFlippedCardIndex(null); // 뒤집힌 카드 닫기!
   };
+
+  const carouselCardStyle: React.CSSProperties = { 
+    flex: '0 0 280px', height: '180px', cursor: 'pointer', position: 'relative', perspective: '1000px', margin: '10px 0' 
+  };
+  const cardSideStyle: React.CSSProperties = { 
+    position: 'absolute', width: '100%', height: '100%', padding: '18px', borderRadius: '20px', boxShadow: '0 4px 15px rgba(0,0,0,0.08)', backfaceVisibility: 'hidden', transition: 'transform 0.6s', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' 
+  };
+  const cardFrontStyle: React.CSSProperties = { ...cardSideStyle, backgroundColor: 'white', borderLeft: '5px solid #007AFF' };
+  const cardBackStyle: React.CSSProperties = { ...cardSideStyle, backgroundColor: '#f0f2f5', color: '#333', border: '2px dashed #007AFF' };
 
   const inputStyle = { padding: '15px 20px', border: '1px solid #ddd', borderRadius: '25px', fontSize: '15px', flex: 1, backgroundColor: '#f8f9fa', outline: 'none' };
   const coreMsgStyle = { backgroundColor: 'white', border: '1px solid #eee', color: '#333', padding: '12px 18px', borderRadius: '0 18px 18px 18px', maxWidth: '85%', alignSelf: 'flex-start', fontSize: '15px', marginBottom: '15px', lineHeight: '1.5', whiteSpace: 'pre-wrap', boxShadow: '0 2px 5px rgba(0,0,0,0.02)' };
@@ -252,20 +294,17 @@ function Chatbot({userNick }: ChatbotProps) {
       overflow: 'hidden', boxShadow: '0 10px 40px rgba(0,0,0,0.08)' 
     }}>
       
-      {/* 🚀 왼쪽/위쪽 화면: 코아와의 챗봇 채팅방! */}
       <div style={{ 
         width: isMobile ? '100%' : '400px', 
-        // 🚨 코아의 해결책 1: 폰에서 결과창(6단계)일 때는 채팅방이 지도를 누르지 않게 40%로 예쁘게 고정!
         height: isMobile && currentStep === 6 ? '40%' : (isMobile ? '100%' : 'auto'),
         display: 'flex', flexDirection: 'column', 
         borderRight: isMobile ? 'none' : '1px solid #eee', 
         borderBottom: isMobile ? '1px solid #eee' : 'none',
         backgroundColor: '#fff', zIndex: 10,
         flexShrink: 0, 
-        minHeight: 0 // 🚨 몬스터 방지 부적! 채팅방이 자기 자리를 넘어서 팽창하는 걸 막아줘요!
+        minHeight: 0 
       }}>
         
-        {/* 채팅방 헤더 */}
         <div style={{ padding: '20px', borderBottom: '1px solid #eee', display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{ fontSize: '24px' }}>🤖</div>
           <div>
@@ -274,7 +313,6 @@ function Chatbot({userNick }: ChatbotProps) {
           </div>
         </div>
 
-        {/* 말풍선 목록 */}
         <div id="messages" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', padding: '20px', backgroundColor: '#fafbfc' }}>
           {messages.map((msg) => {
             if (msg.text) return ( <div key={msg.id} style={msg.sender === 'core' ? coreMsgStyle : userMsgStyle}>{msg.text}</div> );
@@ -288,22 +326,20 @@ function Chatbot({userNick }: ChatbotProps) {
                     <button onClick={handleSaveCourse} style={{ flex: 1, padding: '10px', backgroundColor: '#ff3b30', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>💖 코스 찜하기</button>
                     <button onClick={handleCopyLink} style={{ flex: 1, padding: '10px', backgroundColor: '#fedc3e', color: '#391b1b', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>💬 링크 복사</button> 
                   </div>
-                  <button 
-                    onClick={() => { 
-                      // 🌸 마법의 뒤로 감기! 챗봇이 다시 물어보게 만들고 4단계로 슝!
+                  <button onClick={() => { 
                       setMessages((prev) => [
                         ...prev, 
-                        { id: Date.now(), sender: 'core', text: `${userNick}님! 어떤 부분을 살짝 바꿔볼까요? (예: 노래방 빼고 카페로, 오후 2시로 시작 시간 변경 등) 자유롭게 적어주세요! ✍️` }
+                        { id: Date.now(), sender: 'core', text: '오빠! 어떤 부분을 살짝 바꿔볼까요? (예: 노래방 빼고 카페로 등) 자유롭게 적어주세요! ✍️' }
                       ]); 
-                      setCurrentStep(4); // 4단계(분위기/조건 입력)로 롤백!
+                      setCurrentStep(4); 
                       setSavedCourseId(null); 
                       setSearchCourseId(null); 
-                    }} 
-                    style={{ padding: '10px', backgroundColor: '#e6f2ff', color: '#007AFF', border: '1px solid #007AFF', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', width: '100%', fontSize: '12px', marginTop: '10px' }}
-                  > 
+                    }} style={{ padding: '10px', backgroundColor: '#e6f2ff', color: '#007AFF', border: '1px solid #007AFF', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', width: '100%', fontSize: '12px', marginTop: '10px' }}> 
                     ⏪ 마지막 조건만 살짝 수정하기 
                   </button>
-                  <button onClick={() => { setMessages([{ id: Date.now(), sender: 'core', text: '다시 새로운 여행을 떠나볼까요? 현재 어디에 계신가요?' }]); setCurrentStep(0); setSavedCourseId(null); setSearchCourseId(null); setTravelData({ location: '', startTime: '', pax: '', purpose: '', vibe: '' }); }} style={{ padding: '10px', backgroundColor: '#f0f2f5', color: '#333', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', width: '100%', fontSize: '12px', marginTop: '5px' }}> 🔄 처음부터 다시 짜기 </button>
+                  <button onClick={() => { setFlippedCardIndex(null); setMessages([{ id: Date.now(), sender: 'core', text: '다시 새로운 여행을 떠나볼까요? 현재 어디에 계신가요?' }]); setCurrentStep(0); setSavedCourseId(null); setSearchCourseId(null); setTravelData({ location: '', startTime: '', pax: '', purpose: '', vibe: '' }); }} style={{ padding: '10px', backgroundColor: '#f0f2f5', color: '#333', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', width: '100%', fontSize: '12px', marginTop: '5px' }}> 
+                    🔄 아예 처음부터 다시 짜기 
+                  </button>
                 </div>
               );
             }
@@ -312,7 +348,6 @@ function Chatbot({userNick }: ChatbotProps) {
           <div ref={messagesEndRef} />
         </div>
         
-       {/* 하단 입력창 구역 */}
         <div style={{ padding: '20px', borderTop: '1px solid #eee', backgroundColor: 'white' }}>
           {currentStep === 0 && ( 
             <button onClick={handleMyLocation} style={{ width: '100%', marginBottom: '10px', padding: '12px', backgroundColor: '#e8f0fe', color: '#007AFF', border: '1px solid #007AFF', borderRadius: '15px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s' }}> 
@@ -341,12 +376,9 @@ function Chatbot({userNick }: ChatbotProps) {
         </div>
       </div> 
 
-      {/* 🚀 오른쪽/아래쪽 화면: 지도와 코스 결과가 펼쳐지는 엄청난 뷰! */}
-      {/* 🚨 해결책 2: 여기에도 minHeight: 0 부적을 붙여서 팽창을 막아요! */}
       <div style={{ flex: 1, backgroundColor: '#f4f6f8', position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         {currentStep === 6 && messages[messages.length - 1]?.courseData ? (
           <>
-            {/* 🌸 [PC 전용 뷰] 오빠의 PC 100점짜리 뷰! */}
             {!isMobile && (
               <>
                 <div style={{ flex: 1, width: '100%' }}>
@@ -354,70 +386,104 @@ function Chatbot({userNick }: ChatbotProps) {
                 </div>
                 <div style={{ position: 'absolute', bottom: '0', left: '0', width: '100%', padding: '20px 30px', display: 'flex', overflowX: 'auto', gap: '20px', boxSizing: 'border-box', background: 'linear-gradient(to top, rgba(255,255,255,1) 30%, rgba(255,255,255,0) 100%)' }}>
                   {messages[messages.length - 1].courseData!.map((item, index) => (
-                    <div key={index} 
-                      onClick={() => {
-                          const keyword = item.searchKeyword || item.title;
-                          const detailData = MOCK_STORE_DETAILS[keyword] || { name: keyword, hanjul: '노플랜 핫플레이스!', description: item.description, imageUrl: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400', recommendedMenu: { name: '현장 확인 요망', price: 0 }, hours: '업체 확인 필요', parking: false, ratings: { combined: 4.5, stars: 4 }, reviewLinks: {} };
-                          setSelectedStoreDetail(detailData); 
-                      }}
-                      style={carouselCardStyle}
-                      onMouseOver={(e)=>e.currentTarget.style.transform='translateY(-5px)'} 
-                      onMouseOut={(e)=>e.currentTarget.style.transform='translateY(0)'}
-                    >
-                      <p style={{ color: '#888', fontSize: '12px', fontWeight: 'bold', margin: '0 0 5px 0' }}>⏰ {item.time}</p>
-                      <p style={{ color: '#333', fontSize: '16px', fontWeight: 'bold', margin: '0 0 5px 0', whiteSpace: 'normal', wordBreak: 'keep-all' }}>✨ {item.title}</p>
-                      <p style={{ color: '#007AFF', fontSize: '14px', fontWeight: 'bold', margin: '0 0 8px 0', whiteSpace: 'normal' }}>📍 {item.searchKeyword || item.title}</p>
-                      <p style={{ color: '#555', fontSize: '13px', lineHeight: '1.5', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', whiteSpace: 'normal' }}>
-                        {item.description}
-                      </p>
+                    <div key={index} style={carouselCardStyle}>
+                      <div 
+                        onClick={() => {
+                            const keyword = item.searchKeyword || item.title;
+                            const detailData = MOCK_STORE_DETAILS[keyword] || { name: keyword, hanjul: '노플랜 핫플레이스!', description: item.description, imageUrl: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400', recommendedMenu: { name: '현장 확인 요망', price: 0 }, hours: '업체 확인 필요', parking: false, ratings: { combined: 4.5, stars: 4 }, reviewLinks: {} };
+                            setSelectedStoreDetail(detailData); 
+                        }}
+                        style={{ ...cardFrontStyle, transform: flippedCardIndex === index ? 'rotateY(-180deg)' : 'rotateY(0deg)' }}
+                      >
+                        <p style={{ color: '#888', fontSize: '12px', fontWeight: 'bold', margin: '0 0 5px 0' }}>⏰ {item.time}</p>
+                        <p style={{ color: '#333', fontSize: '16px', fontWeight: 'bold', margin: '0 0 5px 0', whiteSpace: 'normal', wordBreak: 'keep-all' }}>✨ {item.title}</p>
+                        <p style={{ color: '#007AFF', fontSize: '14px', fontWeight: 'bold', margin: '0 0 8px 0', whiteSpace: 'normal' }}>📍 {item.searchKeyword || item.title}</p>
+                        <p style={{ color: '#555', fontSize: '13px', lineHeight: '1.5', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', whiteSpace: 'normal' }}>
+                          {item.description}
+                        </p>
+                        <button onClick={(e) => { e.stopPropagation(); setFlippedCardIndex(index); }} style={{ position: 'absolute', bottom: '15px', right: '15px', padding: '5px 10px', fontSize: '11px', backgroundColor: '#e6f2ff', color: '#007AFF', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}> 🔄 다른 곳 추천 </button>
+                      </div>
+                      <div style={{ ...cardBackStyle, transform: flippedCardIndex === index ? 'rotateY(0deg)' : 'rotateY(180deg)' }}>
+                        <p style={{ color: '#007AFF', fontSize: '13px', fontWeight: 'bold', margin: '0 0 10px 0', textAlign: 'center' }}>🔄 근처의 다른 핫플이에요!</p>
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', paddingRight: '5px' }}>
+                          {backupPlaces.slice(0, 5).map((backupPlace, bIdx) => {
+                            // 카카오 요원의 데이터를 우리 노플랜 카드에 맞게 변신!
+                            const realPlace = {
+                              time: '언제든', 
+                              title: backupPlace.title || '노플랜 추천 핫플', // AI가 써준 예쁜 제목!
+                              description: backupPlace.description || '주소 확인 필요', // AI가 써준 예쁜 소개글!
+                              searchKeyword: backupPlace.searchKeyword || '이름 없음'
+                            };
+                          
+                            return (
+                              <div key={bIdx} 
+                                onClick={() => handleSwapPlace(messages[messages.length - 1].id, index, realPlace)}
+                                style={{ padding: '10px', backgroundColor: 'white', borderRadius: '10px', border: '1px solid #ddd', fontSize: '12px', color: '#333', cursor: 'pointer' }}>
+                                <p style={{ margin: 0, fontWeight: 'bold' }}>📍 {realPlace.searchKeyword}</p>
+                                <p style={{ margin: '3px 0 0 0', color: '#666', fontSize: '11px' }}>{realPlace.description}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <button onClick={() => setFlippedCardIndex(null)} style={{ marginTop: '10px', padding: '5px 10px', fontSize: '11px', backgroundColor: '#fff', color: '#888', border: '1px solid #ddd', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', width: '100%' }}> ✖ 취소 </button>
+                      </div>
                     </div>
                   ))}
                 </div>
               </>
             )}
 
-            {/* 🌸 [모바일 전용 뷰] 블러 해제! 완벽한 상하 스크롤 구조! */}
             {isMobile && (
-              // 🚨 해결책 3: 지도와 리스트를 하나로 묶어주는 거대한 스크롤 박스!
               <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                
-                {/* 상단 지도 구역: 높이를 딱 고정해서 절대 찌그러지거나 가려지지 않게! */}
                 <div style={{ flex: '0 0 320px', width: '100%', position: 'relative' }}>
                   <MapBoard courseList={messages[messages.length - 1].courseData!} userLocation={travelData.location} />
                 </div>
-
-                {/* 하단 리스트 구역: 자연스럽게 스크롤 되면서 그림자 간섭(블러 현상) 제거! */}
-                <div style={{ 
-                  flex: 1, 
-                  backgroundColor: '#f4f6f8', 
-                  padding: '20px 15px', 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  gap: '15px' 
-                }}>
+                <div style={{ flex: 1, backgroundColor: '#f4f6f8', padding: '20px 15px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
                   <p style={{ color: '#ff3b30', fontWeight: 'bold', margin: '0 0 5px 5px', fontSize: '15px' }}>⏰ 코스 상세 일정</p>
                   <p style={{ fontSize: '12px', color: '#666', margin: '0 0 10px 5px' }}>아래로 스크롤해서 상세 일정을 확인하세요!</p>
                   
                   {messages[messages.length - 1].courseData!.map((item, index) => (
-                    <div key={index} 
-                      onClick={() => {
-                          const keyword = item.searchKeyword || item.title;
-                          const detailData = MOCK_STORE_DETAILS[keyword] || { name: keyword, hanjul: '노플랜 핫플레이스!', description: item.description, imageUrl: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400', recommendedMenu: { name: '현장 확인 요망', price: 0 }, hours: '업체 확인 필요', parking: false, ratings: { combined: 4.5, stars: 4 }, reviewLinks: {} };
-                          setSelectedStoreDetail(detailData); 
-                      }}
-                      style={{ 
-                        ...carouselCardStyle,
-                        flex: '0 0 auto', 
-                        width: '100%', 
-                        margin: 0 // 마진 제거로 깔끔하게!
-                      }}
-                    >
-                      <p style={{ color: '#888', fontSize: '12px', fontWeight: 'bold', margin: '0 0 5px 0' }}>⏰ {item.time}</p>
-                      <p style={{ color: '#333', fontSize: '16px', fontWeight: 'bold', margin: '0 0 5px 0', whiteSpace: 'normal', wordBreak: 'keep-all' }}>✨ {item.title}</p>
-                      <p style={{ color: '#007AFF', fontSize: '14px', fontWeight: 'bold', margin: '0 0 8px 0', whiteSpace: 'normal' }}>📍 {item.searchKeyword || item.title}</p>
-                      <p style={{ color: '#555', fontSize: '13px', lineHeight: '1.5', margin: 0, overflow: 'visible', textOverflow: 'clip', display: 'block', WebkitLineClamp: 'none', WebkitBoxOrient: 'horizontal', whiteSpace: 'normal' }}>
-                        {item.description}
-                      </p>
+                    <div key={index} style={{ ...carouselCardStyle, flex: '0 0 auto', width: '100%', margin: 0 }}>
+                      <div 
+                        onClick={() => {
+                            const keyword = item.searchKeyword || item.title;
+                            const detailData = MOCK_STORE_DETAILS[keyword] || { name: keyword, hanjul: '노플랜 핫플레이스!', description: item.description, imageUrl: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400', recommendedMenu: { name: '현장 확인 요망', price: 0 }, hours: '업체 확인 필요', parking: false, ratings: { combined: 4.5, stars: 4 }, reviewLinks: {} };
+                            setSelectedStoreDetail(detailData); 
+                        }}
+                        style={{ ...cardFrontStyle, transform: flippedCardIndex === index ? 'rotateY(-180deg)' : 'rotateY(0deg)' }}
+                      >
+                        <p style={{ color: '#888', fontSize: '12px', fontWeight: 'bold', margin: '0 0 5px 0' }}>⏰ {item.time}</p>
+                        <p style={{ color: '#333', fontSize: '16px', fontWeight: 'bold', margin: '0 0 5px 0', whiteSpace: 'normal', wordBreak: 'keep-all' }}>✨ {item.title}</p>
+                        <p style={{ color: '#007AFF', fontSize: '14px', fontWeight: 'bold', margin: '0 0 8px 0', whiteSpace: 'normal' }}>📍 {item.searchKeyword || item.title}</p>
+                        <p style={{ color: '#555', fontSize: '13px', lineHeight: '1.5', margin: 0, overflow: 'visible', textOverflow: 'clip', display: 'block', WebkitLineClamp: 'none', WebkitBoxOrient: 'horizontal', whiteSpace: 'normal' }}>
+                          {item.description}
+                        </p>
+                        <button onClick={(e) => { e.stopPropagation(); setFlippedCardIndex(index); }} style={{ position: 'absolute', bottom: '15px', right: '15px', padding: '5px 10px', fontSize: '11px', backgroundColor: '#e6f2ff', color: '#007AFF', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}> 🔄 다른 곳 추천 </button>
+                      </div>
+                      <div style={{ ...cardBackStyle, transform: flippedCardIndex === index ? 'rotateY(0deg)' : 'rotateY(180deg)' }}>
+                        <p style={{ color: '#007AFF', fontSize: '13px', fontWeight: 'bold', margin: '0 0 10px 0', textAlign: 'center' }}>🔄 근처의 다른 핫플이에요!</p>
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', paddingRight: '5px' }}>
+                          {backupPlaces.slice(0, 5).map((backupPlace, bIdx) => {
+                            // 카카오 요원의 데이터를 우리 노플랜 카드에 맞게 변신!
+                            const realPlace = {
+                              time: '언제든', 
+                              title: backupPlace.title || '노플랜 추천 핫플', // AI가 써준 예쁜 제목!
+                              description: backupPlace.description || '주소 확인 필요', // AI가 써준 예쁜 소개글!
+                              searchKeyword: backupPlace.searchKeyword || '이름 없음'
+                            };
+
+                            return (
+                              <div key={bIdx} 
+                                onClick={() => handleSwapPlace(messages[messages.length - 1].id, index, realPlace)}
+                                style={{ padding: '10px', backgroundColor: 'white', borderRadius: '10px', border: '1px solid #ddd', fontSize: '12px', color: '#333', cursor: 'pointer' }}>
+                                <p style={{ margin: 0, fontWeight: 'bold' }}>📍 {realPlace.searchKeyword}</p>
+                                <p style={{ margin: '3px 0 0 0', color: '#666', fontSize: '11px' }}>{realPlace.description}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <button onClick={() => setFlippedCardIndex(null)} style={{ marginTop: '10px', padding: '5px 10px', fontSize: '11px', backgroundColor: '#fff', color: '#888', border: '1px solid #ddd', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', width: '100%' }}> ✖ 취소 </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -440,7 +506,6 @@ function Chatbot({userNick }: ChatbotProps) {
   );
 }
 
-// 오빠의 완벽한 모달창 코드는 그대로 유지!
 const StoreDetailModal = ({ detail, onClose }: { detail: StoreDetail | null; onClose: () => void }) => {
   if (!detail) return null; 
   const reviewBtnStyle = (color: string) => ({ width: '50px', height: '50px', borderRadius: '50%', border: `3px solid ${color}`, backgroundColor: 'white', color: color, fontWeight: 'bold', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', textAlign: 'center' as const, flexShrink: 0 });
