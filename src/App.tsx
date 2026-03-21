@@ -41,6 +41,13 @@ function App() {
     }
   }, []);
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // 🚀 로그아웃 기능은 마이페이지로 넘겨주기 위해 따로 함수로 빼뒀어용!
   const handleLogout = () => {
     localStorage.removeItem('loggedInUser');
@@ -75,20 +82,25 @@ function App() {
 
   return(        
     <div style={{ fontFamily: '"Noto Sans KR", sans-serif', backgroundColor: '#f9fafb', minHeight: '100vh' }}>
-      
-      {/* 🚀 [Header] UX 전문가 코아의 트렌디 GNB! */}
+      {/* 🚀 [Header] 모바일일 때는 위아래로 예쁘게 정렬! */}
       <header style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '10px 60px', backgroundColor: 'white', boxShadow: '0 1px 5px rgba(0,0,0,0.03)',
+        display: 'flex', 
+        // 🌸 폰이면 세로로, PC면 가로로!
+        flexDirection: isMobile ? 'column' : 'row', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        // 🌸 폰이면 여백을 팍 줄여용!
+        padding: isMobile ? '15px' : '10px 60px', 
+        gap: isMobile ? '15px' : '0',
+        backgroundColor: 'white', boxShadow: '0 1px 5px rgba(0,0,0,0.03)',
         position: 'sticky', top: 0, zIndex: 100
       }}>
         {/* 왼쪽: 로고 (누르면 홈으로!) */}
-        <div onClick={() => setView('home')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+        <div onClick={() => setView('home')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'center' : 'flex-start' }}>
           <img src="/images/Logo.png" alt="📍 NoPlan" style={{ height: '32px' }}/>
         </div>
-        
-        {/* 가운데: 메인 메뉴들! (standard 메뉴 구성!) */}
-        <nav style={{ display: 'flex', gap: '35px', alignItems: 'center' }}>
+
+        <nav style={{ display: 'flex', gap: isMobile ? '15px' : '35px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
           <span onClick={() => setView('home')} style={navItemStyle(view === 'home')}>🏠 홈</span>
           <span onClick={() => setView('chatbot')} style={navItemStyle(view === 'chatbot')}>🤖 AI 플래너</span>
           <span onClick={() => setView('explore')} style={navItemStyle(view === 'explore')}>✨ 탐색</span>
@@ -128,7 +140,7 @@ function App() {
       </header>
       
       {/* 🚀 [Main] 내용 영역 (패딩 조절!) */}
-      <main style={{ padding: '30px 60px', maxWidth: '1200px', margin: '0 auto' }}>
+      <main style={{ padding: isMobile ? '15px' : '30px 60px', maxWidth: '1200px', margin: '0 auto' }}>
         
         {/* 🌸 메인 홈 (Gallery 대신 등장!) */}
         {view === 'home' && <Home onStartPlanner={() => setView('chatbot')} userNick={loggedInNick} onOpenPopup={openCoursePopup} />}
