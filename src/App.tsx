@@ -1,42 +1,40 @@
 // App.tsx
 import { useState, useEffect } from 'react'
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom' // 🚀 라우팅 도구들 챙기기!
 import Home from './Home'
 import Login from './Login'
 import Signup from './Signup'
-import MyPage from './MyPage' // 🌸 새로 추가할 마이페이지 컴포넌트 예쁘게 불러오기!
+import MyPage from './MyPage'
 import Chatbot from './Chatbot'
 import MapBoard from './MapBoard'
 import Explore from './Explore'
 import ExploreFeed from './ExploreFeed'
 
 function App() {
-  const [view, setView] = useState('home')
+  // 🚀 코아의 라우팅 리모컨 등장!
+  const navigate = useNavigate();
+  const location = useLocation();
   
-  // 오빠가 로그인했는지 기억하는 상태!
   const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [loggedInId, setLoggedInId] = useState('') // 아이디!
-  const [loggedInNick, setLoggedInNick] = useState('') // 닉네임
-  const [loggedInProfile, setLoggedInProfile] = useState('') // 오빠 프사 주소!
+  const [loggedInId, setLoggedInId] = useState('') 
+  const [loggedInNick, setLoggedInNick] = useState('') 
+  const [loggedInProfile, setLoggedInProfile] = useState('') 
   const [sharedCourse, setSharedCourse] = useState<any | null>(null);
-
 
   useEffect(() => {
     const savedUser = localStorage.getItem('loggedInUser');
     if (savedUser) {
       const parsedUser = JSON.parse(savedUser);
       setIsLoggedIn(true);
-      
-      // 🚀 코아의 해결책: 빈칸을 꽉꽉 채워주세용!
-      setLoggedInId(parsedUser.userId); // 아까 저장할 때 userId로 넣었어용!
+      setLoggedInId(parsedUser.userId); 
       setLoggedInNick(parsedUser.userNick);
-      setLoggedInProfile(parsedUser.profileURL || '');      
+      setLoggedInProfile(parsedUser.profileURL || '');     
     }
 
     const urlParams = new URLSearchParams(window.location.search);
     const sharedSeq = urlParams.get('seq');
     const sharedType = urlParams.get('type') || 'saved';
     
-    // 주소창에 번호가 있으면 코아의 리모컨을 띡! 눌러줘용!
     if (sharedSeq) {
       openCoursePopup(Number(sharedSeq), sharedType);
     }
@@ -49,16 +47,16 @@ function App() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // 🚀 로그아웃 기능은 마이페이지로 넘겨주기 위해 따로 함수로 빼뒀어용!
   const handleLogout = () => {
     localStorage.removeItem('loggedInUser');
     setIsLoggedIn(false);
-    setView('home') // 로그아웃하면 로그인 화면으로 슝!
+    navigate('/'); // 🚀 로그아웃하면 홈 화면(/)으로 슝!
   }
 
-  const navItemStyle = (active: boolean): React.CSSProperties => ({
+  // 🌸 현재 주소창(location.pathname)을 확인해서 활성화된 메뉴 색깔을 칠해줘용!
+  const navItemStyle = (path: string): React.CSSProperties => ({
     cursor: 'pointer', fontWeight: 'bold', fontSize: '15px',
-    color: active ? '#007AFF' : '#555',
+    color: location.pathname === path ? '#007AFF' : '#555',
     textDecoration: 'none', transition: 'all 0.2s',
     display: 'flex', alignItems: 'center', gap: '8px'
   });
@@ -74,7 +72,7 @@ function App() {
           ? JSON.parse(result.course.course_data) 
           : result.course.course_data;
 
-        setSharedCourse({ title: result.course.title,location:result.course.location, data: parsedData });
+        setSharedCourse({ title: result.course.title, location: result.course.location, data: parsedData });
       }
     } catch (error) {
       console.error("팝업 코스 불러오기 실패 ㅠㅠ:", error);
@@ -83,38 +81,32 @@ function App() {
 
   return(        
     <div style={{ fontFamily: '"Noto Sans KR", sans-serif', backgroundColor: '#f9fafb', minHeight: '100vh' }}>
-      {/* 🚀 [Header] 모바일일 때는 위아래로 예쁘게 정렬! */}
       <header style={{
         display: 'flex', 
-        // 🌸 폰이면 세로로, PC면 가로로!
         flexDirection: isMobile ? 'column' : 'row', 
         justifyContent: 'space-between', 
         alignItems: 'center',
-        // 🌸 폰이면 여백을 팍 줄여용!
         padding: isMobile ? '15px' : '10px 60px', 
         gap: isMobile ? '15px' : '0',
         backgroundColor: 'white', boxShadow: '0 1px 5px rgba(0,0,0,0.03)',
         position: 'sticky', top: 0, zIndex: 100
       }}>
-        {/* 왼쪽: 로고 (누르면 홈으로!) */}
-        <div onClick={() => setView('home')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'center' : 'flex-start' }}>
+        <div onClick={() => navigate('/')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'center' : 'flex-start' }}>
           <img src="/images/Logo.png" alt="📍 NoPlan" style={{ height: '32px' }}/>
         </div>
 
         <nav style={{ display: 'flex', gap: isMobile ? '15px' : '35px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
-          <span onClick={() => setView('home')} style={navItemStyle(view === 'home')}>🏠 홈</span>
-          <span onClick={() => setView('chatbot')} style={navItemStyle(view === 'chatbot')}>🤖 AI 플래너</span>
-          <span onClick={() => setView('explore')} style={navItemStyle(view === 'explore')}>✨ 탐색</span>
+          <span onClick={() => navigate('/')} style={navItemStyle('/')}>🏠 홈</span>
+          <span onClick={() => navigate('/chatbot')} style={navItemStyle('/chatbot')}>🤖 AI 플래너</span>
+          <span onClick={() => navigate('/explore')} style={navItemStyle('/explore')}>✨ 탐색</span>
           {isLoggedIn && (
-            <span onClick={() => setView('mypage')} style={navItemStyle(view === 'mypage')}>💖 서랍장</span>
+            <span onClick={() => navigate('/mypage')} style={navItemStyle('/mypage')}>💖 서랍장</span>
           )}
         </nav>
           
-        {/* 오른쪽: 로그인/회원가입 버튼 or 프로필 영역! */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
           {isLoggedIn ? (
-            // 🌸 로그인 후: 프사 + 드롭다운 아이콘 (UX 전문가 비주얼!)
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }} onClick={() => setView('mypage')}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }} onClick={() => navigate('/mypage')}>
               {loggedInProfile ? (
                 <img src={loggedInProfile} alt="프사" style={{ width: '35px', height: '35px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #e6f2ff' }} />
               ) : (
@@ -123,9 +115,8 @@ function App() {
               <span style={{ fontSize: '14px', color: '#333', fontWeight: 'bold' }}>{loggedInNick}님 ▼</span>
             </div>
           ) : (
-            // 로그인 전: 로그인 버튼 (디자인 포인트!)
             <button 
-              onClick={() => setView('login')}
+              onClick={() => navigate('/login')}
               style={{
                 padding: '8px 18px', backgroundColor: 'transparent', color: '#007AFF',
                 border: '1.5px solid #007AFF', borderRadius: '20px', fontWeight: 'bold', fontSize: '13px',
@@ -140,43 +131,41 @@ function App() {
         </div>
       </header>
       
-      {/* 🚀 [Main] 내용 영역 (패딩 조절!) */}
       <main style={{ padding: isMobile ? '15px' : '30px 60px', maxWidth: '1200px', margin: '0 auto' }}>
-        
-        {/* 🌸 메인 홈 (Gallery 대신 등장!) */}
-        {view === 'home' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-            <ExploreFeed onOpenPopup={openCoursePopup}/> 
-            <Home onStartPlanner={() => setView('chatbot')} userNick={loggedInNick} onOpenPopup={openCoursePopup} />
-          </div>
-        )}
-        
-        {view === 'login' && 
-          <Login 
-            onLoginSuccess={(id, profileUrl, nickname) => { 
-              const userToSave = { 
-                userId: id, 
-                userNick: nickname,
-                profileURL: profileUrl || '' 
-              };
-              localStorage.setItem('loggedInUser', JSON.stringify(userToSave));
-              
-              setIsLoggedIn(true); 
-              setLoggedInId(id);
-              setLoggedInNick(nickname);
-              setLoggedInProfile(profileUrl || ''); 
-              setView('home'); // 🚀 로그인하면 홈 화면으로!
-            }} 
-            onGoToSignup={() => setView('signup')}
-          />
-        }
-        {view === 'signup' && <Signup onGoToLogin={() => setView('login')}/>}
+        {/* 🚀 조건부 렌더링(view === ...) 대신 Routes 보따리를 써용! */}
+        <Routes>
+          <Route path="/" element={
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+              <ExploreFeed onOpenPopup={openCoursePopup}/> 
+              <Home onStartPlanner={() => navigate('/chatbot')} userNick={loggedInNick} onOpenPopup={openCoursePopup} />
+            </div>
+          } />
+          
+          <Route path="/login" element={
+            <Login 
+              onLoginSuccess={(id, profileUrl, nickname) => { 
+                const userToSave = { userId: id, userNick: nickname, profileURL: profileUrl || '' };
+                localStorage.setItem('loggedInUser', JSON.stringify(userToSave));
+                setIsLoggedIn(true); 
+                setLoggedInId(id);
+                setLoggedInNick(nickname);
+                setLoggedInProfile(profileUrl || ''); 
+                navigate('/'); // 🚀 로그인하면 홈으로!
+              }} 
+              onGoToSignup={() => navigate('/signup')}
+            />
+          } />
 
-        {view === 'mypage' && <MyPage onLogout={handleLogout} userId={loggedInId} initialProfile={loggedInProfile} userNick={loggedInNick} onOpenPopup={openCoursePopup}/>}
-
-        {view === 'chatbot' && <Chatbot userNick={loggedInNick} />}
-
-        {view === 'explore' && <Explore/>}
+          <Route path="/signup" element={<Signup onGoToLogin={() => navigate('/login')} />} />
+          
+          <Route path="/mypage" element={
+            <MyPage onLogout={handleLogout} userId={loggedInId} initialProfile={loggedInProfile} userNick={loggedInNick} onOpenPopup={openCoursePopup}/>
+          } />
+          
+          <Route path="/chatbot" element={<Chatbot userNick={loggedInNick} />} />
+          
+          <Route path="/explore" element={<Explore />} />
+        </Routes>
       </main>
 
       {/* 🚀 공유 팝업 (기존 코드 그대로 유지!) */}

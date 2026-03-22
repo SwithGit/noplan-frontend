@@ -633,6 +633,8 @@ const CourseMap = ({ courseList, userLocation, onClose }: { courseList: CourseIt
     
     const ps = new kakao.maps.services.Places();
     const bounds = new kakao.maps.LatLngBounds();
+    
+    // 🌸 1. 일단 기본 위치(서울)로 지도를 먼저 예쁘게 띄워놔용!
     const map = new kakao.maps.Map(mapRef.current, { center: new kakao.maps.LatLng(37.566826, 126.9786567), level: 3 });
 
     const findPlaces = async () => {
@@ -640,24 +642,53 @@ const CourseMap = ({ courseList, userLocation, onClose }: { courseList: CourseIt
         return new Promise<{title: string, lat: number, lng: number} | null>((resolve) => {
           const keyword = item.searchKeyword || item.title;
           const localKeyword = `${userLocation} ${keyword}`;
+          
           ps.keywordSearch(localKeyword, (places, searchStatus) => {
             if (searchStatus === kakao.maps.services.Status.OK) {
               const place = places[0];
               resolve({ title: place.place_name, lat: Number(place.y), lng: Number(place.x) });
-            } else { ps.keywordSearch(keyword, (fbPlaces, fbStatus) => { if (fbStatus === kakao.maps.services.Status.OK) { const fbPlace = fbPlaces[0]; resolve({ title: fbPlace.place_name, lat: Number(fbPlace.y), lng: Number(fbPlace.x) }); } else resolve(null); }); }
+            } else { 
+              ps.keywordSearch(keyword, (fbPlaces, fbStatus) => { 
+                if (fbStatus === kakao.maps.services.Status.OK) { 
+                  const fbPlace = fbPlaces[0]; 
+                  resolve({ title: fbPlace.place_name, lat: Number(fbPlace.y), lng: Number(fbPlace.x) }); 
+                } else {
+                  resolve(null); 
+                }
+              }); 
+            }
           });
         });
       });
+
       const results = await Promise.all(searchPromises);
       const validMarkers = results.filter((r): r is {title: string, lat: number, lng: number} => r !== null);
       
-      // 마커 찍기!
+      // 🚀 2. 코아의 철벽 방어: 찾은 마커가 하나도 없을 때!
+      if (validMarkers.length === 0) {
+        ps.keywordSearch(userLocation, (locData, locStatus) => {
+          if (locStatus === kakao.maps.services.Status.OK) {
+            const centerLoc = new kakao.maps.LatLng(Number(locData[0].y), Number(locData[0].x));
+            // 앗! 마커는 없지만 동네 위치로 지도를 슝~ 이동시켜줘용!
+            map.setCenter(centerLoc);
+            map.setLevel(4); 
+          }
+        });
+        return; // 더 이상 에러 안 나게 여기서 쿨하게 함수 종료!
+      }
+
+      // 🌸 3. 마커가 무사히 찾아졌다면 지도에 콕콕 찍기!
       validMarkers.forEach(marker => {
         new kakao.maps.Marker({ map: map, position: new kakao.maps.LatLng(marker.lat, marker.lng), title: marker.title });
         bounds.extend(new kakao.maps.LatLng(marker.lat, marker.lng));
       });
-      if (validMarkers.length > 0) map.setBounds(bounds);
+      
+      // 4. 마커들이 다 보이게 지도 화면 쫙! 맞춰주기
+      if (validMarkers.length > 0) {
+        map.setBounds(bounds);
+      }
     };
+    
     findPlaces();
   }, [courseList, userLocation]);
 

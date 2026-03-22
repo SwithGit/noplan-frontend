@@ -42,7 +42,7 @@ function ExploreDetailModal({ course, onClose, userId, onUpdateLikes}: DetailPro
  useEffect(() => {
   // 🚀 1. course.location (찐 동네 이름)이 없으면 아예 시작도 안 해용!
   if (!window.kakao || !window.kakao.maps || !parsedCourseData.length || !course.location) {
-    console.error("❌ 동네 정보(location)가 없어용! DB를 확인해줘 오빠!");
+    console.error("❌ 동네 정보(location)가 없어요! DB를 확인해줘!");
     return;
   }
 

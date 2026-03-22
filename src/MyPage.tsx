@@ -1,7 +1,6 @@
 // src/MyPage.tsx
 import React, { useState, useRef, useEffect } from 'react';
 
-// 🚀 코아의 마법: App.tsx에서 만든 팝업 리모컨을 여기서도 쓸 수 있게 추가했어용!
 interface MyPageProps {
   onLogout: () => void;
   userId: string; 
@@ -21,39 +20,48 @@ function MyPage({ onLogout, userId, initialProfile, userNick, onOpenPopup }: MyP
   const [savedCourses, setSavedCourses] = useState<any[]>([]);
   const [recentCourses, setRecentCourses] = useState<any[]>([]);  
 
-  //추억 보관 상자들
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
   const [reviewText, setReviewText] = useState('');
   const [reviewImage, setReviewImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);  
   
-  // 탭 상태!
   const [activeTab, setActiveTab] = useState<'saved' | 'visited' | 'recent'>('saved');
 
-  //리뷰기능 추가
-const handleSubmitReview = async () => {
+  // 🚀 코아의 마법: 어디서든 다시 부를 수 있게 코스 불러오는 함수를 밖으로 꺼냈어용!
+  const fetchCourses = async () => {
+    const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
+    try {
+      const savedRes = await fetch(`${API_BASE_URL}/api/saved-courses?userId=${userId}`);
+      const savedData = await savedRes.json();
+      if (savedData.success) setSavedCourses(savedData.courses);
+
+      const recentRes = await fetch(`${API_BASE_URL}/api/recent-courses?userId=${userId}`);
+      const recentData = await recentRes.json();
+      if (recentData.success) setRecentCourses(recentData.courses);
+    } catch (error) { console.error('코스 불러오기 에러 ㅠㅠ', error); }
+  };
+
+  const handleSubmitReview = async () => {
     if (!selectedCourseId) return;
 
     const savedUser = localStorage.getItem('loggedInUser');
     if (!savedUser) return;
     const { userId } = JSON.parse(savedUser);
 
-    // 🚀 사진 파일이 있으니까 일반 JSON이 아니라 'FormData'라는 특별한 박스에 포장해용!
     const formData = new FormData();
     formData.append('courseId', selectedCourseId.toString());
     formData.append('reviewText', reviewText);
     formData.append('userId', userId);
-    console.log(userId);
     if (reviewImage) {
-      formData.append('reviewImage', reviewImage); // 사진 쏙!
+      formData.append('reviewImage', reviewImage);
     }
 
     try {
       const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
       const response = await fetch(`${API_BASE_URL}/api/add-record`, {
         method: 'POST',
-        body: formData, // 이 특별한 택배 상자 그대로 전송!
+        body: formData, 
       });
       const result = await response.json();
 
@@ -63,8 +71,17 @@ const handleSubmitReview = async () => {
         setReviewImage(null);
         setImagePreview(null);
         
-        // 🚀 저장하고 나서 화면에 바로 보이게 새로고침 해주는 센스!
-        window.location.reload(); 
+        // 🌸 코아의 마법: 새로고침 대신 화면의 데이터만 샥! 바꿔치기해용!
+        setSavedCourses(prev => prev.map(course => {
+          if (course.id === selectedCourseId) {
+            return { ...course, is_visited: true, review_text: reviewText, review_image: result.imageUrl };
+          }
+          return course;
+        }));
+        
+        // 🌸 리뷰 썼으니까 오빠 포인트도 500점 바로 뿅! 올려주기!
+        setUserInfo(prev => ({ ...prev, point: prev.point + 500 }));
+        
       } else {
         alert(result.message);
       }
@@ -82,7 +99,6 @@ const handleSubmitReview = async () => {
 
     try {
       const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
-      // 🚀 챗봇에서 썼던 찜하기 출입문 고대로 활용!
       const response = await fetch(`${API_BASE_URL}/api/save-course`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -97,7 +113,8 @@ const handleSubmitReview = async () => {
       const result = await response.json();
       if (result.success) {
         alert("💖 마이페이지 '찜한 코스' 서랍에 쏙! 들어갔어요!");
-        window.location.reload(); // 새로고침해서 찜한 탭에서 바로 보이게!
+        // 🚀 코아의 마법: 새로고침 대신 서랍장(DB)을 다시 한번 조용히 열어봐용!
+        fetchCourses(); 
       } else {
         alert("앗! 저장에 실패했어요 ㅠㅠ");
       }
@@ -114,19 +131,6 @@ const handleSubmitReview = async () => {
         const result = await response.json();
         if (response.ok && result.success) setUserInfo(result.user); 
       } catch (error) { console.error('내 정보 가져오기 실패 ㅠㅠ', error); }
-    };
-
-    const fetchCourses = async () => {
-      const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
-      try {
-        const savedRes = await fetch(`${API_BASE_URL}/api/saved-courses?userId=${userId}`);
-        const savedData = await savedRes.json();
-        if (savedData.success) setSavedCourses(savedData.courses);
-
-        const recentRes = await fetch(`${API_BASE_URL}/api/recent-courses?userId=${userId}`);
-        const recentData = await recentRes.json();
-        if (recentData.success) setRecentCourses(recentData.courses);
-      } catch (error) { console.error('코스 불러오기 에러 ㅠㅠ', error); }
     };
 
     if (userId) { 
@@ -171,23 +175,19 @@ const handleSubmitReview = async () => {
     }
   };
 
-  // 🚀 코아의 디자인 세팅!
   const gridStyle: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '20px', padding: '20px 0' };
   const cardStyle: React.CSSProperties = { backgroundColor: 'white', padding: '20px', borderRadius: '20px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: '15px', cursor: 'pointer', transition: 'transform 0.2s', borderTop: '5px solid #ff3b30' };
   
-  // 지금 선택된 탭에 따라 보여줄 리스트를 결정해용!
   let currentList = activeTab === 'saved' ? savedCourses : recentCourses;
   let currentType = activeTab === 'saved' ? 'saved' : 'search';
 
-if (activeTab === 'recent') {
-    currentList = recentCourses; // 오빠가 받아온 최근 본 코스들!
+  if (activeTab === 'recent') {
+    currentList = recentCourses; 
     currentType = 'search';
   } else if (activeTab === 'saved') {
-    // 찜한 것 중에 안 다녀온(is_visited가 없는) 애들만!
     currentList = savedCourses.filter((course) => !course.is_visited);
     currentType = 'saved';
   } else if (activeTab === 'visited') {
-    // 다녀온(is_visited가 있는) 애들만!
     currentList = savedCourses.filter((course) => course.is_visited);
     currentType = 'saved';
   }
@@ -195,30 +195,21 @@ if (activeTab === 'recent') {
   return (
     <div style={{ paddingBottom: '50px' }}>
       
-      {/* 🌸 상단 프로필 배너 구역 (넓고 시원하게!) */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'white', padding: '40px', borderRadius: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', marginBottom: '40px', flexWrap: 'wrap', gap: '20px' }}>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '30px' }}>
-          {/* 📸 동그란 사진 자리 */}
           <div onClick={() => fileInputRef.current?.click()} style={{ width: '100px', height: '100px', backgroundColor: '#f0f2f5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#aaa', border: '2px dashed #ccc', cursor: 'pointer', overflow: 'hidden', flexShrink: 0 }}>
             {profileUrl ? ( <img src={profileUrl} alt="프로필" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> ) : ( <span style={{ fontSize: '12px' }}>사진 등록</span> )}
           </div>
           <input type="file" accept="image/*" ref={fileInputRef} style={{ display: 'none' }} onChange={handleImageChange} />
 
-          {/* 명함 구역 */}
           <div>
             <h2 style={{ margin: '0 0 5px 0', color: '#333', fontSize: '28px', fontWeight: 800 }}>{userNick}</h2>
             <p style={{ margin: 0, color: '#888', fontSize: '14px' }}>{userInfo.email || userId}</p>
           </div>
         </div>
 
-        {/* 🚀 노플랜 특별 정보 칸 */}
-        <div style={{ 
-          display: 'flex', 
-          gap: '10px', 
-          // 🌸 마법 1: 자리가 부족하면 자연스럽게 아랫줄로 넘어가게 해줘용!
-          flexWrap: 'wrap' 
-        }}>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <div style={{ flex: 1, backgroundColor: '#f0f2f5', padding: '15px 10px', borderRadius: '15px', textAlign: 'center', minWidth: '100px' }}>
             <p style={{ fontSize: '13px', color: '#888', margin: 0, fontWeight: 'bold' }}>포인트</p>
             <p style={{ fontSize: '20px', fontWeight: 'bold', margin: '5px 0 0', color: '#333' }}>{userInfo.point} P</p> 
@@ -232,25 +223,13 @@ if (activeTab === 'recent') {
           <button 
             onClick={onLogout} 
             style={{ 
-              padding: '10px 20px', 
-              backgroundColor: '#fff', 
-              color: '#ff3b30', 
-              border: '1px solid #ff3b30', 
-              borderRadius: '15px', 
-              fontWeight: 'bold', 
-              fontSize: '14px', 
-              cursor: 'pointer', 
-              transition: 'all 0.2s',
-              // 🌸 마법 2: '로그아웃' 글씨가 절대 세로로 쪼개지지 않게 꽉 잡아줘용!
-              whiteSpace: 'nowrap', 
-              wordBreak: 'keep-all'
+              padding: '10px 20px', backgroundColor: '#fff', color: '#ff3b30', border: '1px solid #ff3b30', borderRadius: '15px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s', whiteSpace: 'nowrap', wordBreak: 'keep-all'
             }}>
             로그아웃
           </button>
         </div>
       </div>
 
-      {/* 🌸 트렌디한 탭(Tab) 메뉴 구역! */}
       <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
           <button 
             onClick={() => setActiveTab('recent')} 
@@ -269,11 +248,9 @@ if (activeTab === 'recent') {
           </button>
         </div>
 
-      {/* 🚀 바둑판 카드 리스트 구역! */}
       <div style={gridStyle}>
           {currentList.length === 0 ? (
             <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '50px 0', color: '#888' }}>
-              {/* 빈 서랍 메시지도 탭에 따라 살짝 다르게 주면 더 센스 만점! */}
               <p style={{ fontSize: '40px', margin: '0 0 15px 0' }}>📭</p>
               {activeTab === 'recent' && '최근 본 코스가 없어요! AI랑 수다 떨러 갈까요?!'}
               {activeTab === 'saved' && '아직 찜한 코스가 없어요! 맘에 드는 코스를 찜해봐요!'}
@@ -319,7 +296,6 @@ if (activeTab === 'recent') {
                     {course.review_image && <img src={course.review_image} alt="인증샷" style={{ width: '100%', height: '120px', borderRadius: '10px', marginTop: '10px', objectFit: 'cover' }} />}
                   </div>
                 ) : (
-                  // 최근 본 코스(search) 탭일 때는 인증 버튼을 숨기는 센스!
                   activeTab !== 'recent' && (
                     <button
                       onClick={(e) => {
@@ -334,7 +310,6 @@ if (activeTab === 'recent') {
                   )
                 )}
 
-                {/* 🚀 최근 탭일 때는 '내 서랍으로 찜하기' 버튼 보여주기! */}
                     {activeTab === 'recent' && (
                       <button
                         onClick={(e) => handleSaveRecent(e, course)}
