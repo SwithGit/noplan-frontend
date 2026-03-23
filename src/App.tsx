@@ -3,12 +3,21 @@ import { useState, useEffect } from 'react'
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom' // 🚀 라우팅 도구들 챙기기!
 import Home from './Home'
 import Login from './Login'
+import Privacy from './Privacy'
+import KakaoCallback from './KakaoCallback';
+import KakaoSignup from './KakaoSignup';
+import NaverCallback from './NaverCallback';
+import NaverSignup from './NaverSignup';
+import GoogleCallback from './GoogleCallback';
+import GoogleSignup from './GoogleSignup';
+
 import Signup from './Signup'
 import MyPage from './MyPage'
 import Chatbot from './Chatbot'
 import MapBoard from './MapBoard'
 import Explore from './Explore'
 import ExploreFeed from './ExploreFeed'
+import Supporters from './Supporters'
 
 function App() {
   // 🚀 코아의 라우팅 리모컨 등장!
@@ -156,6 +165,15 @@ function App() {
             />
           } />
 
+          <Route path="/auth/kakao/callback" element={<KakaoCallback />} />
+          <Route path="/auth/naver/callback" element={<NaverCallback />} />
+          <Route path="/auth/google/callback" element={<GoogleCallback />} />
+
+          <Route path="/kakao-signup" element={<KakaoSignup />} />
+          <Route path="/naver-signup" element={<NaverSignup />} />
+          <Route path="/google-signup" element={<GoogleSignup />} />
+
+          <Route path="/privacy" element={<Privacy />} />
           <Route path="/signup" element={<Signup onGoToLogin={() => navigate('/login')} />} />
           
           <Route path="/mypage" element={
@@ -165,6 +183,8 @@ function App() {
           <Route path="/chatbot" element={<Chatbot userNick={loggedInNick} />} />
           
           <Route path="/explore" element={<Explore />} />
+
+          <Route path="/supporters" element={<Supporters />} />
         </Routes>
       </main>
 
