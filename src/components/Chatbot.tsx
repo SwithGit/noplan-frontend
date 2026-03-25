@@ -114,16 +114,37 @@ function Chatbot({userNick }: ChatbotProps) {
     setMessages((prev) => [...prev, { id: Date.now(), sender: 'user', text: userText }]);
     setInputValue(''); 
 
-    setTimeout(() => {
+    setTimeout(async () => {
       let coreResponse = '';
       let nextStep = currentStep;
       let updatedData = { ...travelData }; 
 
       if (currentStep === 0) {
-        updatedData.location = userText; 
-        coreResponse = `아하, ${userText}에 계시는군요! ✨\n언제부터 일정을 시작할까요? (예: 지금부터, 내일 오후 7시 등)`;
-        nextStep = 1; 
-      } 
+       setMessages((prev) => [...prev, { id: Date.now() + 1, sender: 'core', text: `${userNick}님의 목적지를 찰떡같이 파악하고 있어요... 🧐✨` }]);
+
+        try {          
+          const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
+          
+          const response = await fetch(`${API_BASE_URL}/api/course/generate/extract-location`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: userText })
+          });
+          
+          const result = await response.json();
+          const finalLocation = result.location; // AI가 예쁘게 뽑아준 '건대'
+
+          updatedData.location = finalLocation; 
+          coreResponse = `아하, ${finalLocation} 쪽으로 가시는군요! ✨\n언제부터 일정을 시작할까요? (예: 지금부터, 내일 오후 7시 등)`;
+          nextStep = 1; 
+
+        } catch (error) {
+          // 혹시 통신에러가 나면 쿨하게 유저가 친 글자 그대로 사용!
+          updatedData.location = userText; 
+          coreResponse = `아하, ${userText} 쪽으로 가시는군요! ✨\n언제부터 일정을 시작할까요?`;
+          nextStep = 1; 
+        }
+      }
       else if (currentStep === 1) {
         updatedData.startTime = userText; 
         coreResponse = `네, ${userText} 시작으로 맞출게요! ⏰\n오늘 같이 여행할 인원은 몇 명인가요?`;
