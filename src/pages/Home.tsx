@@ -1,5 +1,6 @@
 // src/Home.tsx
 import { useEffect } from 'react';
+import AvatarScene from '../components/AvatarScene';
 
 interface HomeProps {
   onStartPlanner: () => void;
@@ -76,7 +77,25 @@ function Home({ onStartPlanner, userNick}: HomeProps) {
             <span style={{ cursor: 'pointer', color: '#666' }} onClick={goto}>개인정보 취급방침</span>
           </div>
         </div>
+      <p style={{ marginTop: '5px', color: '#ddd', fontSize: '11px' }}>
+  * 3D Model "gato mau" by Marco on Sketchfab
+</p>
       </footer>
+
+      <div style={{ 
+        position: 'fixed', // 👈 요기! 전체 화면 기준 고정!
+        bottom: '30px',    // 🌸 바닥에서 30px 띄우기!
+        right: '30px',     // 🌸 오른쪽에서 30px 띄우기!
+        width: '300px',    // 🌸 아바타가 들어갈 예쁜 초상화 크기! 오빠 마음대로 조절해봐요!
+        height: '400px',   // good portrait aspect
+        zIndex: 1000,      // 👈 온 동네 최고 높은 자리에 앉히기!
+        borderRadius: '20px', 
+        overflow: 'hidden', 
+        pointerEvents: 'none' // 🌸 전체 박스는 클릭 안 되게 해서, 뒤에 있는 버튼 클릭 안 가리게!
+      }}>
+        {/* 아바타 scene은 그대로! */}
+        <AvatarScene />
+      </div>
     </div>
   );
 }
