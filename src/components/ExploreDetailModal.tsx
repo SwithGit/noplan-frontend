@@ -7,13 +7,14 @@ declare global {
 }
 
 interface DetailProps {
+  isDark:boolean;
   course: any;
   onClose: () => void;
   userId: string | null;
   onUpdateLikes: (courseId: number, newLikes: number) => void;
 }
 
-function ExploreDetailModal({ course, onClose, userId, onUpdateLikes}: DetailProps) {    
+function ExploreDetailModal({ isDark, course, onClose, userId, onUpdateLikes}: DetailProps) {    
   const [reviews, setReviews] = useState<any[]>([]);
   const [newReview, setNewReview] = useState('');
   const [isLiked, setIsLiked] = useState(false);
@@ -37,6 +38,13 @@ function ExploreDetailModal({ course, onClose, userId, onUpdateLikes}: DetailPro
       return [];
     }
   })();
+
+  const mainTitleColor = isDark ? '#fff' : '#333';
+  const subTitleColor = isDark ? '#fff' : '#676767';
+  const bgColor = isDark ? '#000' : '#fff'; 
+  const cardBGColor = isDark ? '#16213e' : '#fff'; 
+  const titleColor = isDark ? '#ffffff' : '#333333';  // 제목 글씨
+  const nickColor = isDark ? '#ffffff' : '#444';  // 제목 글씨
 
   // 🚀 2. 지도 로직 (마커 + 이름표 + 빨간 점선)
  useEffect(() => {
@@ -172,11 +180,26 @@ function ExploreDetailModal({ course, onClose, userId, onUpdateLikes}: DetailPro
     }
   };
 
+  // --- 🎨 스타일 정의 ---
+const modalOverlayStyle: React.CSSProperties = { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: bgColor, zIndex: 1000, overflowY: 'auto' };
+const headerStyle: React.CSSProperties = { position: 'sticky', top: 0, backgroundColor: bgColor, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 20px', borderBottom: '1px solid #eee', zIndex: 10 };
+const contentContainerStyle: React.CSSProperties = { maxWidth: '600px', margin: '0 auto', width: '100%', padding: '20px 0 80px 0' };
+const courseBodyStyle: React.CSSProperties = { padding: '0 20px' };
+const mapContainerStyle: React.CSSProperties = { width: '100%', height: '350px', backgroundColor: '#f0f0f0', borderRadius: '20px', marginBottom: '30px', border: '1px solid #eee' };
+
+
+const reviewSectionStyle: React.CSSProperties = { padding: '0 20px' };
+const reviewInputArea: React.CSSProperties = { display: 'flex', gap: '10px', marginTop: '15px', alignItems: 'center' };
+const inputStyle: React.CSSProperties = { flex: 1, padding: '12px 15px', borderRadius: '20px', border: '1px solid #ddd', outline: 'none' };
+const sendBtnStyle: React.CSSProperties = { padding: '10px 25px', backgroundColor: '#007AFF', color: 'white', border: 'none', borderRadius: '20px', fontWeight: 'bold', cursor: 'pointer' };
+const reviewCardStyle: React.CSSProperties = { padding: '15px 0', borderBottom: '1px solid #f9f9f9' };
+const closeBtnStyle: React.CSSProperties = { background: 'none',color : mainTitleColor , border: 'none', fontSize: '20px', cursor: 'pointer' };
+
   return (
     <div style={modalOverlayStyle}>
       <div style={headerStyle}>
         <button onClick={onClose} style={closeBtnStyle}>✕</button>
-        <h2 style={{ fontSize: '18px', margin: 0, fontWeight: 800 }}>{course.title}</h2>
+        <h2 style={{ fontSize: '18px', color : mainTitleColor, margin: 0, fontWeight: 800}}>{course.title}</h2>
         <div style={{width: '24px'}}></div>
       </div>
 
@@ -206,7 +229,7 @@ function ExploreDetailModal({ course, onClose, userId, onUpdateLikes}: DetailPro
       textAlign: 'center', 
       fontSize: '18px', 
       fontWeight: 'bold', 
-      color: '#333',
+      color: subTitleColor,
       lineHeight: '1.5'
     }}>
       "{course.review_text}"
@@ -220,10 +243,10 @@ function ExploreDetailModal({ course, onClose, userId, onUpdateLikes}: DetailPro
 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
   {parsedCourseData.map((item: any, index: number) => (
     <div key={index} style={{ 
-      backgroundColor: 'white', 
+      backgroundColor:cardBGColor, 
       padding: '25px', 
       borderRadius: '20px', 
-      borderLeft: '6px solid #007AFF', // 🚀 오빠가 원하던 파란 바!
+      borderLeft: '6px solid #007AFF',
       boxShadow: '0 4px 15px rgba(0,0,0,0.05)', 
       marginBottom: '10px' 
     }}>
@@ -232,10 +255,10 @@ function ExploreDetailModal({ course, onClose, userId, onUpdateLikes}: DetailPro
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <span style={{fontSize: '20px'}}>📍</span>
-        <span style={{fontSize: '20px', fontWeight: 'bold'}}>{item.title}</span>
+        <span style={{fontSize: '20px',color:titleColor, fontWeight: 'bold'}}>{item.title}</span>
       </div>
       {item.description && (
-        <p style={{ fontSize: '15px', color: '#666', marginTop: '12px', lineHeight: '1.6' }}>
+        <p style={{ fontSize: '15px', color: subTitleColor, marginTop: '12px', lineHeight: '1.6' }}>
           {item.description}
         </p>
       )}
@@ -248,7 +271,7 @@ function ExploreDetailModal({ course, onClose, userId, onUpdateLikes}: DetailPro
 
         {/* 💬 리뷰 섹션 */}
         <div style={reviewSectionStyle}>
-          <h3 style={{ fontSize: '18px', fontWeight: 800, textAlign: 'center' }}>노플래너들의 한마디 ({reviews.length})</h3>
+          <h3 style={{ fontSize: '18px',color:titleColor, fontWeight: 800, textAlign: 'center' }}>노플래너들의 한마디 ({reviews.length})</h3>
           
           <div style={reviewInputArea}>
             <input value={newReview} onChange={(e) => setNewReview(e.target.value)} placeholder="후기를 남겨줘요!" style={inputStyle} />
@@ -274,8 +297,8 @@ function ExploreDetailModal({ course, onClose, userId, onUpdateLikes}: DetailPro
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <img src={rev.profileURL || '/default-pfp.png'} style={{ width: '30px', height: '30px', borderRadius: '50%' }} />
                   <div>
-                    <div style={{ fontSize: '13px', fontWeight: 'bold' }}>{rev.user_nick}</div>
-                    <div style={{ fontSize: '14px', marginTop: '4px' }}>{rev.content}</div>
+                    <div style={{ fontSize: '13px',color : nickColor, fontWeight: 'bold' }}>{rev.user_nick}</div>
+                    <div style={{ fontSize: '14px',color : nickColor, marginTop: '4px' }}>{rev.content}</div>
                   </div>
                 </div>
               </div>
@@ -286,20 +309,5 @@ function ExploreDetailModal({ course, onClose, userId, onUpdateLikes}: DetailPro
     </div>
   );
 }
-
-// --- 🎨 스타일 정의 ---
-const modalOverlayStyle: React.CSSProperties = { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'white', zIndex: 1000, overflowY: 'auto' };
-const headerStyle: React.CSSProperties = { position: 'sticky', top: 0, backgroundColor: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 20px', borderBottom: '1px solid #eee', zIndex: 10 };
-const contentContainerStyle: React.CSSProperties = { maxWidth: '600px', margin: '0 auto', width: '100%', padding: '20px 0 80px 0' };
-const courseBodyStyle: React.CSSProperties = { padding: '0 20px' };
-const mapContainerStyle: React.CSSProperties = { width: '100%', height: '350px', backgroundColor: '#f0f0f0', borderRadius: '20px', marginBottom: '30px', border: '1px solid #eee' };
-
-
-const reviewSectionStyle: React.CSSProperties = { padding: '0 20px' };
-const reviewInputArea: React.CSSProperties = { display: 'flex', gap: '10px', marginTop: '15px', alignItems: 'center' };
-const inputStyle: React.CSSProperties = { flex: 1, padding: '12px 15px', borderRadius: '20px', border: '1px solid #ddd', outline: 'none' };
-const sendBtnStyle: React.CSSProperties = { padding: '10px 25px', backgroundColor: '#007AFF', color: 'white', border: 'none', borderRadius: '20px', fontWeight: 'bold', cursor: 'pointer' };
-const reviewCardStyle: React.CSSProperties = { padding: '15px 0', borderBottom: '1px solid #f9f9f9' };
-const closeBtnStyle: React.CSSProperties = { background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' };
 
 export default ExploreDetailModal;

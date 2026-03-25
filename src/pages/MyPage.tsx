@@ -8,6 +8,7 @@ declare global {
 }
 
 interface MyPageProps {
+  isDark:boolean;
   onLogout: () => void;
   userId: string; 
   initialProfile: string; 
@@ -15,7 +16,7 @@ interface MyPageProps {
   onOpenPopup: (seq: number, type: string) => void; 
 }
 
-function MyPage({ onLogout, userId, initialProfile, userNick, onOpenPopup }: MyPageProps) {
+function MyPage({isDark, onLogout, userId, initialProfile, userNick, onOpenPopup }: MyPageProps) {
   const [profileUrl, setProfileUrl] = useState(initialProfile);   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -181,6 +182,13 @@ function MyPage({ onLogout, userId, initialProfile, userNick, onOpenPopup }: MyP
     }
   };
 
+  const mainBGColor = isDark ? '#000' : '#fff';
+  //const mainTitleColor = isDark ? '#fff' : '#333';
+  const subTitleColor = isDark ? '#fff' : '#676767';
+  //const cardBGColor = isDark ? '#000' : '#fff'; 
+  //const titleColor = isDark ? '#ffffff' : '#333333';  // 제목 글씨
+  const nickColor = isDark ? '#ffffff' : '#444';  // 제목 글씨
+
   const gridStyle: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '20px', padding: '20px 0' };
   const cardStyle: React.CSSProperties = { backgroundColor: 'white', padding: '20px', borderRadius: '20px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: '15px', cursor: 'pointer', transition: 'transform 0.2s', borderTop: '5px solid #ff3b30' };
   
@@ -231,7 +239,7 @@ function MyPage({ onLogout, userId, initialProfile, userNick, onOpenPopup }: MyP
   return (
     <div style={{ paddingBottom: '50px' }}>
       
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'white', padding: '40px', borderRadius: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', marginBottom: '40px', flexWrap: 'wrap', gap: '20px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: mainBGColor, padding: '40px', borderRadius: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', marginBottom: '40px', flexWrap: 'wrap', gap: '20px' }}>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '30px' }}>
           <div onClick={() => fileInputRef.current?.click()} style={{ width: '100px', height: '100px', backgroundColor: '#f0f2f5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#aaa', border: '2px dashed #ccc', cursor: 'pointer', overflow: 'hidden', flexShrink: 0 }}>
@@ -240,8 +248,8 @@ function MyPage({ onLogout, userId, initialProfile, userNick, onOpenPopup }: MyP
           <input type="file" accept="image/*" ref={fileInputRef} style={{ display: 'none' }} onChange={handleImageChange} />
 
           <div>
-            <h2 style={{ margin: '0 0 5px 0', color: '#333', fontSize: '28px', fontWeight: 800 }}>{userNick}</h2>
-            <p style={{ margin: 0, color: '#888', fontSize: '14px' }}>{userInfo.email || userId}</p>
+            <h2 style={{ margin: '0 0 5px 0', color: nickColor, fontSize: '28px', fontWeight: 800 }}>{userNick}</h2>
+            <p style={{ margin: 0, color: subTitleColor, fontSize: '14px' }}>{userInfo.email || userId}</p>
           </div>
         </div>
 

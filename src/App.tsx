@@ -1,4 +1,3 @@
-// App.tsx
 import { useState, useEffect } from 'react'
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom' // 🚀 라우팅 도구들 챙기기!
 import Home from './pages/Home'
@@ -20,7 +19,6 @@ import ExploreFeed from './components/ExploreFeed'
 import Supporters from './pages/Supporters'
 
 function App() {
-  // 🚀 코아의 라우팅 리모컨 등장!
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -29,6 +27,11 @@ function App() {
   const [loggedInNick, setLoggedInNick] = useState('') 
   const [loggedInProfile, setLoggedInProfile] = useState('') 
   const [sharedCourse, setSharedCourse] = useState<any | null>(null);
+
+    const [isDark, setIsDark] = useState(false);
+  const toggleTheme = () => {
+    setIsDark(!isDark);
+  };
 
   useEffect(() => {
     const savedUser = localStorage.getItem('loggedInUser');
@@ -64,8 +67,8 @@ function App() {
 
   // 🌸 현재 주소창(location.pathname)을 확인해서 활성화된 메뉴 색깔을 칠해줘용!
   const navItemStyle = (path: string): React.CSSProperties => ({
-    cursor: 'pointer', fontWeight: 'bold', fontSize: '15px',
-    color: location.pathname === path ? '#007AFF' : '#555',
+    cursor: 'pointer', fontWeight: 'bold', fontSize: '15px',    
+    color: location.pathname === path ? '#007AFF' : (isDark ? '#ccc' : '#555'),
     textDecoration: 'none', transition: 'all 0.2s',
     display: 'flex', alignItems: 'center', gap: '8px'
   });
@@ -89,7 +92,7 @@ function App() {
   };
 
   return(        
-    <div style={{ fontFamily: '"Noto Sans KR", sans-serif', backgroundColor: '#f9fafb', minHeight: '100vh' }}>
+    <div style={{ fontFamily: '"Noto Sans KR", sans-serif', backgroundColor: isDark ? '#1a1a2e' : '#f9fafb', minHeight: '100vh' }}>
       <header style={{
         display: 'flex', 
         flexDirection: isMobile ? 'column' : 'row', 
@@ -97,8 +100,10 @@ function App() {
         alignItems: 'center',
         padding: isMobile ? '15px' : '10px 60px', 
         gap: isMobile ? '15px' : '0',
-        backgroundColor: 'white', boxShadow: '0 1px 5px rgba(0,0,0,0.03)',
-        position: 'sticky', top: 0, zIndex: 100
+        backgroundColor: isDark ? '#000' : 'white', 
+        boxShadow: isDark ? '0 1px 5px rgba(0,0,0,0.3)' : '0 1px 5px rgba(0,0,0,0.03)',
+        position: 'sticky', top: 0, zIndex: 100,
+        transition: 'all 0.3s'
       }}>
         <div onClick={() => navigate('/')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'center' : 'flex-start' }}>
           <img src="/images/Logo.png" alt="📍 NoPlan" style={{ height: '32px' }}/>
@@ -114,6 +119,14 @@ function App() {
         </nav>
           
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <button 
+            onClick={toggleTheme} 
+            style={{ fontSize: '20px',color:isDark ? '#fff' : '#333' ,background: 'none', border: 'none', cursor: 'pointer', padding: '0 5px' }}
+            title="다크모드 스위치"
+          >
+            {isDark ? '☀️' : '🌙'}
+          </button>
+
           {isLoggedIn ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }} onClick={() => navigate('/mypage')}>
               {loggedInProfile ? (
@@ -121,7 +134,7 @@ function App() {
               ) : (
                 <div style={{ width: '35px', height: '35px', borderRadius: '50%', backgroundColor: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', fontSize: '12px' }}>프로필</div>
               )}
-              <span style={{ fontSize: '14px', color: '#333', fontWeight: 'bold' }}>{loggedInNick}님 ▼</span>
+              <span style={{ fontSize: '14px', color: isDark ? '#fff' : '#333', fontWeight: 'bold' }}>{loggedInNick}님 ▼</span>
             </div>
           ) : (
             <button 
@@ -145,8 +158,8 @@ function App() {
         <Routes>
           <Route path="/" element={
             <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-              <ExploreFeed onOpenPopup={openCoursePopup}/> 
-              <Home onStartPlanner={() => navigate('/chatbot')} userNick={loggedInNick} onOpenPopup={openCoursePopup} />
+              <ExploreFeed isDark={isDark} onOpenPopup={openCoursePopup}/> 
+              <Home isDark={isDark} onStartPlanner={() => navigate('/chatbot')} userNick={loggedInNick} onOpenPopup={openCoursePopup} />
             </div>
           } />
           
@@ -177,12 +190,12 @@ function App() {
           <Route path="/signup" element={<Signup onGoToLogin={() => navigate('/login')} />} />
           
           <Route path="/mypage" element={
-            <MyPage onLogout={handleLogout} userId={loggedInId} initialProfile={loggedInProfile} userNick={loggedInNick} onOpenPopup={openCoursePopup}/>
+            <MyPage isDark={isDark} onLogout={handleLogout} userId={loggedInId} initialProfile={loggedInProfile} userNick={loggedInNick} onOpenPopup={openCoursePopup}/>
           } />
           
-          <Route path="/chatbot" element={<Chatbot userNick={loggedInNick} />} />
+          <Route path="/chatbot" element={<Chatbot isDark={isDark} userNick={loggedInNick} />} />
           
-          <Route path="/explore" element={<Explore />} />
+          <Route path="/explore" element={<Explore isDark={isDark} />} />
 
           <Route path="/supporters" element={<Supporters />} />
         </Routes>

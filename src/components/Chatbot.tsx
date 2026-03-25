@@ -38,6 +38,7 @@ interface Message {
 }
 
 interface ChatbotProps {
+  isDark:boolean;
   userNick: string;
 }
 
@@ -78,7 +79,7 @@ const MOCK_STORE_DETAILS: { [key: string]: StoreDetail } = {
 };
 
 
-function Chatbot({userNick }: ChatbotProps) {
+function Chatbot({isDark, userNick }: ChatbotProps) {
   const [messages, setMessages] = useState<Message[]>([
     { id: 1, sender: 'core', text: `안녕하세요, ${userNick ? userNick : 'Guest'}님! 여행 계획을 함께 세워드릴 AI 가이드 코아입니다. 😊\n\n먼저, 현재 어디에 계신가요? (예: 상봉역, 홍대입구 등)` }
   ]);
@@ -305,7 +306,11 @@ function Chatbot({userNick }: ChatbotProps) {
   const cardFrontStyle: React.CSSProperties = { ...cardSideStyle, backgroundColor: 'white', borderLeft: '5px solid #007AFF' };
   const cardBackStyle: React.CSSProperties = { ...cardSideStyle, backgroundColor: '#f0f2f5', color: '#333', border: '2px dashed #007AFF' };
 
-  // Chatbot.tsx 의 inputStyle 부분!
+  const titleBGColor= isDark ? '#000' : '#fff';
+  const subBGColor= isDark ? '#333' : '#fff';
+  const mainTitleColor = isDark ? '#fff' : '#333';
+  const subTitleColor = isDark ? '#fff' : '#666';
+  const cardBGColor = isDark ? '#000' : '#fff';   
 
 const inputStyle = { 
   padding: '15px 20px', 
@@ -318,7 +323,7 @@ const inputStyle = {
   // 🚀 코아의 마법: 폰에서도 글자가 선명하게 보이도록 색상을 딱! 정해줘용!
   color: '#333' 
 };
-  const coreMsgStyle = { backgroundColor: 'white', border: '1px solid #eee', color: '#333', padding: '12px 18px', borderRadius: '0 18px 18px 18px', maxWidth: '85%', alignSelf: 'flex-start', fontSize: '15px', marginBottom: '15px', lineHeight: '1.5', whiteSpace: 'pre-wrap', boxShadow: '0 2px 5px rgba(0,0,0,0.02)' };
+  const coreMsgStyle = { backgroundColor: cardBGColor, border: '1px solid #eee', color: mainTitleColor, padding: '12px 18px', borderRadius: '0 18px 18px 18px', maxWidth: '85%', alignSelf: 'flex-start', fontSize: '15px', marginBottom: '15px', lineHeight: '1.5', whiteSpace: 'pre-wrap', boxShadow: '0 2px 5px rgba(0,0,0,0.02)' };
   const userMsgStyle = { backgroundColor: '#007AFF', color: 'white', padding: '12px 18px', borderRadius: '18px 0 18px 18px', maxWidth: '85%', alignSelf: 'flex-end', fontSize: '15px', marginBottom: '15px', lineHeight: '1.5', boxShadow: '0 2px 5px rgba(0,122,255,0.2)' };
 
   return (
@@ -342,15 +347,15 @@ const inputStyle = {
         minHeight: 0 
       }}>
         
-        <div style={{ padding: '20px', borderBottom: '1px solid #eee', display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ padding: '20px', background:titleBGColor, borderBottom: '1px solid #eee', display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{ fontSize: '24px' }}>🤖</div>
           <div>
-            <h3 style={{ margin: 0, fontSize: '16px', color: '#333' }}>NoPlan AI 가이드</h3>
+            <h3 style={{ margin: 0, fontSize: '16px', color: mainTitleColor}}>NoPlan AI 가이드</h3>
             <p style={{ margin: 0, fontSize: '12px', color: '#007AFF', fontWeight: 'bold' }}>코아 상시 대기 중 ✨</p>
           </div>
         </div>
 
-        <div id="messages" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', padding: '20px', backgroundColor: '#fafbfc' }}>
+        <div id="messages" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', padding: '20px', backgroundColor: subBGColor}}>
           {messages.map((msg) => {
             if (msg.text) return ( <div key={msg.id} style={msg.sender === 'core' ? coreMsgStyle : userMsgStyle}>{msg.text}</div> );
             
@@ -358,7 +363,7 @@ const inputStyle = {
               return (
                 <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px', width: '100%' }}>
                   <p style={{ color: '#007AFF', fontWeight: 'bold', margin: '0 0 5px 5px', fontSize: '14px' }}>🎉 맞춤형 코스가 완성되었어요!</p>
-                  <p style={{ fontSize: '13px', color: '#666', margin: '0 0 10px 5px' }}>오른쪽 지도에서 동선과 상세 정보를 확인해 보세요!</p>
+                  <p style={{ fontSize: '13px', color: subTitleColor, margin: '0 0 10px 5px' }}>오른쪽 지도에서 동선과 상세 정보를 확인해 보세요!</p>
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     <button onClick={handleSaveCourse} style={{ flex: 1, padding: '10px', backgroundColor: '#ff3b30', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>💖 코스 찜하기</button>
                     <button onClick={handleCopyLink} style={{ flex: 1, padding: '10px', backgroundColor: '#fedc3e', color: '#391b1b', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>💬 링크 복사</button> 
@@ -396,7 +401,7 @@ const inputStyle = {
           <div ref={messagesEndRef} />
         </div>
         
-        <div style={{ padding: '20px', borderTop: '1px solid #eee', backgroundColor: 'white' }}>
+        <div style={{ padding: '20px', borderTop: '1px solid #eee', backgroundColor: titleBGColor }}>
           {currentStep === 0 && ( 
             <button onClick={handleMyLocation} style={{ width: '100%', marginBottom: '10px', padding: '12px', backgroundColor: '#e8f0fe', color: '#007AFF', border: '1px solid #007AFF', borderRadius: '15px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s' }}> 
               📍 내 현재 위치로 핫플 찾기 
@@ -420,7 +425,7 @@ const inputStyle = {
             </div> 
           )}
           {currentStep === 5 && ( <p style={{ width: '100%', textAlign: 'center', color: '#007AFF', fontSize: '14px', margin: 0, fontWeight: 'bold' }}> 코아가 열심히 코스를 짜고 있어요... 🚀 </p> )}
-          {currentStep === 6 && ( <p style={{ width: '100%', textAlign: 'center', color: '#888', fontSize: '13px', margin: 0 }}> 우측 지도에서 결과를 확인해 주세요! 👉 </p> )}
+          {currentStep === 6 && ( <p style={{ width: '100%', textAlign: 'center', color: subTitleColor, fontSize: '13px', margin: 0 }}> 우측 지도에서 결과를 확인해 주세요! 👉 </p> )}
         </div>
       </div> 
 

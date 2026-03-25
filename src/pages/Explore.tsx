@@ -1,15 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import ExploreDetailModal from '../components/ExploreDetailModal';
 
-// interface ExploreProps {
-  
-// }
+interface ExploreProps {
+  isDark:boolean;
+}
 
-function Explore() {
+function Explore({isDark}:ExploreProps) {
   const [allCourses, setAllCourses] = useState<any[]>([]);
   const [sortBy, setSortBy] = useState<'likes' | 'views'>('likes');
   const [selectedCourse, setSelectedCourse] = useState<any | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  
+  const mainTitleColor = isDark ? '#fff' : '#333';
+  const subTitleColor = isDark ? '#fff' : '#676767';
+  const cardBGColor = isDark ? '#000' : '#fff'; 
+  const titleColor = isDark ? '#ffffff' : '#333333';  // 제목 글씨
+  const nickColor = isDark ? '#ffffff' : '#444';  // 제목 글씨
 
   useEffect(() => {
     const savedUser = localStorage.getItem('loggedInUser');
@@ -76,7 +82,7 @@ const updateCourseLikes = (courseId: number, newLikes: number) => {
   };
 
   const cardStyle: React.CSSProperties = {
-    backgroundColor: 'white',
+    backgroundColor: cardBGColor,
     padding: '25px',
     borderRadius: '25px',
     boxShadow: '0 8px 20px rgba(0,0,0,0.06)',
@@ -92,10 +98,10 @@ const updateCourseLikes = (courseId: number, newLikes: number) => {
 
   return (
     <div style={{ paddingBottom: '50px' }}>
-      <h2 style={{ fontSize: '28px', color: 'rgb(51, 51, 51)', marginBottom: '10px', fontWeight: 800 }}>
+      <h2 style={{ fontSize: '28px', color: mainTitleColor, marginBottom: '10px', fontWeight: 800 }}>
         모두의 여행 탐색기 🗺️
       </h2>
-      <p style={{ color: 'rgb(102, 102, 102)', marginBottom: '30px', fontSize: '16px' }}>
+      <p style={{ color: subTitleColor, marginBottom: '30px', fontSize: '16px' }}>
         검증된 노플래너들의 찐 후기 코스만 모았어요! 📸
       </p>
 
@@ -144,13 +150,13 @@ const updateCourseLikes = (courseId: number, newLikes: number) => {
                   <div style={{ width: '25px', height: '25px', borderRadius: '50%', backgroundColor: '#f0f2f5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bbb', fontSize: '10px' }}>No</div>
                 )}
                 
-                <span style={{ fontSize: '13px', color: '#555', fontWeight: 'bold' }}>
+                <span style={{ fontSize: '13px', color: nickColor, fontWeight: 'bold' }}>
                   {course.user_nick || '노플래너'} 
                 </span>
                 <span style={{ fontSize: '12px', color: '#bbb' }}>님의 기록</span>
               </div>
               
-              <h3 style={{ fontSize: '18px', color: '#333', margin: '0', wordBreak: 'keep-all', lineHeight: '1.4', fontWeight: 700 }}>
+              <h3 style={{ fontSize: '18px', color: titleColor, margin: '0', wordBreak: 'keep-all', lineHeight: '1.4', fontWeight: 700 }}>
                 {course.title}
               </h3>
 
@@ -179,6 +185,7 @@ const updateCourseLikes = (courseId: number, newLikes: number) => {
       {/* 🚀 코아의 팝업 소환술! */}
    {selectedCourse && (
     <ExploreDetailModal 
+      isDark={isDark}
       course={selectedCourse} 
       onClose={() => setSelectedCourse(null)} 
       userId={userId} 

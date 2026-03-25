@@ -1,12 +1,18 @@
 import { useState, useEffect } from 'react';
 
 interface ExploreFeedProps {
+  isDark:boolean;
   onOpenPopup: (seq: number, type: string) => void;
 }
 
-function ExploreFeed({ onOpenPopup }: ExploreFeedProps) {
+function ExploreFeed({ isDark, onOpenPopup }: ExploreFeedProps) {
   const [hotCourses, setHotCourses] = useState<any[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
+
+  const bgColor = isDark ? '#16213e' : '#e6f2ff'; // 히어로 박스 배경
+  const cardBGColor = isDark ? '#000' : '#fff'; // 히어로 박스 배경
+  const titleColor = isDark ? '#ffffff' : '#333333';  // 제목 글씨
+  const nickColor = isDark ? '#ffffff' : '#444';  // 제목 글씨
 
   useEffect(() => {
     const savedUser = localStorage.getItem('loggedInUser');
@@ -81,7 +87,7 @@ function ExploreFeed({ onOpenPopup }: ExploreFeedProps) {
 
   // ✨ 코아가 수정한 카드 스타일 포인트!
   const cardStyle: React.CSSProperties = {
-    backgroundColor: 'white',
+    backgroundColor: cardBGColor,
     padding: '20px',
     borderRadius: '25px',
     boxShadow: '0 8px 20px rgba(0,0,0,0.06)',
@@ -102,8 +108,8 @@ function ExploreFeed({ onOpenPopup }: ExploreFeedProps) {
   if (hotCourses.length === 0) return null;
 
   return (
-    <div style={{ padding: '20px 0 20px 20px', backgroundColor: '#fafbfc', borderRadius: '25px', marginBottom: '25px' }}>
-      <h2 style={{ margin: '0 0 15px 0', fontSize: '19px', color: '#333', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <div style={{ padding: '20px 0 20px 20px', backgroundColor: bgColor, borderRadius: '25px', marginBottom: '25px' }}>
+      <h2 style={{ margin: '0 0 15px 0', fontSize: '19px', color: titleColor, fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
         🔥 이번 주 가장 핫한 노플랜 코스
       </h2>
       
@@ -144,10 +150,10 @@ function ExploreFeed({ onOpenPopup }: ExploreFeedProps) {
               ) : (
                 <div style={{ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: '#eee', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>👤</div>
               )}
-              <span style={{ fontSize: '13px', fontWeight: '600', color: '#444' }}>{course.user_nick || '노플래너'}</span>
+              <span style={{ fontSize: '13px', fontWeight: '600', color: nickColor}}>{course.user_nick || '노플래너'}</span>
             </div>
             
-            <h3 style={{ fontSize: '17px', color: '#222', margin: '0', height: '48px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', lineHeight: '1.4' }}>
+            <h3 style={{ fontSize: '17px', color: titleColor, margin: '0', height: '48px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', lineHeight: '1.4' }}>
               {course.title}
             </h3>
             

@@ -1,32 +1,33 @@
 // src/Home.tsx
-import { useEffect } from 'react';
 import AvatarScene from '../components/AvatarScene';
 
 interface HomeProps {
+  isDark: boolean;
   onStartPlanner: () => void;
   userNick?: string;
   onOpenPopup:(seq: number, type: string) => void;
 }
 
-function Home({ onStartPlanner, userNick}: HomeProps) {
+function Home({isDark, onStartPlanner, userNick}: HomeProps) {
   const privacy = '/privacy' 
     const goto = () => {
     window.location.href = privacy;
   }
 
-  // 🌸 화면이 짠! 하고 켜지자마자 백엔드한테 "랜덤 코스 내놔!" 하고 달려가용!
-  useEffect(() => {    
-  }, []);
+  const heroBgColor = isDark ? '#16213e' : '#e6f2ff'; // 히어로 박스 배경
+  const titleColor = isDark ? '#ffffff' : '#333333';  // 제목 글씨
+  const textColor = isDark ? '#b8b8b8' : '#666666';   // 본문 글씨
+  const footTextColor = isDark ? '#fff' : '#666';   // 본문 글씨
 
   return (
     <div style={{ paddingBottom: '50px' }}>
       {/* 최상단 히어로 섹션 (오빠가 고친 줄 간격 그대로 유지해용!) */}
-      <section style={{ textAlign: 'center', padding: '80px 10px', backgroundColor: '#e6f2ff', borderRadius: '30px', marginBottom: '50px' }}>
-        <h1 style={{ fontSize: '32px', color: '#333', marginBottom: '15px', fontWeight: 800, lineHeight: '1.4' }}>
+      <section style={{ textAlign: 'center', padding: '80px 10px', backgroundColor: heroBgColor, borderRadius: '30px', marginBottom: '50px' }}>
+        <h1 style={{ fontSize: '32px', color: titleColor, marginBottom: '15px', fontWeight: 800, lineHeight: '1.4' }}>
           {userNick ? `${userNick}님,` : ''} 계획 없는 여행,<br />
           AI가 완벽하게 짜드릴게요.
         </h1>
-        <p style={{ fontSize: '16px', color: '#666', marginBottom: '30px', lineHeight: '1.6' }}>
+        <p style={{ fontSize: '16px', color: textColor, marginBottom: '30px', lineHeight: '1.6' }}>
           어디로 갈지, 몇 시에 갈지만 정하세요.<br />
           '노플랜' AI 가이드 코아가 취향 맞춤 코스를 대령합니다!
         </p>
@@ -35,7 +36,7 @@ function Home({ onStartPlanner, userNick}: HomeProps) {
         </button>
       </section>
 
-      <footer style={{ borderTop: '1px solid #eee', padding: '60px 20px 40px', backgroundColor: '#fff' }}>
+      <footer style={{ borderTop: '1px solid #eee', padding: '60px 20px 40px', backgroundColor: heroBgColor }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', color: '#888', fontSize: '13px' }}>
           
           {/* 로고 및 소셜 아이콘 영역 */}
@@ -57,13 +58,13 @@ function Home({ onStartPlanner, userNick}: HomeProps) {
 
           {/* 사업자 상세 정보 영역 */}
           <div style={{ lineHeight: '1.8', marginBottom: '30px' }}>
-            <p style={{ margin: 0 }}>
-              대표자 <strong>박휘선</strong> <span style={{ color: '#ddd', margin: '0 8px' }}>|</span> 
-              주소 <strong>울산광역시</strong> <span style={{ color: '#ddd', margin: '0 8px' }}>|</span> 
+            <p style={{ margin: 0, color:footTextColor}}>
+              대표자 <strong>박휘선</strong> <span style={{ color: footTextColor, margin: '0 8px' }}>|</span> 
+              주소 <strong>울산광역시</strong> <span style={{ color: footTextColor, margin: '0 8px' }}>|</span> 
               사업자 등록번호 <strong></strong>
             </p>
-            <p style={{ margin: 0 }}>
-              문의전화 <strong></strong> <span style={{ color: '#ddd', margin: '0 8px' }}>|</span> 
+            <p style={{ margin: 0, color:footTextColor }}>
+              문의전화 <strong></strong> <span style={{ color: footTextColor, margin: '0 8px' }}>|</span> 
               문의메일 <strong>Shake923@gmail.com</strong>
             </p>
             <p style={{ marginTop: '10px', color: '#bbb' }}>
@@ -73,8 +74,8 @@ function Home({ onStartPlanner, userNick}: HomeProps) {
 
           {/* 하단 링크 영역 */}
           <div style={{ display: 'flex', gap: '25px', fontWeight: 'bold', borderTop: '1px solid #f5f5f5', paddingTop: '20px' }}>
-            <span style={{ cursor: 'pointer', color: '#666' }}>서비스 이용약관</span>
-            <span style={{ cursor: 'pointer', color: '#666' }} onClick={goto}>개인정보 취급방침</span>
+            <span style={{ cursor: 'pointer', color: footTextColor }}>서비스 이용약관</span>
+            <span style={{ cursor: 'pointer', color: footTextColor }} onClick={goto}>개인정보 취급방침</span>
           </div>
         </div>
       <p style={{ marginTop: '5px', color: '#ddd', fontSize: '11px' }}>
