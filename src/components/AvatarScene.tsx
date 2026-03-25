@@ -10,7 +10,7 @@ function AvatarScene() {
       shadows 
       // 💡 오빠! 코아의 마법: 아까 오빠가 찾은 얼짱 각도 카메라 [좌우, 위아래, 앞뒤]
       camera={{ position: [0, 1.5, 1.5], fov: 50 }}
-            
+      style={{ pointerEvents: 'none' }}
     >
       <Stage environment="city" intensity={0.6} shadows="contact" adjustCamera={false}>
         <Suspense fallback={null}>
