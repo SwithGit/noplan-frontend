@@ -1,23 +1,23 @@
 // App.tsx
 import { useState, useEffect } from 'react'
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom' // 🚀 라우팅 도구들 챙기기!
-import Home from './Home'
-import Login from './Login'
-import Privacy from './Privacy'
-import KakaoCallback from './KakaoCallback';
-import KakaoSignup from './KakaoSignup';
-import NaverCallback from './NaverCallback';
-import NaverSignup from './NaverSignup';
-import GoogleCallback from './GoogleCallback';
-import GoogleSignup from './GoogleSignup';
+import Home from './pages/Home'
+import Login from './pages/auth/Login'
+import Privacy from './pages/Privacy'
+import KakaoCallback from './pages/auth/KakaoCallback';
+import KakaoSignup from './pages/auth/KakaoSignup';
+import NaverCallback from './pages/auth/NaverCallback';
+import NaverSignup from './pages/auth/NaverSignup';
+import GoogleCallback from './pages/auth/GoogleCallback';
+import GoogleSignup from './pages/auth/GoogleSignup';
 
-import Signup from './Signup'
-import MyPage from './MyPage'
-import Chatbot from './Chatbot'
-import MapBoard from './MapBoard'
-import Explore from './Explore'
-import ExploreFeed from './ExploreFeed'
-import Supporters from './Supporters'
+import Signup from './pages/auth/Signup'
+import MyPage from './pages/MyPage'
+import Chatbot from './components/Chatbot'
+import MapBoard from './components/MapBoard'
+import Explore from './pages/Explore'
+import ExploreFeed from './components/ExploreFeed'
+import Supporters from './pages/Supporters'
 
 function App() {
   // 🚀 코아의 라우팅 리모컨 등장!

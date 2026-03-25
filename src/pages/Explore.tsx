@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import ExploreDetailModal from './ExploreDetailModal';
+import ExploreDetailModal from '../components/ExploreDetailModal';
 
 // interface ExploreProps {
   
