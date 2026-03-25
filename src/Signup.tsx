@@ -36,7 +36,7 @@ function Signup({ onGoToLogin }: SignupProps) {
     const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/signup`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

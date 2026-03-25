@@ -113,7 +113,7 @@ function ExploreDetailModal({ course, onClose, userId, onUpdateLikes}: DetailPro
 }, [parsedCourseData, course.location]); // 🚀 course.location이 바뀔 때만 실행!
   // 🚀 3. 리뷰/좋아요 로직
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/course-reviews/${course.id}`)
+    fetch(`${API_BASE_URL}/api/course/explore/course-reviews/${course.id}`)
       .then(res => res.json())
       .then(data => { if (data.success) setReviews(data.reviews); });
   }, [course.id]);
@@ -123,7 +123,7 @@ function ExploreDetailModal({ course, onClose, userId, onUpdateLikes}: DetailPro
     if (!userId || !course.id) return;
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/check-like?userId=${userId}&courseId=${course.id}`);
+      const res = await fetch(`${API_BASE_URL}/api/course/explore/check-like?userId=${userId}&courseId=${course.id}`);
       const data = await res.json();
       
       if (data.success) {
@@ -140,9 +140,9 @@ function ExploreDetailModal({ course, onClose, userId, onUpdateLikes}: DetailPro
 }, [course.id, userId]);
 
   const handleLike = async () => {
-    if (!userId) return alert("로그인 부탁해용! ❤️");
+    if (!userId) return alert("로그인 부탁해요!");
 
-    const res = await fetch(`${API_BASE_URL}/api/toggle-like`, {
+    const res = await fetch(`${API_BASE_URL}/api/course/explore/toggle-like`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, courseId: course.id })
@@ -160,7 +160,7 @@ function ExploreDetailModal({ course, onClose, userId, onUpdateLikes}: DetailPro
 
   const handleReviewSubmit = async () => {
     if (!newReview.trim()) return;
-    const res = await fetch(`${API_BASE_URL}/api/course-reviews`, {
+    const res = await fetch(`${API_BASE_URL}/api/course/explore/course-reviews`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ courseId: course.id, userId, content: newReview, rating: 5 })
@@ -168,7 +168,7 @@ function ExploreDetailModal({ course, onClose, userId, onUpdateLikes}: DetailPro
     const result = await res.json();
     if (result.success) {
       setNewReview('');
-      fetch(`${API_BASE_URL}/api/course-reviews/${course.id}`).then(res => res.json()).then(data => setReviews(data.reviews));
+      fetch(`${API_BASE_URL}/api/course/explore/course-reviews/${course.id}`).then(res => res.json()).then(data => setReviews(data.reviews));
     }
   };
 

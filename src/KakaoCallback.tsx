@@ -20,7 +20,7 @@ function KakaoCallback() {
     const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
     try {
       // 백엔드에 '카카오 로그인 처리해 줘!' 하고 택배를 보내요
-      const response = await fetch(`${API_BASE_URL}/api/auth/kakao`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/kakao/kakao`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -1,6 +1,12 @@
 // src/MyPage.tsx
 import React, { useState, useRef, useEffect } from 'react';
 
+declare global {
+  interface Window {
+    IMP: any;
+  }
+}
+
 interface MyPageProps {
   onLogout: () => void;
   userId: string; 
@@ -32,11 +38,11 @@ function MyPage({ onLogout, userId, initialProfile, userNick, onOpenPopup }: MyP
   const fetchCourses = async () => {
     const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
     try {
-      const savedRes = await fetch(`${API_BASE_URL}/api/saved-courses?userId=${userId}`);
+      const savedRes = await fetch(`${API_BASE_URL}/api/mypage/saved-courses?userId=${userId}`);
       const savedData = await savedRes.json();
       if (savedData.success) setSavedCourses(savedData.courses);
 
-      const recentRes = await fetch(`${API_BASE_URL}/api/recent-courses?userId=${userId}`);
+      const recentRes = await fetch(`${API_BASE_URL}/api/mypage/recent-courses?userId=${userId}`);
       const recentData = await recentRes.json();
       if (recentData.success) setRecentCourses(recentData.courses);
     } catch (error) { console.error('코스 불러오기 에러 ㅠㅠ', error); }
@@ -59,7 +65,7 @@ function MyPage({ onLogout, userId, initialProfile, userNick, onOpenPopup }: MyP
 
     try {
       const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
-      const response = await fetch(`${API_BASE_URL}/api/add-record`, {
+      const response = await fetch(`${API_BASE_URL}/api/mypage/add-record`, {
         method: 'POST',
         body: formData, 
       });
@@ -99,7 +105,7 @@ function MyPage({ onLogout, userId, initialProfile, userNick, onOpenPopup }: MyP
 
     try {
       const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
-      const response = await fetch(`${API_BASE_URL}/api/save-course`, {
+      const response = await fetch(`${API_BASE_URL}/api/mypage/save-course`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -127,7 +133,7 @@ function MyPage({ onLogout, userId, initialProfile, userNick, onOpenPopup }: MyP
     const fetchUserInfo = async () => {
       const API_BASE_URL = import.meta.env.VITE_APP_API_URL; 
       try {
-        const response = await fetch(`${API_BASE_URL}/userinfo?id=${userId}`);
+        const response = await fetch(`${API_BASE_URL}/api/mypage/userinfo?id=${userId}`);
         const result = await response.json();
         if (response.ok && result.success) setUserInfo(result.user); 
       } catch (error) { console.error('내 정보 가져오기 실패 ㅠㅠ', error); }
@@ -153,7 +159,7 @@ function MyPage({ onLogout, userId, initialProfile, userNick, onOpenPopup }: MyP
     const API_BASE_URL = import.meta.env.VITE_APP_API_URL; 
 
     try {
-      const response = await fetch(`${API_BASE_URL}/upload-profile`, {
+      const response = await fetch(`${API_BASE_URL}/api/mypage/upload-profile`, {
         method: 'POST', body: formData,
       });
       const result = await response.json();
@@ -191,6 +197,36 @@ function MyPage({ onLogout, userId, initialProfile, userNick, onOpenPopup }: MyP
     currentList = savedCourses.filter((course) => course.is_visited);
     currentType = 'saved';
   }
+
+  // const handlePayment = () => {
+  //   const IMP = window.IMP;
+  //   // 오빠의 식별코드로 결제 모듈을 깨워용!
+  //   IMP.init(import.meta.env.VITE_PORTONE_STORE_ID);
+
+  //   const data = {
+  //     pg: 'html5_inicis', // 테스트용 PG사 (이니시스)
+  //     pay_method: 'card', // 결제수단 (신용카드)
+  //     merchant_uid: `mid_${new Date().getTime()}`, // 주문번호 (절대 겹치면 안 돼서 현재 시간으로 만들어용!)
+  //     name: '노플랜 5,000 포인트 충전', // 고객님 결제창에 뜰 예쁜 상품명
+  //     amount: 5000, // 결제 금액 (숫자로!)
+  //     buyer_email: 'customer@noplan.com', 
+  //     buyer_name: userNick || '노플랜고객',
+  //   };
+
+  //   // 결제창을 짠! 하고 띄워용
+  //   IMP.request_pay(data, async (response: any) => {
+  //     if (response.success) {
+  //       // 결제가 성공하면 포트원이 영수증 번호(imp_uid)를 줘용!
+  //       console.log('결제 성공 영수증:', response.imp_uid);
+  //       alert('결제가 완료되었습니다. 포인트 충전을 진행합니다.');
+        
+  //       // 백엔드로 영수증을 보내서 진짜 결제됐는지 검사하고 포인트를 올릴 거예용! (다음 단계에서 짤 코드!)
+  //       // verifyPayment(response.imp_uid, 5000); 
+  //     } else {
+  //       alert(`결제에 실패하였습니다. 사유: ${response.error_msg}`);
+  //     }
+  //   });
+  // };
   
   return (
     <div style={{ paddingBottom: '50px' }}>
@@ -357,6 +393,19 @@ function MyPage({ onLogout, userId, initialProfile, userNick, onOpenPopup }: MyP
         </div>
       )}
 
+      
+    {/* <div style={{ marginTop: '30px', padding: '20px', backgroundColor: '#fff', borderRadius: '15px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
+        <h3 style={{ margin: '0 0 15px 0', color: '#333' }}>VIP 포인트 충전</h3>
+        <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>
+          노플랜의 프리미엄 기능을 이용하기 위해 포인트를 충전해보세요.
+        </p>
+        <button 
+          onClick={handlePayment} 
+          style={{ padding: '12px 25px', backgroundColor: '#007AFF', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}
+        >
+          💳 5,000 포인트 충전하기
+        </button>
+      </div> */}
     </div>
   );
 }

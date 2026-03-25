@@ -17,7 +17,7 @@ function ExploreFeed({ onOpenPopup }: ExploreFeedProps) {
     const fetchHotCourses = async () => {
       try {
         const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
-        const response = await fetch(`${API_BASE_URL}/api/hot-courses`);
+        const response = await fetch(`${API_BASE_URL}/api/course/explore/hot-courses`);        
         const result = await response.json();
         if (result.success) {
           setHotCourses(result.courses);
@@ -33,7 +33,7 @@ function ExploreFeed({ onOpenPopup }: ExploreFeedProps) {
     onOpenPopup(courseId, 'saved');
     try {
       const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
-      await fetch(`${API_BASE_URL}/api/increase-view`, {
+      await fetch(`${API_BASE_URL}/api/course/explore/increase-view`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ courseId })
@@ -57,7 +57,7 @@ function ExploreFeed({ onOpenPopup }: ExploreFeedProps) {
     }
     try {
       const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
-      const response = await fetch(`${API_BASE_URL}/api/toggle-like`, {
+      const response = await fetch(`${API_BASE_URL}/api/course/explore/toggle-like`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, courseId })

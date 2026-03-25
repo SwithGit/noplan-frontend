@@ -29,7 +29,7 @@ function Explore() {
       const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
       try {
         // 🚀 URL 뒤에 정렬 옵션을 붙여서 서버한테 말해줘용!
-        const response = await fetch(`${API_BASE_URL}/api/explore-courses?sort=${sortBy}`);
+        const response = await fetch(`${API_BASE_URL}/api/course/explore/explore-courses?sort=${sortBy}`);
         const result = await response.json();
         
         if (response.ok && result.success) {
@@ -51,7 +51,7 @@ function Explore() {
   // 🚀 2. 백엔드에 조회수 +1 택배 보내기 (기존 로직 유지)
   try {
     const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
-    await fetch(`${API_BASE_URL}/api/increase-view`, {
+    await fetch(`${API_BASE_URL}/api/course/explore/increase-view`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ courseId })

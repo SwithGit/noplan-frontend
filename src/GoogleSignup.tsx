@@ -36,7 +36,7 @@ function GoogleSignup() {
     const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/google-register`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/google/google-register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

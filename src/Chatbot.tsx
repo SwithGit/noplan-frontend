@@ -150,7 +150,7 @@ function Chatbot({userNick }: ChatbotProps) {
           const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
           
           try {
-            const response = await fetch(`${API_BASE_URL}/generate-course`, {
+            const response = await fetch(`${API_BASE_URL}/api/course/generate/generate-course`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ ...updatedData, userId: currentUserId })
@@ -200,7 +200,7 @@ function Chatbot({userNick }: ChatbotProps) {
     const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/save-course`, {
+      const response = await fetch(`${API_BASE_URL}/api/course/explore/save-course`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
