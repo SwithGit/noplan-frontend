@@ -269,10 +269,19 @@ function Chatbot({isDark, userNick }: ChatbotProps) {
 
         if (window.kakao && window.kakao.maps && window.kakao.maps.services) {
           const geocoder = new kakao.maps.services.Geocoder();
-          geocoder.coord2RegionCode(lng, lat, (result: any, status: any) => {
+                
+          // 코아의 마법: coord2RegionCode 대신 coord2Address 사용!
+          geocoder.coord2Address(lng, lat, (result: any, status: any) => {
             if (status === kakao.maps.services.Status.OK) {
-              const regionName = result.find((r: any) => r.region_type === 'H')?.address_name || result[0].address_name;
-              handleSendMessage(regionName); 
+              // 도로명 주소가 있으면 도로명으로, 없으면 지번 주소로 아주 디테일하게 가져와용!
+              const detailedAddress = result[0].road_address 
+                ? result[0].road_address.address_name 
+                : result[0].address.address_name;
+              
+              console.log("코아가 찾은 오빠의 정확한 위치:", detailedAddress);
+              
+              // 이제 '역삼1동'이 아니라 '강남대로 94길 15'처럼 디테일하게 전송!
+              handleSendMessage(detailedAddress); 
             }
           });
         }
