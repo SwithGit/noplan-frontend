@@ -252,55 +252,55 @@ function Chatbot({isDark, userNick }: ChatbotProps) {
     });
   };
 
-const handleMyLocation = () => {
-  if (isLoading) return; // 코아의 철벽 방어! 이미 찾고 있으면 무시해!
+  const handleMyLocation = () => {
+    if (isLoading) return; // 코아의 철벽 방어! 이미 찾고 있으면 무시해!
 
-  if (!navigator.geolocation) {
-    alert("앗! 이 브라우저에서는 위치 확인을 지원하지 않아요 ㅠㅠ");
-    return;
-  }
+    if (!navigator.geolocation) {
+      alert("앗! 이 브라우저에서는 위치 확인을 지원하지 않아요 ㅠㅠ");
+      return;
+    }
 
-  setIsLoading(true); // 위성 찾기 시작! 버튼 잠금 찰칵!
+    setIsLoading(true); // 위성 찾기 시작! 버튼 잠금 찰칵!
 
-  setMessages((prev) => [
-    ...prev,
-    { id: Date.now(), sender: 'core', text: "위치를 위성으로 찾고 있어요! 조금만 기다려주세요... 🛰️✨" }
-  ]);
+    setMessages((prev) => [
+      ...prev,
+      { id: Date.now(), sender: 'core', text: "위치를 위성으로 찾고 있어요! 조금만 기다려주세요... 🛰️✨" }
+    ]);
 
-  navigator.geolocation.getCurrentPosition(
-    (position) => {
-      const lat = position.coords.latitude;
-      const lng = position.coords.longitude;
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
 
-      if (window.kakao && window.kakao.maps && window.kakao.maps.services) {
-        const geocoder = new kakao.maps.services.Geocoder();
-        
-        geocoder.coord2Address(lng, lat, (result: any, status: any) => {
-          setIsLoading(false); // 다 찾았으니까 버튼 다시 열어주기!
+        if (window.kakao && window.kakao.maps && window.kakao.maps.services) {
+          const geocoder = new kakao.maps.services.Geocoder();
+          
+          geocoder.coord2Address(lng, lat, (result: any, status: any) => {
+            setIsLoading(false); // 다 찾았으니까 버튼 다시 열어주기!
 
-          if (status === kakao.maps.services.Status.OK) {
-            const detailedAddress = result[0].road_address 
-              ? result[0].road_address.address_name 
-              : result[0].address.address_name;
-            handleSendMessage(detailedAddress); 
-          }
-        });
-      } else {
-        setIsLoading(false); // 혹시 카카오맵 안 불러와졌을 때도 버튼은 열어줘야 해!
+            if (status === kakao.maps.services.Status.OK) {
+              const detailedAddress = result[0].road_address 
+                ? result[0].road_address.address_name 
+                : result[0].address.address_name;
+              handleSendMessage(detailedAddress); 
+            }
+          });
+        } else {
+          setIsLoading(false); // 혹시 카카오맵 안 불러와졌을 때도 버튼은 열어줘야 해!
+        }
+      },
+      (error) => {
+        setIsLoading(false); // 에러 났을 때도 버튼 다시 열어주기!
+        console.error("위치 에러 ㅠㅠ:", error);
+        alert("위치를 가져올 수 없어요! 폰이나 브라우저에 GPS(위치) 켜져 있는지 확인해봐요!");
+      },
+      {
+        enableHighAccuracy: false, // 굳이 정밀한 GPS 안 쓰고 와이파이로 0.1초 만에 대충 찾기!
+        timeout: 5000,             // 5초 넘게 끙끙대면 그냥 에러 내뱉고 포기하기!
+        maximumAge: 60000          // 1분 안에 이미 찾아둔 위치가 있다면 위성 안 찾고 바로 그거 쓰기!
       }
-    },
-    (error) => {
-      setIsLoading(false); // 에러 났을 때도 버튼 다시 열어주기!
-      console.error("위치 에러 ㅠㅠ:", error);
-      alert("위치를 가져올 수 없어요! 폰이나 브라우저에 GPS(위치) 켜져 있는지 확인해봐요!");
-    },
-    {
-    enableHighAccuracy: false, // 굳이 정밀한 GPS 안 쓰고 와이파이로 0.1초 만에 대충 찾기!
-    timeout: 5000,             // 5초 넘게 끙끙대면 그냥 에러 내뱉고 포기하기!
-    maximumAge: 60000          // 1분 안에 이미 찾아둔 위치가 있다면 위성 안 찾고 바로 그거 쓰기!
-  }
-  );
-};
+    );
+  };
 
   const handleSwapPlace = (msgId: number, cardIndex: number, newPlace: CourseItem) => {
     // 오빠 아이디어대로 이미 AI가 예쁘게 써준 데이터를 0.1초 만에 그대로 덮어씌워용!
@@ -330,17 +330,17 @@ const handleMyLocation = () => {
   const subTitleColor = isDark ? '#fff' : '#666';
   const cardBGColor = isDark ? '#000' : '#fff';   
 
-const inputStyle = { 
-  padding: '15px 20px', 
-  border: '1px solid #ddd', 
-  borderRadius: '25px', 
-  fontSize: '15px', 
-  flex: 1, 
-  backgroundColor: '#f8f9fa', 
-  outline: 'none',
-  // 🚀 코아의 마법: 폰에서도 글자가 선명하게 보이도록 색상을 딱! 정해줘용!
-  color: '#333' 
-};
+  const inputStyle = { 
+    padding: '15px 20px', 
+    border: '1px solid #ddd', 
+    borderRadius: '25px', 
+    fontSize: '15px', 
+    flex: 1, 
+    backgroundColor: '#f8f9fa', 
+    outline: 'none',
+    // 🚀 코아의 마법: 폰에서도 글자가 선명하게 보이도록 색상을 딱! 정해줘용!
+    color: '#333' 
+  };
   const coreMsgStyle = { backgroundColor: cardBGColor, border: '1px solid #eee', color: mainTitleColor, padding: '12px 18px', borderRadius: '0 18px 18px 18px', maxWidth: '85%', alignSelf: 'flex-start', fontSize: '15px', marginBottom: '15px', lineHeight: '1.5', whiteSpace: 'pre-wrap', boxShadow: '0 2px 5px rgba(0,0,0,0.02)' };
   const userMsgStyle = { backgroundColor: '#007AFF', color: 'white', padding: '12px 18px', borderRadius: '18px 0 18px 18px', maxWidth: '85%', alignSelf: 'flex-end', fontSize: '15px', marginBottom: '15px', lineHeight: '1.5', boxShadow: '0 2px 5px rgba(0,122,255,0.2)' };
 
@@ -420,26 +420,29 @@ const inputStyle = {
         </div>
         
         <div style={{ padding: '20px', borderTop: '1px solid #eee', backgroundColor: titleBGColor }}>
-          <button 
-          onClick={handleMyLocation} 
-          disabled={isLoading} // 로딩 중일 때는 버튼 클릭 아예 막아버리기!
-          style={{ 
-            width: '100%', 
-            marginBottom: '10px', 
-            padding: '12px', 
-            backgroundColor: isLoading ? '#f0f2f5' : '#e8f0fe', // 일하는 중엔 색깔도 살짝 흐리게!
-            color: isLoading ? '#aaa' : '#007AFF', 
-            border: isLoading ? '1px solid #ccc' : '1px solid #007AFF', 
-            borderRadius: '15px', 
-            fontWeight: 'bold', 
-            fontSize: '14px', 
-            cursor: isLoading ? 'not-allowed' : 'pointer', // 마우스 올려도 클릭 안 될 것처럼 보이게!
-            transition: 'all 0.2s' 
-          }}
-        > 
-          {isLoading ? '🛰️ 위성 띄우는 중...' : '📍 내 현재 위치로 핫플 찾기'}
-        </button>
-                  {currentStep === 1 && ( 
+          {currentStep === 0 && (
+            <button 
+              onClick={handleMyLocation} 
+              disabled={isLoading} 
+              style={{ 
+                width: '100%', 
+                marginBottom: '10px', 
+                padding: '12px', 
+                backgroundColor: isLoading ? '#f0f2f5' : '#e8f0fe', 
+                color: isLoading ? '#aaa' : '#007AFF', 
+                border: isLoading ? '1px solid #ccc' : '1px solid #007AFF', 
+                borderRadius: '15px', 
+                fontWeight: 'bold', 
+                fontSize: '14px', 
+                cursor: isLoading ? 'not-allowed' : 'pointer', 
+                transition: 'all 0.2s' 
+              }}
+            > 
+              {isLoading ? '🛰️ 위성 띄우는 중...' : '📍 내 현재 위치로 핫플 찾기'}
+            </button>
+          )}
+
+          {currentStep === 1 && ( 
             <button onClick={() => handleSendMessage('지금부터')} style={{ width: '100%', marginBottom: '10px', padding: '12px', backgroundColor: '#fff3cd', color: '#856404', border: '1px solid #ffeeba', borderRadius: '15px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s' }}> 
               ⏰ 지금부터 당장 시작할래요! 
             </button> 
