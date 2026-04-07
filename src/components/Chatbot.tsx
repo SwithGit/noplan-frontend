@@ -293,7 +293,12 @@ const handleMyLocation = () => {
       setIsLoading(false); // 에러 났을 때도 버튼 다시 열어주기!
       console.error("위치 에러 ㅠㅠ:", error);
       alert("위치를 가져올 수 없어요! 폰이나 브라우저에 GPS(위치) 켜져 있는지 확인해봐요!");
-    }
+    },
+    {
+    enableHighAccuracy: false, // 굳이 정밀한 GPS 안 쓰고 와이파이로 0.1초 만에 대충 찾기!
+    timeout: 5000,             // 5초 넘게 끙끙대면 그냥 에러 내뱉고 포기하기!
+    maximumAge: 60000          // 1분 안에 이미 찾아둔 위치가 있다면 위성 안 찾고 바로 그거 쓰기!
+  }
   );
 };
 
@@ -440,7 +445,7 @@ const inputStyle = {
             </button> 
           )}
 
-          {(currentStep === 0 || currentStep === 1 || currentStep === 3 || currentStep === 4) && ( 
+          {(currentStep === 0 || currentStep === 1 || currentStep === 3 || currentStep === 4) && !isLoading && ( 
             <div style={{ display: 'flex', width: '100%', gap: '10px' }}>
               <input type="text" placeholder={currentStep === 4 ? "자유롭게 적어주세요!" : "입력해 주세요."} value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSendMessage(inputValue)} style={inputStyle} /> 
               <button onClick={() => handleSendMessage(inputValue)} style={{ padding: '0 20px', backgroundColor: '#007AFF', color: 'white', border: 'none', borderRadius: '25px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s' }}>전송</button> 
