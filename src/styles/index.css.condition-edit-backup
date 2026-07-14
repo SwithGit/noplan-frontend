@@ -1965,34 +1965,6 @@ button {
   background: #ffffff;
 }
 
-.condition-card {
-  position: relative;
-  width: 100%;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.condition-card > b {
-  position: absolute;
-  top: 50%;
-  right: 13px;
-  color: #8a96aa;
-  font-size: 22px;
-  line-height: 1;
-  transform: translateY(-12%);
-}
-
-.condition-card.empty {
-  border-color: rgba(49, 91, 255, 0.2);
-  background: #f8faff;
-}
-
-.condition-card.empty strong,
-.condition-card.empty > b {
-  color: #315bff;
-}
-
 .condition-card span {
   display: block;
   width: 26px;
@@ -2025,10 +1997,6 @@ button {
   color: #1d2942;
   font-size: 15px;
   font-weight: 950;
-}
-
-.condition-card strong {
-  padding-right: 22px;
 }
 
 .prompt-summary {

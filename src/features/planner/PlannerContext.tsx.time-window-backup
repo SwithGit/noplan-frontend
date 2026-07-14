@@ -1,0 +1,328 @@
+import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import { extractLocation, generateCourse, makeFallbackPlan } from '../../api/plannerApi';
+import type { CoursePlace, CoursePlan, CurrentPosition, PlannerCondition } from '../../types/noplan';
+
+declare const kakao: any;
+
+interface PlannerContextValue {
+  condition: PlannerCondition;
+  currentPosition: CurrentPosition | null;
+  plan: CoursePlan;
+  isSearching: boolean;
+  locationStatus: 'idle' | 'locating' | 'success' | 'error';
+  searchError: string;
+  detectCurrentLocation: () => Promise<{ address: string; label: string }>;
+  setCondition: (patch: Partial<PlannerCondition>) => void;
+  startFromText: (text: string) => Promise<void>;
+  runSearch: () => Promise<void>;
+  loadPlan: (nextPlan: CoursePlan) => void;
+  replacePlace: (index: number, place: CoursePlace) => void;
+  resetPlanner: () => void;
+}
+
+const defaultCondition: PlannerCondition = {
+  rawText: '',
+  location: '',
+  locationLabel: '',
+  time: '',
+  companion: '',
+  mood: '',
+  extras: [],
+};
+
+const PlannerContext = createContext<PlannerContextValue | null>(null);
+
+function getBrowserPosition() {
+  return new Promise<GeolocationPosition>((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error('이 브라우저에서는 현재 위치를 지원하지 않아요.'));
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(resolve, reject, {
+      enableHighAccuracy: false,
+      maximumAge: 60000,
+      timeout: 7000,
+    });
+  });
+}
+
+function baseRoadName(roadName: string) {
+  return roadName.replace(/^(.+?로)\d.*$/u, '$1').replace(/^(.+?길)\d.*$/u, '$1');
+}
+
+function compactLocationLabel(address: string) {
+  const cleaned = address
+    .replace(/^서울특별시\s*/u, '')
+    .replace(/^서울시\s*/u, '')
+    .replace(/^경기도\s*/u, '')
+    .trim();
+  const parts = cleaned.split(/\s+/u).filter(Boolean);
+  const dong = parts.find((part) => /동$/u.test(part));
+  const district = parts.find((part) => /(구|군)$/u.test(part));
+  const road = parts.find((part) => /(로|길)\d*(가길|길)?$/u.test(part));
+
+  if (dong) return dong;
+  if (district && road) return `${district} ${baseRoadName(road)}`;
+  if (road) return baseRoadName(road);
+
+  return cleaned || address;
+}
+
+function locationLabelFromGeocode(item: any, address: string) {
+  const dong = item?.address?.region_3depth_name;
+  const district = item?.road_address?.region_2depth_name || item?.address?.region_2depth_name;
+  const roadName = item?.road_address?.road_name;
+
+  if (dong && /동$/u.test(dong)) return dong;
+  if (district && roadName) return `${district} ${baseRoadName(roadName)}`;
+
+  return compactLocationLabel(address);
+}
+
+function reverseGeocode(lat: number, lng: number) {
+  return new Promise<{ address: string; label: string }>((resolve) => {
+    const fallback = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+
+    if (typeof kakao === 'undefined' || !kakao.maps?.services) {
+      resolve({ address: fallback, label: fallback });
+      return;
+    }
+
+    const geocoder = new kakao.maps.services.Geocoder();
+    geocoder.coord2Address(lng, lat, (result: any[], status: string) => {
+      if (status === kakao.maps.services.Status.OK && result[0]) {
+        const address = result[0].road_address?.address_name || result[0].address?.address_name;
+        const nextAddress = address || fallback;
+        resolve({ address: nextAddress, label: locationLabelFromGeocode(result[0], nextAddress) });
+        return;
+      }
+
+      resolve({ address: fallback, label: fallback });
+    });
+  });
+}
+
+const locationStopWords = new Set([
+  '가족',
+  '내일',
+  '데이트',
+  '맛집',
+  '밤',
+  '산책',
+  '실내',
+  '오늘',
+  '아침',
+  '점심',
+  '오전',
+  '오후',
+  '저녁',
+  '새벽',
+  '주말',
+  '지금',
+  '친구',
+  '카페',
+  '커피',
+  '브런치',
+  '식사',
+  '혼자',
+]);
+
+function cleanLocationCandidate(candidate: string) {
+  return candidate
+    .replace(/^(오늘|내일|지금|이번|저녁|밤|오전|오후)\s*/g, '')
+    .replace(/(에서|으로|로|근처|주변|쪽|에)$/g, '')
+    .trim();
+}
+
+function isPlausibleLocation(candidate: string) {
+  const cleaned = cleanLocationCandidate(candidate);
+  if (cleaned.length < 2) return false;
+  if (locationStopWords.has(cleaned)) return false;
+  if (/^(아침|점심|저녁|새벽|오전|오후)(시간|식사|약속)?$/.test(cleaned)) return false;
+  if (/^(친구|가족|혼자|데이트|카페|맛집|산책|실내)$/.test(cleaned)) return false;
+
+  return true;
+}
+
+function inferLocationFromText(text: string) {
+  const patterns = [
+    /([가-힣A-Za-z0-9]+(?:역|동|로|길|군|구|시|도))(?=\s|에서|으로|로|에|근처|주변|쪽|$)/g,
+    /([가-힣A-Za-z0-9]+)(?:에서|근처|주변|쪽)/g,
+    /([가-힣A-Za-z0-9]+)(?:으로|로)/g,
+    /([가-힣A-Za-z0-9]+)에/g,
+  ];
+
+  for (const pattern of patterns) {
+    const matches = [...text.matchAll(pattern)]
+      .map((match) => cleanLocationCandidate(match[1] || ''))
+      .filter(isPlausibleLocation);
+
+    if (matches.length > 0) return matches[matches.length - 1];
+  }
+
+  return '';
+}
+
+function inferTimeFromText(text: string) {
+  if (/지금|바로/.test(text)) return '지금';
+  if (/주말/.test(text)) return '이번 주말';
+
+  const day = text.includes('내일') ? '내일' : '오늘';
+  if (/새벽/.test(text)) return `${day} 새벽`;
+  if (/아침|오전/.test(text)) return `${day} 오전`;
+  if (/점심/.test(text)) return `${day} 점심`;
+  if (/저녁/.test(text)) return `${day} 저녁`;
+  if (/밤/.test(text)) return `${day} 밤`;
+  if (text.includes('내일')) return '내일';
+  if (text.includes('오늘')) return '오늘';
+
+  return '';
+}
+
+function inferConditionFromText(text: string): Partial<PlannerCondition> {
+  const patch: Partial<PlannerCondition> = {};
+  const location = inferLocationFromText(text);
+  const time = inferTimeFromText(text);
+
+  if (location) {
+    patch.location = location;
+    patch.locationLabel = location;
+  }
+
+  if (time) patch.time = time;
+
+  if (/데이트|연인|커플/.test(text)) patch.companion = '데이트';
+  else if (/혼자|혼밥|혼술/.test(text)) patch.companion = '혼자';
+  else if (/가족|부모/.test(text)) patch.companion = '가족';
+  else if (/친구|동기|모임/.test(text)) patch.companion = '친구';
+
+  if (/맛집|밥|식사|고기|파스타|한식|일식/.test(text)) patch.mood = '맛집';
+  else if (/카페|디저트|커피/.test(text)) patch.mood = '카페';
+  else if (/산책|걷|공원/.test(text)) patch.mood = '산책';
+  else if (/실내|비|추워|더워/.test(text)) patch.mood = '실내';
+
+  return patch;
+}
+
+export function PlannerProvider({ children }: { children: ReactNode }) {
+  const [condition, setConditionState] = useState(defaultCondition);
+  const [currentPosition, setCurrentPosition] = useState<CurrentPosition | null>(null);
+  const [plan, setPlan] = useState(() => makeFallbackPlan(defaultCondition));
+  const [isSearching, setIsSearching] = useState(false);
+  const [locationStatus, setLocationStatus] = useState<'idle' | 'locating' | 'success' | 'error'>('idle');
+  const [searchError, setSearchError] = useState('');
+
+  const setCondition = (patch: Partial<PlannerCondition>) => {
+    setConditionState((prev) => ({ ...prev, ...patch }));
+  };
+
+  const startFromText = async (text: string) => {
+    const rawText = text.trim();
+    if (!rawText) return;
+    const inferredCondition = inferConditionFromText(rawText);
+
+    setConditionState((prev) => ({
+      ...prev,
+      ...inferredCondition,
+      rawText,
+    }));
+
+    const extracted = await extractLocation(rawText);
+    // The local parser has the full sentence context. Do not let a later,
+    // lower-confidence API candidate replace an already identified location.
+    if (!inferredCondition.location && extracted && isPlausibleLocation(extracted)) {
+      setConditionState((prev) => ({ ...prev, location: extracted, locationLabel: extracted }));
+    }
+  };
+
+  const runSearch = async () => {
+    setIsSearching(true);
+    setSearchError('');
+    const nextPlan = await generateCourse(condition);
+    if (nextPlan.source === 'fallback' && nextPlan.message) {
+      setSearchError(nextPlan.message);
+    }
+    setPlan(nextPlan);
+    window.setTimeout(() => setIsSearching(false), 550);
+  };
+
+  const detectCurrentLocation = async () => {
+    setLocationStatus('locating');
+
+    try {
+      const position = await getBrowserPosition();
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      const location = await reverseGeocode(lat, lng);
+
+      setCurrentPosition({ address: location.address, label: location.label, lat, lng });
+      setConditionState((prev) => ({
+        ...prev,
+        location: location.address,
+        locationLabel: location.label,
+      }));
+      setLocationStatus('success');
+
+      return location;
+    } catch (error) {
+      setLocationStatus('error');
+      throw error instanceof Error ? error : new Error('현재 위치를 가져오지 못했어요.');
+    }
+  };
+
+  const loadPlan = (nextPlan: CoursePlan) => {
+    setPlan(nextPlan);
+    setConditionState((prev) => ({
+      ...prev,
+      rawText: nextPlan.title,
+      location: nextPlan.location || prev.location,
+      locationLabel: nextPlan.location ? compactLocationLabel(nextPlan.location) : prev.locationLabel,
+    }));
+  };
+
+  const replacePlace = (index: number, place: CoursePlace) => {
+    setPlan((prev) => {
+      const courseData = [...prev.courseData];
+      courseData[index] = { ...place, time: courseData[index]?.time || String(index + 1) };
+
+      return { ...prev, courseData };
+    });
+  };
+
+  const resetPlanner = () => {
+    setConditionState(defaultCondition);
+    setPlan(makeFallbackPlan(defaultCondition));
+  };
+
+  const value = useMemo(
+    () => ({
+      condition,
+      currentPosition,
+      plan,
+      isSearching,
+      locationStatus,
+      searchError,
+      detectCurrentLocation,
+      loadPlan,
+      setCondition,
+      startFromText,
+      runSearch,
+      replacePlace,
+      resetPlanner,
+    }),
+    [condition, currentPosition, isSearching, locationStatus, plan, searchError],
+  );
+
+  return <PlannerContext.Provider value={value}>{children}</PlannerContext.Provider>;
+}
+
+export function usePlanner() {
+  const value = useContext(PlannerContext);
+
+  if (!value) {
+    throw new Error('usePlanner must be used inside PlannerProvider.');
+  }
+
+  return value;
+}
