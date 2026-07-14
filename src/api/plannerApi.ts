@@ -7,6 +7,7 @@ interface GenerateCourseResponse {
   backupPlaces?: Array<Record<string, unknown>>;
   searchCourseId?: number;
   message?: string;
+  generator?: string;
   timeline?: {
     period?: string;
     startAt?: string;
@@ -18,6 +19,7 @@ interface GenerateCourseResponse {
 
 export interface ParsedPlannerCondition {
   companion: string | null;
+  duration: string | null;
   location: string | null;
   locationLabel: string | null;
   mood: string | null;
@@ -81,6 +83,62 @@ function valueOf(source: Record<string, unknown>, keys: string[], fallback = '')
   return fallback;
 }
 
+function randomId(prefix: string) {
+  const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `${prefix}-${id}`;
+}
+
+function getAnonymousUserId() {
+  const storageKey = 'noplanAnonymousUserId';
+  const saved = localStorage.getItem(storageKey);
+  if (saved) return saved;
+  const created = randomId('guest');
+  localStorage.setItem(storageKey, created);
+  return created;
+}
+
+function numberOf(value: unknown): number | undefined {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : undefined;
+}
+
+function normalizeGalleryImages(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((entry) => {
+    if (typeof entry === 'string') return entry ? [{ imageUrl: entry }] : [];
+    if (!entry || typeof entry !== 'object') return [];
+    const image = entry as Record<string, unknown>;
+    const imageUrl = valueOf(image, ['imageUrl', 'url', 'src']);
+    if (!imageUrl) return [];
+    return [{
+      imageUrl,
+      imageType: valueOf(image, ['imageType', 'type']),
+      thumbnailUrl: valueOf(image, ['thumbnailUrl', 'thumbnail']),
+      isPrimary: Boolean(image.isPrimary),
+    }];
+  });
+}
+
+function normalizeMenuItems(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((entry) => {
+    if (!entry || typeof entry !== 'object') return [];
+    const menu = entry as Record<string, unknown>;
+    const name = valueOf(menu, ['name', 'title']);
+    if (!name) return [];
+    return [{
+      name,
+      menuCategory: valueOf(menu, ['menuCategory', 'category']),
+      price: numberOf(menu.price),
+      description: valueOf(menu, ['description']),
+      imageUrl: valueOf(menu, ['imageUrl', 'image']),
+      isSignature: Boolean(menu.isSignature),
+    }];
+  });
+}
+
 function normalizePlace(item: Record<string, unknown>, index: number): CoursePlace {
   const title = valueOf(item, ['title', 'name', 'searchKeyword'], fallbackPlaces[index % fallbackPlaces.length].title);
   const keyword = valueOf(item, ['searchKeyword', 'name', 'title'], title);
@@ -99,8 +157,12 @@ function normalizePlace(item: Record<string, unknown>, index: number): CoursePla
             ? '놀거리'
             : valueOf(item, ['category'], '코스');
 
+  const galleryImages = normalizeGalleryImages(item.galleryImages);
+  const imageUrl = valueOf(item, ['imageUrl'], galleryImages[0]?.imageUrl || '');
+  const menuItems = normalizeMenuItems(item.menuItems);
+
   return {
-    id: valueOf(item, ['id'], `place-${index}-${keyword}`),
+    id: valueOf(item, ['catalogPlaceId', 'id'], `place-${index}-${keyword}`),
     time,
     title,
     name: keyword,
@@ -111,6 +173,12 @@ function normalizePlace(item: Record<string, unknown>, index: number): CoursePla
     address: valueOf(item, ['address']),
     hours: valueOf(item, ['hours', 'businessHours']),
     phone: valueOf(item, ['phone']),
+    imageUrl: imageUrl || undefined,
+    galleryImages,
+    menuItems,
+    catalogPlaceId: numberOf(item.catalogPlaceId),
+    rating: numberOf(item.rating),
+    reviewCount: numberOf(item.reviewCount),
     reason: valueOf(item, ['reason'], `${keyword}은 현재 조건과 잘 맞는 실제 후보예요.`),
     moveText: valueOf(item, ['moveText'], index === 0 ? '첫 장소' : '근처 이동'),
     waitText: valueOf(item, ['waitText'], '낮음'),
@@ -166,6 +234,7 @@ export async function parsePlannerCondition(text: string): Promise<ParsedPlanner
 
     return {
       companion: normalizeParsedValue(result.condition.companion),
+      duration: normalizeParsedValue(result.condition.duration),
       location: normalizeParsedValue(result.condition.location),
       locationLabel: normalizeParsedValue(result.condition.locationLabel),
       mood: normalizeParsedValue(result.condition.mood),
@@ -195,6 +264,7 @@ export async function generateCourse(condition: PlannerCondition): Promise<Cours
         startTime: condition.time,
         pax: condition.companion,
         purpose: condition.mood,
+        duration: condition.duration,
         vibe: [...condition.extras, condition.rawText].filter(Boolean).join(', '),
         companionContext: inferCompanionContext(condition),
         userId: user?.userId || null,
@@ -227,6 +297,7 @@ export async function generateCourse(condition: PlannerCondition): Promise<Cours
       backupPlaces,
       searchCourseId: result.searchCourseId || null,
       source: 'api',
+      algorithmVersion: result.generator || 'unknown',
     };
   } catch (error) {
     return {
@@ -234,4 +305,79 @@ export async function generateCourse(condition: PlannerCondition): Promise<Cours
       message: error instanceof Error ? `백엔드 연결 실패: ${error.message}` : fallback.message,
     };
   }
+}
+
+interface RecommendationEventInput {
+  eventType: string;
+  placeId?: number;
+  placeRank?: number;
+  courseSlot?: string;
+  recommendationSnapshot?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+}
+
+async function sendRecommendationEvents(
+  sessionId: string,
+  events: RecommendationEventInput[],
+  options: {
+    courseId?: number | string | null;
+    conditionSnapshot?: PlannerCondition;
+    algorithmVersion?: string;
+  } = {},
+) {
+  const user = getLoggedInUser();
+  return apiJson<{ success: boolean; recorded: number }>('/api/course/events', {
+    method: 'POST',
+    body: JSON.stringify({
+      anonymousUserId: getAnonymousUserId(),
+      userId: user?.userId || null,
+      sessionId,
+      courseId: options.courseId || null,
+      conditionSnapshot: options.conditionSnapshot || null,
+      algorithmVersion: options.algorithmVersion || null,
+      events,
+    }),
+  });
+}
+
+export async function trackRecommendationImpressions(plan: CoursePlan, condition: PlannerCondition) {
+  if (plan.source !== 'api' || plan.courseData.length === 0) return;
+  const sessionId = randomId('recommendation');
+  sessionStorage.setItem('noplanRecommendationSessionId', sessionId);
+  await sendRecommendationEvents(
+    sessionId,
+    plan.courseData.map((place, index) => ({
+      eventType: 'recommendation_impression',
+      placeId: place.catalogPlaceId,
+      placeRank: index + 1,
+      courseSlot: place.time || String(index + 1),
+      recommendationSnapshot: {
+        name: place.name,
+        type: place.type,
+        category: place.category,
+        reason: place.reason,
+      },
+    })),
+    {
+      courseId: plan.searchCourseId,
+      conditionSnapshot: condition,
+      algorithmVersion: plan.algorithmVersion,
+    },
+  );
+}
+
+export async function trackPlaceInteraction(
+  eventType: 'place_detail_open' | 'map_open' | 'course_start' | 'place_replace' | 'gallery_open' | 'menu_view',
+  place: CoursePlace,
+  placeRank?: number,
+) {
+  const sessionId = sessionStorage.getItem('noplanRecommendationSessionId');
+  if (!sessionId) return;
+  await sendRecommendationEvents(sessionId, [{
+    eventType,
+    placeId: place.catalogPlaceId,
+    placeRank,
+    courseSlot: place.time,
+    metadata: { name: place.name, type: place.type },
+  }]);
 }

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AppTopBar } from '../../components/ui/AppTopBar';
 import { Chip } from '../../components/ui/Chip';
@@ -7,6 +7,7 @@ import { NopiBubble } from '../../components/ui/NopiBubble';
 import { PlaceVisual } from '../../components/ui/PlaceVisual';
 import { usePlanner } from '../planner/PlannerContext';
 import type { CoursePlace } from '../../types/noplan';
+import { trackPlaceInteraction } from '../../api/plannerApi';
 
 function placeAt(places: CoursePlace[], indexValue: string | undefined) {
   const index = Number(indexValue || 0);
@@ -36,7 +37,12 @@ function hasCoordinates(place: CoursePlace) {
   return Number.isFinite(Number(place.lat)) && Number.isFinite(Number(place.lng));
 }
 
+function formatMenuPrice(price?: number | null) {
+  return price && price > 0 ? `${price.toLocaleString('ko-KR')}원` : '가격 확인';
+}
+
 function openKakaoDestination(place: CoursePlace) {
+  trackPlaceInteraction('map_open', place).catch(() => undefined);
   const keyword = encodeURIComponent(place.searchKeyword || place.name || place.title);
 
   if (hasCoordinates(place)) {
@@ -85,7 +91,7 @@ export function CourseMapScreen() {
       <section className="route-list">
         {plan.courseData.map((place, index) => (
           <article className="route-item" key={place.id}>
-            <PlaceVisual color={place.color} label={String(index + 1)} />
+            <PlaceVisual alt={place.name} color={place.color} imageUrl={place.imageUrl} label={String(index + 1)} />
             <div>
               <span>{index + 1}번째 장소</span>
               <strong>{place.title}</strong>
@@ -102,7 +108,10 @@ export function CourseMapScreen() {
         <button type="button" onClick={() => navigate('/planner/result')}>
           결과로
         </button>
-        <button className="primary" type="button" onClick={() => openKakaoRoute(plan.courseData)}>
+        <button className="primary" type="button" onClick={() => {
+          if (firstPlace) trackPlaceInteraction('course_start', firstPlace, 1).catch(() => undefined);
+          openKakaoRoute(plan.courseData);
+        }}>
           카카오 길찾기
         </button>
       </div>
@@ -118,18 +127,33 @@ export function PlaceDetailScreen() {
   const placeIndex = Math.max(Number(index || 0), 0);
   const nextPlace = plan.courseData[placeIndex + 1];
 
+  useEffect(() => {
+    if (!place) return;
+    trackPlaceInteraction('place_detail_open', place, placeIndex + 1).catch(() => undefined);
+    if (place.galleryImages?.length) trackPlaceInteraction('gallery_open', place, placeIndex + 1).catch(() => undefined);
+    if (place.menuItems?.length) trackPlaceInteraction('menu_view', place, placeIndex + 1).catch(() => undefined);
+  }, [place, placeIndex]);
+
   return (
     <div className="place-detail-screen">
       <AppTopBar title={place.title} subtitle={place.category || place.type} />
 
       <section className="place-hero">
-        <PlaceVisual color={place.color} label={String(placeIndex + 1)} />
+        <PlaceVisual alt={place.name} color={place.color} imageUrl={place.imageUrl} label={String(placeIndex + 1)} />
         <div>
           <span>{place.moveText}</span>
           <h1>{place.title}</h1>
           <p>{place.description}</p>
         </div>
       </section>
+
+      {Boolean(place.galleryImages?.length) && (
+        <section className="place-gallery" aria-label="장소 사진">
+          {place.galleryImages!.slice(0, 6).map((image, imageIndex) => (
+            <img alt={`${place.name} ${image.imageType || '사진'} ${imageIndex + 1}`} key={`${image.imageUrl}-${imageIndex}`} loading="lazy" src={image.thumbnailUrl || image.imageUrl} />
+          ))}
+        </section>
+      )}
 
       <div className="chip-row">
         {place.tags.map((tag) => (
@@ -171,6 +195,24 @@ export function PlaceDetailScreen() {
         </div>
       </section>
 
+      {Boolean(place.menuItems?.length) && (
+        <section className="place-menu-section">
+          <h2>메뉴</h2>
+          <div className="place-menu-list">
+            {place.menuItems!.slice(0, 8).map((menu, menuIndex) => (
+              <article key={`${menu.name}-${menuIndex}`}>
+                {menu.imageUrl ? <img alt={menu.name} loading="lazy" src={menu.imageUrl} /> : <span className="place-menu-placeholder" />}
+                <div>
+                  <strong>{menu.name}{menu.isSignature ? ' · 대표' : ''}</strong>
+                  {menu.description && <p>{menu.description}</p>}
+                </div>
+                <b>{formatMenuPrice(menu.price)}</b>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
       <div className="sticky-actions">
         <button type="button" onClick={() => navigate(`/course/replace/${placeIndex}`)}>
           바꾸기
@@ -209,7 +251,7 @@ export function ReplacementCandidates() {
         )}
         {candidates.map((candidate) => (
           <article className="candidate-card" key={candidate.id}>
-            <PlaceVisual color={candidate.color} />
+            <PlaceVisual alt={candidate.name} color={candidate.color} imageUrl={candidate.imageUrl} />
             <div>
               <span>{candidate.category}</span>
               <strong>{candidate.title}</strong>
@@ -219,6 +261,7 @@ export function ReplacementCandidates() {
             <button
               type="button"
               onClick={() => {
+                trackPlaceInteraction('place_replace', candidate, placeIndex + 1).catch(() => undefined);
                 replacePlace(placeIndex, candidate);
                 navigate('/course/map');
               }}

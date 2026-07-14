@@ -18,6 +18,7 @@ export interface PlannerCondition {
   time: string;
   companion: string;
   mood: string;
+  duration: string;
   extras: string[];
 }
 
@@ -26,6 +27,22 @@ export interface CurrentPosition {
   label?: string;
   lat: number;
   lng: number;
+}
+
+export interface CoursePlaceImage {
+  imageType?: string;
+  imageUrl: string;
+  thumbnailUrl?: string;
+  isPrimary?: boolean;
+}
+
+export interface CourseMenuItem {
+  name: string;
+  menuCategory?: string;
+  price?: number | null;
+  description?: string;
+  imageUrl?: string;
+  isSignature?: boolean;
 }
 
 export interface CoursePlace {
@@ -40,6 +57,12 @@ export interface CoursePlace {
   address?: string;
   hours?: string;
   phone?: string;
+  imageUrl?: string;
+  galleryImages?: CoursePlaceImage[];
+  menuItems?: CourseMenuItem[];
+  catalogPlaceId?: number;
+  rating?: number;
+  reviewCount?: number;
   reason: string;
   moveText: string;
   waitText: string;
@@ -61,6 +84,8 @@ export interface CoursePlan {
   message?: string;
   searchCourseId?: number | null;
   source?: 'api' | 'fallback';
+  algorithmVersion?: string;
+  analyticsSessionId?: string;
 }
 
 export interface SharedCourse {

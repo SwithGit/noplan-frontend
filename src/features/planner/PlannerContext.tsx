@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
-import { generateCourse, makeFallbackPlan, parsePlannerCondition } from '../../api/plannerApi';
+import { generateCourse, makeFallbackPlan, parsePlannerCondition, trackRecommendationImpressions } from '../../api/plannerApi';
 import type { CoursePlace, CoursePlan, CurrentPosition, PlannerCondition } from '../../types/noplan';
 
 declare const kakao: any;
@@ -27,6 +27,7 @@ const defaultCondition: PlannerCondition = {
   time: '',
   companion: '',
   mood: '',
+  duration: '',
   extras: [],
 };
 
@@ -219,10 +220,18 @@ function inferConditionFromText(text: string): Partial<PlannerCondition> {
   else if (people || relation) patch.companion = [people, relation].filter(Boolean).join(', ');
 
   if (/맛집|밥|식사|고기|파스타|한식|일식/.test(text)) patch.mood = '맛집';
-  else if (/카페|디저트|커피/.test(text)) patch.mood = '카페';
-  else if (/산책|걷|공원/.test(text)) patch.mood = '산책';
-  else if (/실내|비|추워|더워/.test(text)) patch.mood = '실내';
-  else if (/놀|놀거리|체험/.test(text)) patch.mood = '놀이';
+  else if (/카페|디저트|커피|베이커리|브런치/.test(text)) patch.mood = '카페/디저트';
+  else if (/전시|영화|공연|팝업|미술관|박물관/.test(text)) patch.mood = '문화/전시';
+  else if (/산책|걷|공원|야경|구경|시장/.test(text)) patch.mood = '산책/구경';
+  else if (/술|포차|펍|와인|칵테일|이자카야/.test(text)) patch.mood = '술/야간';
+  else if (/놀|놀거리|체험|방탈출|보드게임|볼링|노래방|오락실|공방|스포츠/.test(text)) patch.mood = '놀거리';
+
+  if (/실내|비\s*(?:안|피)|추워|더워/.test(text)) patch.extras = ['실내 중심'];
+
+  if (/2\s*시간/.test(text)) patch.duration = '2시간';
+  else if (/4\s*시간/.test(text)) patch.duration = '4시간';
+  else if (/저녁까지/.test(text)) patch.duration = '저녁까지';
+  else if (/밤까지/.test(text)) patch.duration = '밤까지';
 
   return patch;
 }
@@ -250,6 +259,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       time: fallbackCondition.time || null,
       companion: fallbackCondition.companion || null,
       mood: fallbackCondition.mood || null,
+      duration: fallbackCondition.duration || null,
     };
 
     setConditionState((prev) => ({
@@ -261,7 +271,8 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       time: resolvedCondition.time || '',
       companion: resolvedCondition.companion || '',
       mood: resolvedCondition.mood || '',
-      extras: [],
+      duration: resolvedCondition.duration || '',
+      extras: fallbackCondition.extras || [],
       rawText,
     }));
   };
@@ -274,6 +285,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       setSearchError(nextPlan.message);
     }
     setPlan(nextPlan);
+    trackRecommendationImpressions(nextPlan, condition).catch(() => undefined);
     window.setTimeout(() => setIsSearching(false), 550);
   };
 

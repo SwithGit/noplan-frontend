@@ -16,8 +16,16 @@ import { usePlanner } from './PlannerContext';
 const timeOptions = ['지금', '오늘 저녁', '오늘 밤', '내일', '이번 주말'];
 const peopleOptions = ['혼자', '두명', '3-4명', '5명 이상'];
 const companionOptions = ['친구', '연인', '가족', '동료'];
-const placeOptions = ['음식점', '카페', '운동', '놀이', '서점', '전시'];
-const cuisineOptions = ['한식', '일식', '중식', '양식', '카페', '분식', '고기', '아무거나'];
+const placeOptions = ['맛집', '카페/디저트', '놀거리', '문화/전시', '산책/구경', '술/야간'];
+const placeDetailOptions: Record<string, string[]> = {
+  맛집: ['한식', '일식', '중식', '양식', '고기', '분식', '해산물', '아무거나'],
+  '카페/디저트': ['커피', '디저트', '베이커리', '브런치', '아무거나'],
+  놀거리: ['방탈출', '보드게임', '볼링', '노래방', '오락실', '공방/체험', '스포츠', '아무거나'],
+  '문화/전시': ['전시', '영화', '공연', '팝업', '미술관/박물관', '아무거나'],
+  '산책/구경': ['산책', '공원', '야경', '쇼핑몰', '시장/상권', '아무거나'],
+  '술/야간': ['포차', '펍', '와인/칵테일', '이자카야', '아무거나'],
+};
+const durationOptions = ['2시간', '4시간', '저녁까지', '밤까지'];
 const tuningOptions = ['도보 짧게', '대기 적게', '사진 예쁜 곳', '조용한 곳', '비 안 맞게', '2시간 안에'];
 const companionImages: Record<string, string> = {
   가족: companionFamilyImage,
@@ -27,7 +35,7 @@ const companionImages: Record<string, string> = {
 };
 
 type DateTimeSheetMode = 'date' | 'time';
-type ConditionEditSection = 'location' | 'time' | 'people' | 'place';
+type ConditionEditSection = 'location' | 'time' | 'people' | 'place' | 'duration';
 type Meridiem = 'AM' | 'PM';
 
 interface SummaryRow {
@@ -118,17 +126,51 @@ function companionPhrase(companion: string) {
   return `${companion}랑`;
 }
 
+function getMoodSelection(mood: string) {
+  const value = String(mood || '').trim();
+  const aliases: Record<string, string> = {
+    음식점: '맛집',
+    카페: '카페/디저트',
+    디저트: '카페/디저트',
+    운동: '놀거리',
+    놀이: '놀거리',
+    전시: '문화/전시',
+    산책: '산책/구경',
+    술집: '술/야간',
+  };
+  const tokens = value.split(/\s*[,·]\s*/).filter(Boolean);
+  const category = placeOptions.find((option) => value === option || tokens.includes(option))
+    || aliases[tokens[0]]
+    || Object.entries(placeDetailOptions).find(([, details]) => details.includes(value))?.[0]
+    || '';
+  const details = category ? placeDetailOptions[category] || [] : [];
+  const detail = tokens.slice(1).find((token) => details.includes(token))
+    || (details.includes(value) ? value : '')
+    || (value === '운동' ? '스포츠' : '')
+    || (value === '전시' ? '전시' : '')
+    || (value === '산책' ? '산책' : '');
+
+  return { category, detail };
+}
+
+function composeMood(category: string, detail: string) {
+  if (!category) return '';
+  return detail && detail !== '아무거나' ? `${category}, ${detail}` : category;
+}
+
 function buildHomePrompt({
   companion,
   location,
   locationLabel,
   mood,
+  duration,
   time,
 }: {
   companion: string;
   location: string;
   locationLabel?: string;
   mood: string;
+  duration?: string;
   time: string;
 }) {
   const hasSelectedContext = Boolean(time || companion || mood);
@@ -138,6 +180,7 @@ function buildHomePrompt({
     hasSelectedContext && location ? `${displayLocationLabel({ location, locationLabel })}에서` : '',
     companionPhrase(companion),
     mood,
+    duration,
   ]
     .filter(Boolean)
     .join(' ');
@@ -271,10 +314,9 @@ export function ChatStart() {
   );
   const selectedPeople = peopleOptions.find((option) => condition.companion.includes(option)) || '';
   const selectedCompanion = companionOptions.find((option) => condition.companion.includes(option)) || '';
-  const selectedPlace =
-    placeOptions.find((option) => condition.mood === option) ||
-    (cuisineOptions.includes(condition.mood) ? '음식점' : '');
-  const selectedCuisine = cuisineOptions.includes(condition.mood) ? condition.mood : '';
+  const moodSelection = getMoodSelection(condition.mood);
+  const selectedPlace = moodSelection.category;
+  const selectedDetail = moodSelection.detail;
   const companionStepComplete = selectedPeople === '혼자' ? selectedPeople : selectedCompanion;
   const completedSteps = [
     condition.location,
@@ -296,7 +338,8 @@ export function ChatStart() {
     { id: 'location', label: '출발지', value: locationLabel },
     { id: 'time', label: '시간', value: condition.time || '미선택' },
     { id: 'people', label: '인원', value: [selectedPeople, selectedCompanion].filter(Boolean).join(', ') || '미선택' },
-    { id: 'place', label: '장소', value: [selectedPlace, selectedCuisine].filter(Boolean).join(', ') || '미선택' },
+    { id: 'place', label: '목적', value: [selectedPlace, selectedDetail].filter(Boolean).join(', ') || '미선택' },
+    { id: 'duration', label: '이용 시간', value: condition.duration || '자동 추천' },
   ];
 
   const applyCurrentLocation = async () => {
@@ -360,6 +403,7 @@ export function ChatStart() {
     location?: string;
     locationLabel?: string;
     mood?: string;
+    duration?: string;
     source?: 'current' | 'manual';
     time?: string;
   }) => {
@@ -391,15 +435,16 @@ export function ChatStart() {
   };
 
   const updatePlace = (place: string) => {
-    const nextMood = selectedPlace === place && !selectedCuisine ? '' : place;
+    const nextMood = selectedPlace === place ? '' : place;
     const nextCondition = { ...condition, mood: nextMood };
 
     setCondition({ mood: nextMood, rawText: buildHomePrompt(nextCondition) });
     setStatusMessage('');
   };
 
-  const updateCuisine = (cuisine: string) => {
-    const nextMood = selectedCuisine === cuisine ? '음식점' : cuisine;
+  const updateDetail = (detail: string) => {
+    const nextDetail = selectedDetail === detail ? '' : detail;
+    const nextMood = composeMood(selectedPlace, nextDetail);
     const nextCondition = { ...condition, mood: nextMood };
 
     setCondition({ mood: nextMood, rawText: buildHomePrompt(nextCondition) });
@@ -503,7 +548,7 @@ export function ChatStart() {
           </div>
         </QuickQuestion>
 
-        <QuickQuestion title="어떤 곳을 원하시나요?">
+        <QuickQuestion title="오늘 뭐 하고 싶나요?">
           <div className="option-grid five compact">
             {placeOptions.map((place) => (
               <button
@@ -517,13 +562,13 @@ export function ChatStart() {
             ))}
           </div>
 
-          {selectedPlace === '음식점' && (
+          {selectedPlace && (
             <div className="sub-option-panel">
-              {cuisineOptions.map((option) => (
+              {placeDetailOptions[selectedPlace].map((option) => (
                 <button
-                  className={`pill-button ${selectedCuisine === option ? 'selected' : ''}`}
+                  className={`pill-button ${selectedDetail === option ? 'selected' : ''}`}
                   key={option}
-                  onClick={() => updateCuisine(option)}
+                  onClick={() => updateDetail(option)}
                   type="button"
                 >
                   {option}
@@ -531,6 +576,38 @@ export function ChatStart() {
               ))}
             </div>
           )}
+        </QuickQuestion>
+
+        <QuickQuestion title="얼마나 놀까요?" subtitle="선택하지 않으면 시작 시간에 맞춰 자동으로 짜드려요.">
+          <div className="option-grid duration-grid">
+            {durationOptions.map((option) => (
+              <button
+                className={`chip-button ${condition.duration === option ? 'selected' : ''}`}
+                key={option}
+                onClick={() => {
+                  const duration = condition.duration === option ? '' : option;
+                  const nextCondition = { ...condition, duration };
+                  setCondition({ duration, rawText: buildHomePrompt(nextCondition) });
+                }}
+                type="button"
+              >
+                {option}
+              </button>
+            ))}
+          </div>
+          <label className={`duration-time-field ${condition.duration.startsWith('종료 ') ? 'selected' : ''}`}>
+            <span>종료 시간 선택</span>
+            <input
+              aria-label="종료 시간"
+              onChange={(event) => {
+                const duration = event.target.value ? `종료 ${event.target.value}` : '';
+                const nextCondition = { ...condition, duration };
+                setCondition({ duration, rawText: buildHomePrompt(nextCondition) });
+              }}
+              type="time"
+              value={condition.duration.startsWith('종료 ') ? condition.duration.slice(3) : ''}
+            />
+          </label>
         </QuickQuestion>
 
         <QuickConditionSummary rows={summaryRows} onEdit={setEditSection} />
@@ -571,7 +648,7 @@ export function ChatStart() {
           onDetectCurrentLocation={detectCurrentLocation}
           section={editSection}
           selectedCompanion={selectedCompanion}
-          selectedCuisine={selectedCuisine}
+          selectedDetail={selectedDetail}
           selectedPeople={selectedPeople}
           selectedPlace={selectedPlace}
         />
@@ -647,6 +724,7 @@ interface ConditionEditSheetProps {
     location: string;
     locationLabel?: string;
     mood: string;
+    duration: string;
     time: string;
   };
   onApply: (patch: {
@@ -654,6 +732,7 @@ interface ConditionEditSheetProps {
     location?: string;
     locationLabel?: string;
     mood?: string;
+    duration?: string;
     source?: 'current' | 'manual';
     time?: string;
   }) => void;
@@ -661,7 +740,7 @@ interface ConditionEditSheetProps {
   onDetectCurrentLocation: () => Promise<{ address: string; label: string }>;
   section: ConditionEditSection;
   selectedCompanion: string;
-  selectedCuisine: string;
+  selectedDetail: string;
   selectedPeople: string;
   selectedPlace: string;
 }
@@ -673,7 +752,7 @@ function ConditionEditSheet({
   onDetectCurrentLocation,
   section,
   selectedCompanion,
-  selectedCuisine,
+  selectedDetail,
   selectedPeople,
   selectedPlace,
 }: ConditionEditSheetProps) {
@@ -684,7 +763,8 @@ function ConditionEditSheet({
   const [draftPeople, setDraftPeople] = useState(selectedPeople);
   const [draftCompanion, setDraftCompanion] = useState(selectedCompanion);
   const [draftPlace, setDraftPlace] = useState(selectedPlace);
-  const [draftCuisine, setDraftCuisine] = useState(selectedCuisine);
+  const [draftDetail, setDraftDetail] = useState(selectedDetail);
+  const [draftDuration, setDraftDuration] = useState(condition.duration);
   const [dateTimeSheetMode, setDateTimeSheetMode] = useState<DateTimeSheetMode | null>(null);
   const [locationBusy, setLocationBusy] = useState(false);
 
@@ -730,10 +810,15 @@ function ConditionEditSheet({
       return;
     }
 
+    if (section === 'duration') {
+      onApply({ duration: draftDuration });
+      return;
+    }
+
     if (!draftPlace) return;
 
     onApply({
-      mood: draftPlace === '음식점' ? draftCuisine : draftPlace,
+      mood: composeMood(draftPlace, draftDetail),
     });
   };
 
@@ -741,7 +826,7 @@ function ConditionEditSheet({
     (section === 'location' && !draftLocation.trim()) ||
     (section === 'time' && !draftTime) ||
     (section === 'people' && !draftPeople) ||
-    (section === 'place' && (!draftPlace || (draftPlace === '음식점' && !draftCuisine)));
+    (section === 'place' && !draftPlace);
 
   return (
     <>
@@ -839,8 +924,8 @@ function ConditionEditSheet({
 
           {section === 'place' && (
             <>
-              <h2>어떤 곳을 원하시나요?</h2>
-              <div className="edit-grid five">
+              <h2>오늘 뭐 하고 싶나요?</h2>
+              <div className="edit-grid three">
                 {placeOptions.map((place) => (
                   <button
                     className={`edit-chip ${draftPlace === place ? 'selected' : ''}`}
@@ -849,7 +934,7 @@ function ConditionEditSheet({
                       const isSelected = draftPlace === place;
 
                       setDraftPlace(isSelected ? '' : place);
-                      setDraftCuisine(isSelected ? '' : place === '음식점' ? '' : place);
+                      setDraftDetail('');
                     }}
                     type="button"
                   >
@@ -857,13 +942,13 @@ function ConditionEditSheet({
                   </button>
                 ))}
               </div>
-              {draftPlace === '음식점' && (
+              {draftPlace && (
                 <div className="edit-grid cuisine">
-                  {cuisineOptions.map((option) => (
+                  {placeDetailOptions[draftPlace].map((option) => (
                     <button
-                      className={`edit-chip pill ${draftCuisine === option ? 'selected' : ''}`}
+                      className={`edit-chip pill ${draftDetail === option ? 'selected' : ''}`}
                       key={option}
-                      onClick={() => setDraftCuisine((previous) => (previous === option ? '' : option))}
+                      onClick={() => setDraftDetail((previous) => (previous === option ? '' : option))}
                       type="button"
                     >
                       {option}
@@ -871,6 +956,34 @@ function ConditionEditSheet({
                   ))}
                 </div>
               )}
+            </>
+          )}
+
+          {section === 'duration' && (
+            <>
+              <h2>얼마나 놀까요?</h2>
+              <p className="edit-subtitle">선택하지 않으면 자동으로 코스를 짜드려요.</p>
+              <div className="edit-grid four">
+                {durationOptions.map((option) => (
+                  <button
+                    className={`edit-chip ${draftDuration === option ? 'selected' : ''}`}
+                    key={option}
+                    onClick={() => setDraftDuration((previous) => (previous === option ? '' : option))}
+                    type="button"
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+              <label className={`duration-time-field ${draftDuration.startsWith('종료 ') ? 'selected' : ''}`}>
+                <span>종료 시간 선택</span>
+                <input
+                  aria-label="종료 시간"
+                  onChange={(event) => setDraftDuration(event.target.value ? `종료 ${event.target.value}` : '')}
+                  type="time"
+                  value={draftDuration.startsWith('종료 ') ? draftDuration.slice(3) : ''}
+                />
+              </label>
             </>
           )}
 
@@ -1098,16 +1211,16 @@ export function ConditionConfirm() {
   const locationValue = condition.location ? locationText : '';
   const selectedPeople = peopleOptions.find((option) => condition.companion.includes(option)) || '';
   const selectedCompanion = companionOptions.find((option) => condition.companion.includes(option)) || '';
-  const selectedPlace =
-    placeOptions.find((option) => condition.mood === option) ||
-    (cuisineOptions.includes(condition.mood) ? '음식점' : '');
-  const selectedCuisine = cuisineOptions.includes(condition.mood) ? condition.mood : '';
+  const moodSelection = getMoodSelection(condition.mood);
+  const selectedPlace = moodSelection.category;
+  const selectedDetail = moodSelection.detail;
 
   const applyConditionEdit = (patch: {
     companion?: string;
     location?: string;
     locationLabel?: string;
     mood?: string;
+    duration?: string;
     source?: 'current' | 'manual';
     time?: string;
   }) => {
@@ -1143,6 +1256,7 @@ export function ConditionConfirm() {
           <ConditionCard color="#7B61FF" label="시간" onClick={() => setEditSection('time')} value={condition.time} />
           <ConditionCard color="#16A17D" label="동행" onClick={() => setEditSection('people')} value={condition.companion} />
           <ConditionCard color="#F0A23A" label="취향" onClick={() => setEditSection('place')} value={condition.mood} />
+          <ConditionCard className="wide" color="#14A6A1" label="이용 시간" onClick={() => setEditSection('duration')} value={condition.duration || '자동 추천'} />
         </div>
         <button className="location-refresh-button" type="button" onClick={() => void detectCurrentLocation()}>
           {locationStatus === 'locating' ? '현재 위치 확인 중' : '현재 위치 다시 잡기'}
@@ -1152,7 +1266,7 @@ export function ConditionConfirm() {
       <section className="prompt-summary">
         <span>찾을 때 쓸 핵심 조건</span>
         <strong>
-          {[locationValue, condition.time, condition.companion, condition.mood]
+          {[locationValue, condition.time, condition.companion, condition.mood, condition.duration || '자동 추천']
             .map(displayConditionValue)
             .join(' · ')}
         </strong>
@@ -1193,7 +1307,7 @@ export function ConditionConfirm() {
           onDetectCurrentLocation={detectCurrentLocation}
           section={editSection}
           selectedCompanion={selectedCompanion}
-          selectedCuisine={selectedCuisine}
+          selectedDetail={selectedDetail}
           selectedPeople={selectedPeople}
           selectedPlace={selectedPlace}
         />
@@ -1203,11 +1317,13 @@ export function ConditionConfirm() {
 }
 
 function ConditionCard({
+  className = '',
   color,
   label,
   onClick,
   value,
 }: {
+  className?: string;
   color: string;
   label: string;
   onClick: () => void;
@@ -1219,7 +1335,7 @@ function ConditionCard({
   return (
     <button
       aria-label={`${label} ${isEmpty ? '추가하기' : '수정하기'}`}
-      className={`condition-card ${isEmpty ? 'empty' : ''}`}
+      className={`condition-card ${className} ${isEmpty ? 'empty' : ''}`}
       onClick={onClick}
       type="button"
     >
@@ -1427,7 +1543,7 @@ export function ResultScreen() {
           <div className="result-place-list">
             {plan.courseData.map((place, index) => (
               <button key={place.id} type="button" onClick={() => navigate(`/course/place/${index}`)}>
-                <b>{index + 1}</b>
+                <PlaceVisual alt={place.name} color={place.color} imageUrl={place.imageUrl} label={String(index + 1)} />
                 <span>
                   <strong>{place.searchKeyword || place.title}</strong>
                   <small>{place.description}</small>

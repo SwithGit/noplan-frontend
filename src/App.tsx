@@ -17,6 +17,7 @@ import NaverSignup from './pages/auth/NaverSignup';
 import Signup from './pages/auth/Signup';
 import Privacy from './pages/Privacy';
 import Supporters from './pages/Supporters';
+import PlaceAdmin from './pages/admin/PlaceAdmin';
 import type { UserSession } from './types/noplan';
 
 const fullPagePaths = [
@@ -30,6 +31,7 @@ const fullPagePaths = [
   '/google-signup',
   '/privacy',
   '/supporters',
+  '/admin/places',
 ];
 
 function readUserSession(): UserSession | null {
@@ -126,6 +128,7 @@ function AppRoutes() {
       <Route path="/google-signup" element={<GoogleSignup />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/supporters" element={<Supporters />} />
+      <Route path="/admin/places" element={<PlaceAdmin />} />
       <Route path="*" element={<Navigate replace to="/" />} />
     </Routes>
   );
