@@ -2,12 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   approvePlaceCandidate,
   checkAdminAccess,
+  collectApifyCandidates,
   createPlaceCandidate,
-  enrichPlaceCandidate,
   getPlaceCandidate,
   listPlaceCandidates,
   rejectPlaceCandidate,
-  searchAdminPlaces,
   updatePlaceCandidate,
   uploadPlaceImage,
   type CandidateStatus,
@@ -69,7 +68,7 @@ function emptyCandidate(regionKey: RegionKey): PlaceCandidate {
 }
 
 function commaText(values?: string[]) {
-  return (values || []).join(', ');
+  return Array.isArray(values) ? values.join(', ') : '';
 }
 
 function commaValues(value: string) {
@@ -87,7 +86,9 @@ export default function PlaceAdmin() {
   const [regionKey, setRegionKey] = useState<RegionKey>('hongdae');
   const [status, setStatus] = useState<CandidateStatus>('pending');
   const [query, setQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<PlaceCandidate[]>([]);
+  const [targetCount, setTargetCount] = useState(30);
+  const [minRating, setMinRating] = useState(3.5);
+  const [minReviewCount, setMinReviewCount] = useState(30);
   const [candidates, setCandidates] = useState<PlaceCandidate[]>([]);
   const [selected, setSelected] = useState<PlaceCandidate | null>(null);
   const [loading, setLoading] = useState(false);
@@ -144,19 +145,25 @@ export default function PlaceAdmin() {
   const search = async () => {
     if (!query.trim()) return;
     await run(async () => {
-      const result = await searchAdminPlaces(adminKey, adminId, regionKey, query.trim());
-      setSearchResults(result.places);
-    }).catch(() => undefined);
-  };
-
-  const saveSearchResult = async (place: PlaceCandidate) => {
-    await run(async () => {
-      const result = await createPlaceCandidate(adminKey, adminId, place);
-      const detail = await getPlaceCandidate(adminKey, adminId, result.candidateId);
-      setSelected(detail.candidate);
+      const result = await collectApifyCandidates(adminKey, adminId, {
+        regionKey,
+        query: query.trim(),
+        targetCount,
+        minRating,
+        minReviewCount,
+      });
       setStatus('pending');
-      await loadQueue();
-    }, '검수 대기 후보로 저장했습니다.').catch(() => undefined);
+      setSelected(null);
+      const queue = await listPlaceCandidates(adminKey, adminId, regionKey, 'pending');
+      setCandidates(queue.candidates);
+      const targetMessage = result.exhausted
+        ? `조건에 맞는 신규 후보가 ${result.acceptedCount}개뿐입니다.`
+        : `목표 ${result.targetCount}개를 모두 채웠습니다.`;
+      const menuMessage = result.menuCollectionWarning
+        ? '메뉴 보강은 실패해 장소 정보만 저장했습니다.'
+        : `신규 메뉴 보강 ${Math.max(0, result.menuEnrichedCount - result.menuBackfilledCount)}곳 · 기존 후보 메뉴 보강 ${result.menuBackfilledCount}곳 완료.`;
+      setNotice(`Apify 수집 완료: 원본 ${result.rawCount}개 확인 · ${targetMessage} ${menuMessage} 기존 중복 ${result.skipped.duplicate}개 제외.`);
+    }).catch(() => undefined);
   };
 
   const openCandidate = async (candidateId?: number) => {
@@ -175,19 +182,10 @@ export default function PlaceAdmin() {
         const result = await createPlaceCandidate(adminKey, adminId, selected);
         const detail = await getPlaceCandidate(adminKey, adminId, result.candidateId);
         setSelected(detail.candidate);
+        setStatus('pending');
       }
       await loadQueue();
-    }, '장소 정보와 사진·메뉴를 저장했습니다.').catch(() => undefined);
-  };
-
-  const enrich = async () => {
-    if (!selected?.id) return;
-    await run(async () => {
-      const result = await enrichPlaceCandidate(adminKey, adminId, selected.id!);
-      const detail = await getPlaceCandidate(adminKey, adminId, selected.id!);
-      setSelected(detail.candidate);
-      setNotice(`상세 수집 완료: 사진 ${result.imageCount}장, 메뉴 ${result.menuCount}개`);
-    }).catch(() => undefined);
+    }, selected.id ? '장소 정보를 저장했습니다.' : '상세 정보가 포함된 검수 후보로 등록했습니다.').catch(() => undefined);
   };
 
   const approve = async () => {
@@ -294,7 +292,6 @@ export default function PlaceAdmin() {
               <button className={regionKey === region.key ? 'active' : ''} key={region.key} type="button" onClick={() => {
                 setRegionKey(region.key);
                 setSelected(null);
-                setSearchResults([]);
               }}>
                 {region.label}
               </button>
@@ -316,25 +313,20 @@ export default function PlaceAdmin() {
         <aside className="admin-discovery-panel">
           <section className="admin-panel-block">
             <div className="admin-section-heading">
-              <div><span>장소 찾기</span><small>카카오 기준 반경 검색</small></div>
+              <div><span>장소 찾기</span><small>Apify 조건 일괄 수집</small></div>
               <button className="admin-quiet-button" type="button" onClick={() => setSelected(emptyCandidate(regionKey))}>직접 등록</button>
             </div>
+            <ol className="admin-collection-flow" aria-label="장소 등록 진행 순서">
+              <li><b>1</b>조건 입력</li><li><b>2</b>일괄 수집</li><li><b>3</b>분류</li><li><b>4</b>승인</li>
+            </ol>
             <div className="admin-search-row">
               <input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && search()} placeholder="예: 보드게임, 해산물, 공방" />
-              <button className="admin-primary-button" type="button" disabled={loading} onClick={search}>검색</button>
+              <button className="admin-primary-button" type="button" disabled={loading} onClick={search}>{loading ? '수집 중' : 'Apify 후보 수집'}</button>
             </div>
-            <div className="admin-search-results">
-              {searchResults.map((place) => (
-                <article className="admin-search-item" key={`${place.provider}-${place.providerPlaceId}`}>
-                  <div>
-                    <strong>{place.name}</strong>
-                    <span>{place.detailType || place.primaryType} · {place.stationDistanceM ?? '-'}m</span>
-                    <small>{displayAddress(place)}</small>
-                  </div>
-                  <button type="button" onClick={() => saveSearchResult(place)}>후보 등록</button>
-                </article>
-              ))}
-              {!searchResults.length && <p className="admin-empty-copy">검색 결과가 여기에 표시됩니다.</p>}
+            <div className="admin-collection-filters">
+              <label>목표 후보<input type="number" min="1" max="100" value={targetCount} onChange={(event) => setTargetCount(Number(event.target.value))} /></label>
+              <label>최소 별점<input type="number" min="0" max="5" step="0.1" value={minRating} onChange={(event) => setMinRating(Number(event.target.value))} /></label>
+              <label>최소 리뷰<input type="number" min="0" value={minReviewCount} onChange={(event) => setMinReviewCount(Number(event.target.value))} /></label>
             </div>
           </section>
 
@@ -376,8 +368,7 @@ export default function PlaceAdmin() {
                   <p>{displayAddress(selected)}</p>
                 </div>
                 <div>
-                  {selected.id && <button className="admin-quiet-button" type="button" disabled={loading} onClick={enrich}>Apify 상세 수집</button>}
-                  <button className="admin-secondary-button" type="button" disabled={loading} onClick={saveCandidate}>임시 저장</button>
+                  {selected.id && <button className="admin-secondary-button" type="button" disabled={loading} onClick={saveCandidate}>저장</button>}
                 </div>
               </div>
 
@@ -466,7 +457,7 @@ export default function PlaceAdmin() {
               <footer className="admin-editor-footer">
                 {selected.id && <button className="admin-danger-button" type="button" onClick={reject}>제외</button>}
                 <span />
-                <button className="admin-secondary-button" type="button" disabled={loading} onClick={saveCandidate}>저장</button>
+                <button className={selected.id ? 'admin-secondary-button' : 'admin-primary-button'} type="button" disabled={loading} onClick={saveCandidate}>{selected.id ? '저장' : '후보 등록'}</button>
                 {selected.id && <button className="admin-primary-button" type="button" disabled={loading} onClick={approve}>추천 장소로 승인</button>}
               </footer>
             </>

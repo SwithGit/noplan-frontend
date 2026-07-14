@@ -114,6 +114,44 @@ export function searchAdminPlaces(key: string, adminId: string, regionKey: Regio
   );
 }
 
+export function enrichPlacePreview(key: string, adminId: string, place: PlaceCandidate) {
+  return adminJson<ApiEnvelope & { candidate: PlaceCandidate; imageCount: number; menuCount: number }>(
+    '/api/admin/places/enrich-preview', key, adminId,
+    { method: 'POST', body: JSON.stringify({ place }) },
+  );
+}
+
+export interface ApifyCollectionResult extends ApiEnvelope {
+  targetCount: number;
+  rawCount: number;
+  acceptedCount: number;
+  inserted: number;
+  updated: number;
+  menuEnrichedCount: number;
+  menuBackfilledCount: number;
+  menuCollectionWarning?: string | null;
+  exhausted: boolean;
+  skipped: {
+    invalid: number;
+    lowRating: number;
+    lowReviewCount: number;
+    outsideRadius: number;
+    nonVenue: number;
+    duplicate: number;
+  };
+}
+
+export function collectApifyCandidates(
+  key: string,
+  adminId: string,
+  input: { regionKey: RegionKey; query: string; targetCount: number; minRating: number; minReviewCount: number },
+) {
+  return adminJson<ApifyCollectionResult>(
+    '/api/admin/places/collect-apify', key, adminId,
+    { method: 'POST', body: JSON.stringify(input) },
+  );
+}
+
 export function listPlaceCandidates(
   key: string,
   adminId: string,
