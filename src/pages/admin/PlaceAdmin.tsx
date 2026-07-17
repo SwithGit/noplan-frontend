@@ -46,6 +46,67 @@ const STATUS_OPTIONS: Array<{ value: CandidateStatus; label: string }> = [
   { value: 'rejected', label: '제외됨' },
 ];
 
+const INTENT_TAG_OPTIONS = [
+  '데이트/로맨스',
+  '편한 모임',
+  '회식/단체',
+  '자기계발',
+  '경험/체험',
+  '감정/무드',
+] as const;
+
+const ATMOSPHERE_TAG_OPTIONS = [
+  '조용한',
+  '활기찬',
+  '깔끔한',
+  '이색적인',
+  '인스타 감성',
+] as const;
+
+interface TagDropdownProps {
+  label: string;
+  options: readonly string[];
+  values: string[];
+  onChange: (values: string[]) => void;
+}
+
+function TagDropdown({ label, options, values, onChange }: TagDropdownProps) {
+  const selectedValues = options.filter((option) => values.includes(option));
+
+  const toggleOption = (option: string) => {
+    const nextValues = new Set(selectedValues);
+    if (nextValues.has(option)) nextValues.delete(option);
+    else nextValues.add(option);
+    onChange(options.filter((item) => nextValues.has(item)));
+  };
+
+  return (
+    <div className="admin-tag-field">
+      <span className="admin-tag-label">{label}</span>
+      <details className="admin-tag-dropdown">
+        <summary>
+          <span className={selectedValues.length ? '' : 'placeholder'}>
+            {selectedValues.length ? selectedValues.join(', ') : '선택하세요'}
+          </span>
+          <span aria-hidden="true" className="admin-tag-chevron">⌄</span>
+        </summary>
+        <div className="admin-tag-options" role="group" aria-label={`${label} 선택`}>
+          {options.map((option) => (
+            <label className="admin-tag-option" key={option}>
+              <input
+                type="checkbox"
+                checked={selectedValues.includes(option)}
+                onChange={() => toggleOption(option)}
+              />
+              <span>{option}</span>
+            </label>
+          ))}
+        </div>
+      </details>
+    </div>
+  );
+}
+
 function emptyCandidate(regionKey: RegionKey): PlaceCandidate {
   return {
     provider: 'manual',
@@ -67,10 +128,6 @@ function emptyCandidate(regionKey: RegionKey): PlaceCandidate {
     images: [],
     menus: [],
   };
-}
-
-function commaText(values?: string[]) {
-  return Array.isArray(values) ? values.join(', ') : '';
 }
 
 function commaValues(value: string) {
@@ -118,7 +175,6 @@ export default function PlaceAdmin() {
   const [error, setError] = useState('');
   const [editorial, setEditorial] = useState({
     shortDescription: '',
-    recommendationReason: '',
     caution: '',
     bestTimeTags: '',
     editorialScore: 50,
@@ -400,10 +456,19 @@ export default function PlaceAdmin() {
                     <label>최소 인원<input type="number" value={selected.recommendedPaxMin ?? 1} onChange={(event) => updateSelected('recommendedPaxMin', Number(event.target.value))} /></label>
                     <label>최대 인원<input type="number" value={selected.recommendedPaxMax ?? 6} onChange={(event) => updateSelected('recommendedPaxMax', Number(event.target.value))} /></label>
                   </div>
-                  <div className="admin-form-grid three">
-                    <label>목적 태그<input value={commaText(selected.intentTags)} onChange={(event) => updateSelected('intentTags', commaValues(event.target.value))} placeholder="데이트, 보드게임, 모임" /></label>
-                    <label>분위기 태그<input value={commaText(selected.atmosphereTags)} onChange={(event) => updateSelected('atmosphereTags', commaValues(event.target.value))} placeholder="조용한, 활기찬" /></label>
-                    <label>편의 태그<input value={commaText(selected.amenityTags)} onChange={(event) => updateSelected('amenityTags', commaValues(event.target.value))} placeholder="예약, 주차, 단체석" /></label>
+                  <div className="admin-form-grid two">
+                    <TagDropdown
+                      label="목적 태그"
+                      options={INTENT_TAG_OPTIONS}
+                      values={selected.intentTags}
+                      onChange={(values) => updateSelected('intentTags', values)}
+                    />
+                    <TagDropdown
+                      label="분위기 태그"
+                      options={ATMOSPHERE_TAG_OPTIONS}
+                      values={selected.atmosphereTags}
+                      onChange={(values) => updateSelected('atmosphereTags', values)}
+                    />
                   </div>
                 </fieldset>
 
@@ -428,7 +493,6 @@ export default function PlaceAdmin() {
                   <div className="admin-form-grid two">
                     <label>한 줄 소개<input value={editorial.shortDescription} onChange={(event) => setEditorial({ ...editorial, shortDescription: event.target.value })} /></label>
                     <label>추천 시간대<input value={editorial.bestTimeTags} onChange={(event) => setEditorial({ ...editorial, bestTimeTags: event.target.value })} placeholder="점심, 오후, 저녁" /></label>
-                    <label>추천 이유<textarea rows={3} value={editorial.recommendationReason} onChange={(event) => setEditorial({ ...editorial, recommendationReason: event.target.value })} /></label>
                     <label>주의사항<textarea rows={3} value={editorial.caution} onChange={(event) => setEditorial({ ...editorial, caution: event.target.value })} /></label>
                   </div>
                 </fieldset>
