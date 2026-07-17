@@ -51,6 +51,7 @@ export interface CoursePlace {
   title: string;
   name: string;
   type: string;
+  detailType?: string;
   category: string;
   summary: string;
   description: string;
@@ -63,6 +64,11 @@ export interface CoursePlace {
   catalogPlaceId?: number;
   rating?: number;
   reviewCount?: number;
+  businessStatus?: string;
+  googleAttribution?: string;
+  provider?: string;
+  providerPlaceId?: string;
+  sourceUrl?: string;
   reason: string;
   moveText: string;
   waitText: string;
@@ -86,6 +92,7 @@ export interface CoursePlan {
   source?: 'api' | 'fallback';
   algorithmVersion?: string;
   analyticsSessionId?: string;
+  catalogOnly?: boolean;
 }
 
 export interface SharedCourse {

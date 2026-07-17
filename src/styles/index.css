@@ -266,6 +266,25 @@
   margin-top: 14px;
 }
 
+.admin-coverage-strip {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  margin-top: 14px;
+  border: 1px solid #dce4f2;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 12px 14px;
+}
+
+.admin-coverage-strip > div:first-child { display: flex; flex-direction: column; gap: 2px; }
+.admin-coverage-strip strong { color: #172137; font-size: 13px; }
+.admin-coverage-strip span { color: #748095; font-size: 11px; font-weight: 800; }
+.admin-coverage-list { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+.admin-coverage-list > span { flex: 0 0 auto; border-radius: 6px; background: #eaf8f3; color: #13765f; padding: 7px 9px; }
+.admin-coverage-list > span.shortage { background: #fff0d8; color: #9e5b00; }
+
 .place-admin-workspace {
   display: grid;
   flex: 1;
@@ -390,6 +409,11 @@
   scrollbar-width: thin;
 }
 
+.admin-search-results {
+  max-height: 270px;
+  margin-top: 2px;
+}
+
 .admin-search-item {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -465,6 +489,11 @@
   border: 1px solid #e0e5ec;
   border-radius: 6px;
   background: #eef1f5 center / cover no-repeat;
+}
+
+.admin-candidate-row .place-visual {
+  width: 46px;
+  height: 46px;
 }
 
 .admin-empty-copy {
@@ -545,6 +574,25 @@
   color: #1d2739;
   font-size: 15px;
   font-weight: 900;
+}
+
+.admin-form-section legend small {
+  margin-left: 6px;
+  color: #7c879a;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.admin-form-note {
+  margin: 0;
+  color: #2457f5;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.admin-form-section input[readonly] {
+  background: #f4f7fb;
+  color: #5d6a80;
 }
 
 .admin-form-grid {
@@ -629,6 +677,10 @@
   align-items: center;
 }
 
+.admin-menu-editor.compact {
+  grid-template-columns: minmax(180px, 1fr) 150px auto;
+}
+
 .admin-menu-editor .admin-check-label {
   min-height: 40px;
   padding: 0;
@@ -663,6 +715,10 @@
   .admin-header-actions {
     width: 100%;
     flex-wrap: wrap;
+  }
+
+  .admin-coverage-strip {
+    grid-template-columns: 1fr;
   }
 
   .place-admin-workspace {
@@ -2585,23 +2641,28 @@ button {
   border-radius: 8px;
 }
 
-.place-visual span {
-  position: absolute;
-  right: 9px;
-  bottom: 9px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.75);
+.place-category-icon {
+  display: flex;
+  width: 72%;
+  height: 72%;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #2457f5;
 }
 
-.place-visual i {
-  width: 25px;
-  height: 25px;
-  border-radius: 7px;
-  background: rgba(36, 87, 245, 0.72);
-  transform: rotate(-11deg);
+.place-category-icon svg {
+  width: 62%;
+  height: 62%;
 }
+
+.place-visual-food .place-category-icon { color: #e45f35; }
+.place-visual-cafe .place-category-icon { color: #9a5c2e; }
+.place-visual-activity .place-category-icon { color: #2457f5; }
+.place-visual-culture .place-category-icon { color: #7b61ff; }
+.place-visual-walk .place-category-icon { color: #168a67; }
+.place-visual-drink .place-category-icon { color: #c33f72; }
 
 .place-visual b {
   position: absolute;
@@ -3254,6 +3315,33 @@ button {
   font-weight: 750;
 }
 
+.result-place-list .google-place-meta {
+  color: #3767d8;
+  font-size: 11px;
+}
+
+.mvp-feedback-panel {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  border: 1px solid #dce4f2;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 16px;
+}
+
+.mvp-feedback-panel span { color: #2457f5; font-size: 11px; font-weight: 900; }
+.mvp-feedback-panel h2 { margin: 3px 0 0; font-size: 16px; }
+.mvp-feedback-panel p { margin: 0; color: #13765f; font-size: 13px; font-weight: 800; }
+.mvp-feedback-panel label { display: grid; gap: 6px; color: #536077; font-size: 12px; font-weight: 800; }
+.mvp-feedback-panel select { width: 100%; min-height: 42px; border: 1px solid #dce2ec; border-radius: 7px; background: #fff; padding: 0 10px; }
+
+.feedback-score { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 7px; }
+.feedback-score button { min-height: 42px; border: 1px solid #dce2ec; background: #f7f9fc; color: #667187; }
+.feedback-score button.active { border-color: #2457f5; background: #2457f5; color: #fff; }
+.feedback-submit { min-height: 44px; background: #2457f5; color: #fff; }
+.feedback-submit:disabled { opacity: 0.45; }
+
 .inline-message {
   margin: 0;
   padding: 10px 12px;
@@ -3520,12 +3608,6 @@ button {
   height: 116px;
 }
 
-.place-hero .place-visual i {
-  width: 46px;
-  height: 46px;
-  border-radius: 12px;
-}
-
 .place-hero h1 {
   margin: 4px 0 8px;
   color: #182034;
@@ -3561,6 +3643,34 @@ button {
 .info-list strong {
   margin: 0;
   font-size: 13px;
+}
+
+.google-quality-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid #dbe4fb;
+  border-radius: 8px;
+  background: #f3f7ff;
+  padding: 12px;
+}
+
+.google-quality-panel strong { color: #203b7b; font-size: 13px; }
+.google-quality-panel span { color: #6d788d; font-size: 10px; font-weight: 800; }
+
+.external-map-links {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.external-map-links button {
+  min-height: 42px;
+  border: 1px solid #dce2ec;
+  background: #ffffff;
+  color: #3f4d66;
+  font-size: 12px;
 }
 
 .candidate-card {

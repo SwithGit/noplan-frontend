@@ -42,7 +42,7 @@ function formatMenuPrice(price?: number | null) {
 }
 
 function openKakaoDestination(place: CoursePlace) {
-  trackPlaceInteraction('map_open', place).catch(() => undefined);
+  trackPlaceInteraction('external_map_open', place, undefined, { provider: 'kakao' }).catch(() => undefined);
   const keyword = encodeURIComponent(place.searchKeyword || place.name || place.title);
 
   if (hasCoordinates(place)) {
@@ -53,6 +53,17 @@ function openKakaoDestination(place: CoursePlace) {
   window.open(`https://map.kakao.com/link/search/${keyword}`, '_blank', 'noopener,noreferrer');
 }
 
+function externalMapUrl(place: CoursePlace, provider: 'naver' | 'google') {
+  const query = encodeURIComponent([place.searchKeyword || place.name || place.title, place.address].filter(Boolean).join(' '));
+  if (provider === 'naver') return `https://map.naver.com/p/search/${query}`;
+  return `https://www.google.com/maps/search/?api=1&query=${query}`;
+}
+
+function openExternalMap(place: CoursePlace, provider: 'naver' | 'google') {
+  trackPlaceInteraction('external_map_open', place, undefined, { provider }).catch(() => undefined);
+  window.open(externalMapUrl(place, provider), '_blank', 'noopener,noreferrer');
+}
+
 function openKakaoRoute(places: CoursePlace[]) {
   const routePlaces = places.filter(hasCoordinates);
   if (routePlaces.length < 2) {
@@ -60,6 +71,8 @@ function openKakaoRoute(places: CoursePlace[]) {
     if (first) openKakaoDestination(first);
     return;
   }
+
+  trackPlaceInteraction('external_map_open', routePlaces[0], 1, { provider: 'kakao', route: true }).catch(() => undefined);
 
   const path = routePlaces
     .map((place) => `${encodeURIComponent(place.searchKeyword || place.name || place.title)},${place.lat},${place.lng}`)
@@ -91,7 +104,7 @@ export function CourseMapScreen() {
       <section className="route-list">
         {plan.courseData.map((place, index) => (
           <article className="route-item" key={place.id}>
-            <PlaceVisual alt={place.name} color={place.color} imageUrl={place.imageUrl} label={String(index + 1)} />
+            <PlaceVisual alt={place.name} color={place.color} imageUrl={place.imageUrl} label={String(index + 1)} type={place.type} detailType={place.detailType} />
             <div>
               <span>{index + 1}번째 장소</span>
               <strong>{place.title}</strong>
@@ -139,7 +152,7 @@ export function PlaceDetailScreen() {
       <AppTopBar title={place.title} subtitle={place.category || place.type} />
 
       <section className="place-hero">
-        <PlaceVisual alt={place.name} color={place.color} imageUrl={place.imageUrl} label={String(placeIndex + 1)} />
+        <PlaceVisual alt={place.name} color={place.color} imageUrl={place.imageUrl} label={String(placeIndex + 1)} type={place.type} detailType={place.detailType} />
         <div>
           <span>{place.moveText}</span>
           <h1>{place.title}</h1>
@@ -195,6 +208,18 @@ export function PlaceDetailScreen() {
         </div>
       </section>
 
+      {place.rating != null && place.reviewCount != null && (
+        <section className="google-quality-panel">
+          <strong>Google 평점 {place.rating.toFixed(1)} · 리뷰 {place.reviewCount.toLocaleString('ko-KR')}개</strong>
+          <span>{place.googleAttribution || 'Google Maps 제공'}</span>
+        </section>
+      )}
+
+      <section className="external-map-links" aria-label="외부 지도에서 장소 보기">
+        <button type="button" onClick={() => openExternalMap(place, 'naver')}>네이버지도에서 보기</button>
+        <button type="button" onClick={() => openExternalMap(place, 'google')}>Google Maps에서 보기</button>
+      </section>
+
       {Boolean(place.menuItems?.length) && (
         <section className="place-menu-section">
           <h2>메뉴</h2>
@@ -218,7 +243,7 @@ export function PlaceDetailScreen() {
           바꾸기
         </button>
         <button className="primary" type="button" onClick={() => openKakaoDestination(place)}>
-          길찾기
+          카카오맵 길찾기
         </button>
       </div>
     </div>
@@ -251,7 +276,7 @@ export function ReplacementCandidates() {
         )}
         {candidates.map((candidate) => (
           <article className="candidate-card" key={candidate.id}>
-            <PlaceVisual alt={candidate.name} color={candidate.color} imageUrl={candidate.imageUrl} />
+            <PlaceVisual alt={candidate.name} color={candidate.color} imageUrl={candidate.imageUrl} type={candidate.type} detailType={candidate.detailType} />
             <div>
               <span>{candidate.category}</span>
               <strong>{candidate.title}</strong>

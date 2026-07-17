@@ -73,6 +73,13 @@ export interface PlaceCandidate {
   menus?: PlaceMenuInput[];
 }
 
+export interface PlaceCoverage {
+  primaryType: PlaceType;
+  detailType: string;
+  count: number;
+  shortage: boolean;
+}
+
 interface ApiEnvelope {
   success: boolean;
   message?: string;
@@ -127,9 +134,6 @@ export interface ApifyCollectionResult extends ApiEnvelope {
   acceptedCount: number;
   inserted: number;
   updated: number;
-  menuEnrichedCount: number;
-  menuBackfilledCount: number;
-  menuCollectionWarning?: string | null;
   exhausted: boolean;
   skipped: {
     invalid: number;
@@ -160,6 +164,12 @@ export function listPlaceCandidates(
 ) {
   return adminJson<ApiEnvelope & { candidates: PlaceCandidate[] }>(
     `/api/admin/places/candidates?regionKey=${regionKey}&status=${status}`, key, adminId,
+  );
+}
+
+export function getPlaceCoverage(key: string, adminId: string, regionKey: RegionKey) {
+  return adminJson<ApiEnvelope & { coverage: PlaceCoverage[] }>(
+    `/api/admin/places/coverage?regionKey=${regionKey}`, key, adminId,
   );
 }
 

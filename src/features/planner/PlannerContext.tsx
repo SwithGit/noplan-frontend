@@ -1,8 +1,36 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
-import { generateCourse, makeFallbackPlan, parsePlannerCondition, trackRecommendationImpressions } from '../../api/plannerApi';
+import { createContext, useContext, useState, type ReactNode } from 'react';
+import { generateCourse, makeFallbackPlan, parsePlannerCondition, trackPlannerEvent, trackRecommendationImpressions } from '../../api/plannerApi';
 import type { CoursePlace, CoursePlan, CurrentPosition, PlannerCondition } from '../../types/noplan';
 
-declare const kakao: any;
+interface KakaoGeocodeResult {
+  address?: {
+    address_name?: string;
+    region_2depth_name?: string;
+    region_3depth_name?: string;
+  };
+  road_address?: {
+    address_name?: string;
+    region_2depth_name?: string;
+    road_name?: string;
+  };
+}
+
+interface KakaoGeocoder {
+  coord2Address: (
+    lng: number,
+    lat: number,
+    callback: (result: KakaoGeocodeResult[], status: string) => void,
+  ) => void;
+}
+
+declare const kakao: {
+  maps: {
+    services: {
+      Geocoder: new () => KakaoGeocoder;
+      Status: { OK: string };
+    };
+  };
+};
 
 interface PlannerContextValue {
   condition: PlannerCondition;
@@ -70,7 +98,7 @@ function compactLocationLabel(address: string) {
   return cleaned || address;
 }
 
-function locationLabelFromGeocode(item: any, address: string) {
+function locationLabelFromGeocode(item: KakaoGeocodeResult, address: string) {
   const dong = item?.address?.region_3depth_name;
   const district = item?.road_address?.region_2depth_name || item?.address?.region_2depth_name;
   const roadName = item?.road_address?.road_name;
@@ -91,7 +119,7 @@ function reverseGeocode(lat: number, lng: number) {
     }
 
     const geocoder = new kakao.maps.services.Geocoder();
-    geocoder.coord2Address(lng, lat, (result: any[], status: string) => {
+    geocoder.coord2Address(lng, lat, (result, status) => {
       if (status === kakao.maps.services.Status.OK && result[0]) {
         const address = result[0].road_address?.address_name || result[0].address?.address_name;
         const nextAddress = address || fallback;
@@ -251,8 +279,13 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
   const startFromText = async (text: string) => {
     const rawText = text.trim();
     if (!rawText) return;
+    await trackPlannerEvent('planner_start', { entryMode: 'text' }, undefined, { resetSession: true }).catch(() => undefined);
     const fallbackCondition = inferConditionFromText(rawText);
     const parsedCondition = await parsePlannerCondition(rawText);
+    await trackPlannerEvent(
+      parsedCondition ? 'condition_parse_success' : 'condition_parse_failure',
+      { parser: parsedCondition ? 'openai' : 'fallback' },
+    ).catch(() => undefined);
     const resolvedCondition = parsedCondition || {
       location: fallbackCondition.location || null,
       locationLabel: fallbackCondition.locationLabel || null,
@@ -280,9 +313,20 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
   const runSearch = async () => {
     setIsSearching(true);
     setSearchError('');
+    await trackPlannerEvent('course_generate_start', undefined, condition).catch(() => undefined);
     const nextPlan = await generateCourse(condition);
     if (nextPlan.source === 'fallback' && nextPlan.message) {
       setSearchError(nextPlan.message);
+      await trackPlannerEvent('course_generate_failure', { errorType: 'no_verified_course' }, condition).catch(() => undefined);
+    } else {
+      await trackPlannerEvent('course_generate_success', {
+        courseCount: nextPlan.courseData.length,
+        generator: nextPlan.algorithmVersion || 'unknown',
+        catalogOnly: Boolean(nextPlan.catalogOnly),
+      }, condition, {
+        courseId: nextPlan.searchCourseId,
+        algorithmVersion: nextPlan.algorithmVersion,
+      }).catch(() => undefined);
     }
     setPlan(nextPlan);
     trackRecommendationImpressions(nextPlan, condition).catch(() => undefined);
@@ -337,28 +381,26 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     setPlan(makeFallbackPlan(defaultCondition));
   };
 
-  const value = useMemo(
-    () => ({
-      condition,
-      currentPosition,
-      plan,
-      isSearching,
-      locationStatus,
-      searchError,
-      detectCurrentLocation,
-      loadPlan,
-      setCondition,
-      startFromText,
-      runSearch,
-      replacePlace,
-      resetPlanner,
-    }),
-    [condition, currentPosition, isSearching, locationStatus, plan, searchError],
-  );
+  const value: PlannerContextValue = {
+    condition,
+    currentPosition,
+    plan,
+    isSearching,
+    locationStatus,
+    searchError,
+    detectCurrentLocation,
+    loadPlan,
+    setCondition,
+    startFromText,
+    runSearch,
+    replacePlace,
+    resetPlanner,
+  };
 
   return <PlannerContext.Provider value={value}>{children}</PlannerContext.Provider>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function usePlanner() {
   const value = useContext(PlannerContext);
 

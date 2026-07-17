@@ -11,6 +11,7 @@ import companionCoupleImage from '../../assets/nopi/연인.png';
 import companionFriendImage from '../../assets/nopi/친구.png';
 import nopiImage from '../../assets/nopi/nopi.png';
 import { saveCourse } from '../../api/courseApi';
+import { trackMvpFeedback, trackPlannerEvent } from '../../api/plannerApi';
 import { usePlanner } from './PlannerContext';
 
 const timeOptions = ['지금', '오늘 저녁', '오늘 밤', '내일', '이번 주말'];
@@ -203,7 +204,7 @@ export function PlannerHome() {
     navigate('/planner/condition');
   };
 
-  const useCurrentLocation = async () => {
+  const handleCurrentLocation = async () => {
     try {
       await detectCurrentLocation();
       setLocationMessage('');
@@ -213,20 +214,22 @@ export function PlannerHome() {
   };
 
   useEffect(() => {
-    setText(condition.rawText);
-  }, [condition.rawText]);
-
-  useEffect(() => {
     if (didRequestLocation.current || locationStatus !== 'idle') return;
 
     didRequestLocation.current = true;
-    void useCurrentLocation();
-  }, [locationStatus]);
+    const timer = window.setTimeout(() => {
+      void detectCurrentLocation().catch((error) => {
+        setLocationMessage(error instanceof Error ? error.message : '현재 위치를 가져오지 못했어요.');
+      });
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [detectCurrentLocation, locationStatus]);
 
   return (
     <div className="home-screen">
       <header className="home-header">
-        <button className="location-pill" type="button" onClick={useCurrentLocation}>
+        <button className="location-pill" type="button" onClick={handleCurrentLocation}>
           <span />
           {locationStatus === 'locating' ? '위치 찾는 중' : displayLocationLabel(condition)}
         </button>
@@ -270,6 +273,7 @@ export function PlannerHome() {
         className="quick-start-button"
         type="button"
         onClick={() => {
+          void trackPlannerEvent('planner_start', { entryMode: 'quick' }, undefined, { resetSession: true }).catch(() => undefined);
           setCondition({ companion: '', mood: '', rawText: '', time: '' });
           navigate('/planner/chat');
         }}
@@ -1207,6 +1211,7 @@ export function ConditionConfirm() {
   const navigate = useNavigate();
   const { condition, detectCurrentLocation, locationStatus, runSearch, searchError, setCondition } = usePlanner();
   const [editSection, setEditSection] = useState<ConditionEditSection | null>(null);
+  const didTrackView = useRef(false);
   const locationText = displayLocationLabel(condition);
   const locationValue = condition.location ? locationText : '';
   const selectedPeople = peopleOptions.find((option) => condition.companion.includes(option)) || '';
@@ -1229,8 +1234,17 @@ export function ConditionConfirm() {
     const nextCondition = { ...condition, ...conditionPatch };
 
     setCondition({ ...conditionPatch, rawText: buildHomePrompt(nextCondition) });
+    void trackPlannerEvent('condition_edit', {
+      field: Object.keys(conditionPatch)[0] || editSection || 'unknown',
+    }, nextCondition).catch(() => undefined);
     setEditSection(null);
   };
+
+  useEffect(() => {
+    if (didTrackView.current) return;
+    didTrackView.current = true;
+    void trackPlannerEvent('condition_confirm_view', undefined, condition).catch(() => undefined);
+  }, [condition]);
 
   const startSearch = async () => {
     navigate('/planner/searching');
@@ -1282,11 +1296,11 @@ export function ConditionConfirm() {
               key={option}
               onClick={() => {
                 const exists = condition.extras.includes(option);
-                setCondition({
-                  extras: exists
-                    ? condition.extras.filter((item) => item !== option)
-                    : [...condition.extras, option],
-                });
+                const extras = exists
+                  ? condition.extras.filter((item) => item !== option)
+                  : [...condition.extras, option];
+                setCondition({ extras });
+                void trackPlannerEvent('condition_edit', { field: 'extras' }, { ...condition, extras }).catch(() => undefined);
               }}
             >
               {option}
@@ -1390,7 +1404,6 @@ export function SearchingScreen() {
   const activeStep = searchSteps[Math.min(checkedCount, searchSteps.length - 1)];
 
   useEffect(() => {
-    setCheckedCount(0);
     const timers = searchSteps.map((_, index) =>
       window.setTimeout(() => {
         setCheckedCount(index + 1);
@@ -1480,9 +1493,26 @@ function SkeletonCard() {
 export function ResultScreen() {
   const navigate = useNavigate();
   const { condition, plan } = usePlanner();
+  const feedbackStorageKey = `noplanMvpFeedback:${plan.searchCourseId || plan.algorithmVersion || 'current'}`;
   const [saveMessage, setSaveMessage] = useState('');
+  const [feedbackScore, setFeedbackScore] = useState(0);
+  const [feedbackConcern, setFeedbackConcern] = useState('');
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(() => sessionStorage.getItem(feedbackStorageKey) === 'submitted');
+  const didTrackResult = useRef(false);
   const locationText = displayLocationLabel(condition);
   const hasCourse = plan.courseData.length > 0;
+
+  useEffect(() => {
+    if (didTrackResult.current) return;
+    didTrackResult.current = true;
+    void trackPlannerEvent('result_view', {
+      courseCount: plan.courseData.length,
+      catalogOnly: Boolean(plan.catalogOnly),
+    }, condition, {
+      courseId: plan.searchCourseId,
+      algorithmVersion: plan.algorithmVersion,
+    }).catch(() => undefined);
+  }, [condition, plan]);
 
   const handleSave = async () => {
     try {
@@ -1491,6 +1521,13 @@ export function ResultScreen() {
     } catch (error) {
       setSaveMessage(error instanceof Error ? error.message : '저장하지 못했어요.');
     }
+  };
+
+  const submitFeedback = async () => {
+    if (!feedbackScore || feedbackSubmitted) return;
+    await trackMvpFeedback(plan, feedbackScore, feedbackConcern);
+    sessionStorage.setItem(feedbackStorageKey, 'submitted');
+    setFeedbackSubmitted(true);
   };
 
   return (
@@ -1543,10 +1580,13 @@ export function ResultScreen() {
           <div className="result-place-list">
             {plan.courseData.map((place, index) => (
               <button key={place.id} type="button" onClick={() => navigate(`/course/place/${index}`)}>
-                <PlaceVisual alt={place.name} color={place.color} imageUrl={place.imageUrl} label={String(index + 1)} />
+                <PlaceVisual alt={place.name} color={place.color} imageUrl={place.imageUrl} label={String(index + 1)} type={place.type} detailType={place.detailType} />
                 <span>
                   <strong>{place.searchKeyword || place.title}</strong>
                   <small>{place.description}</small>
+                  {place.rating != null && place.reviewCount != null && (
+                    <small className="google-place-meta">Google 평점 {place.rating.toFixed(1)} · 리뷰 {place.reviewCount.toLocaleString('ko-KR')}개 · Google Maps 제공</small>
+                  )}
                 </span>
               </button>
             ))}
@@ -1555,6 +1595,32 @@ export function ResultScreen() {
       )}
 
       {saveMessage && <p className="inline-message">{saveMessage}</p>}
+
+      {hasCourse && (
+        <section className="mvp-feedback-panel">
+          <div><span>MVP 피드백</span><h2>이 코스로 실제 나가볼 의향이 있나요?</h2></div>
+          {feedbackSubmitted ? (
+            <p>고마워요. 다음 추천을 다듬는 데 반영할게요.</p>
+          ) : (
+            <>
+              <div className="feedback-score" aria-label="외출 의향 점수">
+                {[1, 2, 3, 4, 5].map((score) => <button className={feedbackScore === score ? 'active' : ''} key={score} type="button" onClick={() => setFeedbackScore(score)}>{score}</button>)}
+              </div>
+              <label>가장 불편하거나 못 믿겠던 부분
+                <select value={feedbackConcern} onChange={(event) => setFeedbackConcern(event.target.value)}>
+                  <option value="">선택하지 않음</option>
+                  <option value="place_fit">장소가 조건과 안 맞음</option>
+                  <option value="route">동선이 불편함</option>
+                  <option value="hours">영업시간이 불안함</option>
+                  <option value="trust">추천 근거가 부족함</option>
+                  <option value="choice">선택지가 부족함</option>
+                </select>
+              </label>
+              <button className="feedback-submit" disabled={!feedbackScore} type="button" onClick={() => void submitFeedback()}>피드백 보내기</button>
+            </>
+          )}
+        </section>
+      )}
 
       <div className="sticky-actions result-actions">
         {hasCourse ? (

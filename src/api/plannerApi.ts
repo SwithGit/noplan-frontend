@@ -8,6 +8,7 @@ interface GenerateCourseResponse {
   searchCourseId?: number;
   message?: string;
   generator?: string;
+  catalogOnly?: boolean;
   timeline?: {
     period?: string;
     startAt?: string;
@@ -167,6 +168,7 @@ function normalizePlace(item: Record<string, unknown>, index: number): CoursePla
     title,
     name: keyword,
     type,
+    detailType: valueOf(item, ['detailType']),
     category,
     summary: shouldShowTime ? `${time} · ${summary}` : summary,
     description: valueOf(item, ['description'], '조건에 맞춰 추천된 장소예요.'),
@@ -179,6 +181,11 @@ function normalizePlace(item: Record<string, unknown>, index: number): CoursePla
     catalogPlaceId: numberOf(item.catalogPlaceId),
     rating: numberOf(item.rating),
     reviewCount: numberOf(item.reviewCount),
+    businessStatus: valueOf(item, ['businessStatus']),
+    googleAttribution: valueOf(item, ['googleAttribution']),
+    provider: valueOf(item, ['provider']),
+    providerPlaceId: valueOf(item, ['providerPlaceId']),
+    sourceUrl: valueOf(item, ['sourceUrl']),
     reason: valueOf(item, ['reason'], `${keyword}은 현재 조건과 잘 맞는 실제 후보예요.`),
     moveText: valueOf(item, ['moveText'], index === 0 ? '첫 장소' : '근처 이동'),
     waitText: valueOf(item, ['waitText'], '낮음'),
@@ -187,7 +194,9 @@ function normalizePlace(item: Record<string, unknown>, index: number): CoursePla
     lat: item.lat as number | string | undefined,
     lng: item.lng as number | string | undefined,
     searchKeyword: keyword,
-    tags: Array.isArray(item.tags) ? item.tags.map(String) : [category, keyword, index === 0 ? '시작' : '근처'],
+    tags: Array.isArray(item.tags)
+      ? item.tags.map(String)
+      : [valueOf(item, ['detailType'], category), index === 0 ? '시작' : '근처'],
   };
 }
 
@@ -298,6 +307,7 @@ export async function generateCourse(condition: PlannerCondition): Promise<Cours
       searchCourseId: result.searchCourseId || null,
       source: 'api',
       algorithmVersion: result.generator || 'unknown',
+      catalogOnly: Boolean(result.catalogOnly),
     };
   } catch (error) {
     return {
@@ -314,6 +324,31 @@ interface RecommendationEventInput {
   courseSlot?: string;
   recommendationSnapshot?: Record<string, unknown>;
   metadata?: Record<string, unknown>;
+}
+
+function getAnalyticsSessionId(reset = false) {
+  const storageKey = 'noplanRecommendationSessionId';
+  if (!reset) {
+    const saved = sessionStorage.getItem(storageKey);
+    if (saved) return saved;
+  }
+  const created = randomId('recommendation');
+  sessionStorage.setItem(storageKey, created);
+  return created;
+}
+
+function safeConditionSnapshot(condition?: PlannerCondition) {
+  if (!condition) return undefined;
+  return {
+    rawText: '',
+    location: '',
+    locationLabel: condition.locationLabel || '',
+    time: condition.time,
+    companion: condition.companion,
+    mood: condition.mood,
+    duration: condition.duration,
+    extras: condition.extras,
+  };
 }
 
 async function sendRecommendationEvents(
@@ -333,7 +368,7 @@ async function sendRecommendationEvents(
       userId: user?.userId || null,
       sessionId,
       courseId: options.courseId || null,
-      conditionSnapshot: options.conditionSnapshot || null,
+      conditionSnapshot: safeConditionSnapshot(options.conditionSnapshot) || null,
       algorithmVersion: options.algorithmVersion || null,
       events,
     }),
@@ -342,8 +377,7 @@ async function sendRecommendationEvents(
 
 export async function trackRecommendationImpressions(plan: CoursePlan, condition: PlannerCondition) {
   if (plan.source !== 'api' || plan.courseData.length === 0) return;
-  const sessionId = randomId('recommendation');
-  sessionStorage.setItem('noplanRecommendationSessionId', sessionId);
+  const sessionId = getAnalyticsSessionId();
   await sendRecommendationEvents(
     sessionId,
     plan.courseData.map((place, index) => ({
@@ -367,17 +401,46 @@ export async function trackRecommendationImpressions(plan: CoursePlan, condition
 }
 
 export async function trackPlaceInteraction(
-  eventType: 'place_detail_open' | 'map_open' | 'course_start' | 'place_replace' | 'gallery_open' | 'menu_view',
+  eventType: 'place_detail_open' | 'map_open' | 'external_map_open' | 'course_start' | 'place_replace' | 'gallery_open' | 'menu_view',
   place: CoursePlace,
   placeRank?: number,
+  metadata?: Record<string, unknown>,
 ) {
-  const sessionId = sessionStorage.getItem('noplanRecommendationSessionId');
-  if (!sessionId) return;
+  const sessionId = getAnalyticsSessionId();
   await sendRecommendationEvents(sessionId, [{
     eventType,
     placeId: place.catalogPlaceId,
     placeRank,
     courseSlot: place.time,
-    metadata: { name: place.name, type: place.type },
+    metadata: { name: place.name, type: place.type, ...metadata },
   }]);
+}
+
+export async function trackPlannerEvent(
+  eventType: string,
+  metadata?: Record<string, unknown>,
+  condition?: PlannerCondition,
+  options: { resetSession?: boolean; courseId?: number | string | null; algorithmVersion?: string } = {},
+) {
+  const sessionId = getAnalyticsSessionId(Boolean(options.resetSession));
+  return sendRecommendationEvents(sessionId, [{ eventType, metadata }], {
+    courseId: options.courseId,
+    conditionSnapshot: condition,
+    algorithmVersion: options.algorithmVersion,
+  });
+}
+
+export async function trackMvpFeedback(
+  plan: CoursePlan,
+  score: number,
+  concern: string,
+) {
+  const sessionId = getAnalyticsSessionId();
+  return sendRecommendationEvents(sessionId, [{
+    eventType: 'mvp_feedback_submit',
+    metadata: { score, concern: concern || null },
+  }], {
+    courseId: plan.searchCourseId,
+    algorithmVersion: plan.algorithmVersion,
+  });
 }
