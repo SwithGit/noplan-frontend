@@ -81,6 +81,25 @@ function displayAddress(candidate: PlaceCandidate) {
   return candidate.roadAddress || candidate.address || '주소 미등록';
 }
 
+function kakaoMapUrl(candidate: PlaceCandidate) {
+  const providerPlaceId = candidate.providerPlaceId?.trim();
+  if (candidate.provider === 'kakao_local' && providerPlaceId) {
+    return `https://place.map.kakao.com/${encodeURIComponent(providerPlaceId)}`;
+  }
+
+  const latitude = Number(candidate.latitude);
+  const longitude = Number(candidate.longitude);
+  if (candidate.name.trim() && Number.isFinite(latitude) && Number.isFinite(longitude)) {
+    return `https://map.kakao.com/link/map/${encodeURIComponent(candidate.name.trim())},${latitude},${longitude}`;
+  }
+
+  const searchQuery = [candidate.name, candidate.roadAddress || candidate.address]
+    .map((value) => value?.trim())
+    .filter(Boolean)
+    .join(' ');
+  return searchQuery ? `https://map.kakao.com/link/search/${encodeURIComponent(searchQuery)}` : null;
+}
+
 export default function PlaceAdmin() {
   const [adminKey, setAdminKey] = useState(() => sessionStorage.getItem('noplanAdminKey') || '');
   const [adminId, setAdminId] = useState(() => sessionStorage.getItem('noplanAdminId') || '');
@@ -262,6 +281,7 @@ export default function PlaceAdmin() {
   };
 
   const detailOptions = useMemo(() => selected ? DETAIL_OPTIONS[selected.primaryType] : [], [selected]);
+  const selectedKakaoMapUrl = useMemo(() => selected ? kakaoMapUrl(selected) : null, [selected]);
 
   if (!unlocked) {
     return (
@@ -347,7 +367,10 @@ export default function PlaceAdmin() {
             <>
               <div className="admin-editor-toolbar">
                 <div><span className={`admin-entity-badge ${selected.entityType !== 'venue' ? 'warning' : ''}`}>{selected.entityType}</span><h2>{selected.name || '새 장소'}</h2><p>{displayAddress(selected)}</p></div>
-                <div>{selected.id && <button className="admin-secondary-button" type="button" disabled={loading} onClick={saveCandidate}>저장</button>}</div>
+                <div>
+                  {selectedKakaoMapUrl && <a className="admin-secondary-button admin-kakao-map-button" href={selectedKakaoMapUrl} target="_blank" rel="noopener noreferrer">카카오맵에서 보기</a>}
+                  {selected.id && <button className="admin-secondary-button" type="button" disabled={loading} onClick={saveCandidate}>저장</button>}
+                </div>
               </div>
 
               <div className="admin-editor-scroll">

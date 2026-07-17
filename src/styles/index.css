@@ -146,6 +146,14 @@
   color: #2856f6;
 }
 
+.admin-kakao-map-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
 .admin-quiet-button,
 .admin-section-heading button,
 .admin-image-editor button,
