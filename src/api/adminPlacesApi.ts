@@ -25,6 +25,13 @@ export interface PlaceMenuInput {
   source?: string | null;
 }
 
+export interface PlaceEditorial {
+  shortDescription: string;
+  caution: string;
+  bestTimeTags: string[];
+  editorialScore: number;
+}
+
 export interface PlaceCandidate {
   id?: number;
   provider: string;
@@ -71,6 +78,7 @@ export interface PlaceCandidate {
   menuCount?: number;
   images?: PlaceImageInput[];
   menus?: PlaceMenuInput[];
+  editorial?: PlaceEditorial;
 }
 
 export interface PlaceCoverage {

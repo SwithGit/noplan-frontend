@@ -13,6 +13,7 @@ import {
   type CandidateStatus,
   type PlaceCandidate,
   type PlaceCoverage,
+  type PlaceEditorial,
   type PlaceImageInput,
   type PlaceMenuInput,
   type PlaceType,
@@ -143,6 +144,16 @@ function emptyEditorial() {
   };
 }
 
+function editorialFromCandidate(editorial?: PlaceEditorial) {
+  if (!editorial) return emptyEditorial();
+  return {
+    shortDescription: editorial.shortDescription || '',
+    caution: editorial.caution || '',
+    bestTimeTags: Array.isArray(editorial.bestTimeTags) ? editorial.bestTimeTags.join(', ') : '',
+    editorialScore: Number(editorial.editorialScore) || 50,
+  };
+}
+
 function displayAddress(candidate: PlaceCandidate) {
   return candidate.roadAddress || candidate.address || '주소 미등록';
 }
@@ -258,7 +269,7 @@ export default function PlaceAdmin() {
     await run(async () => {
       const result = await getPlaceCandidate(adminKey, adminId, candidateId);
       setSelected(result.candidate);
-      setEditorial(emptyEditorial());
+      setEditorial(editorialFromCandidate(result.candidate.editorial));
     }).catch(() => undefined);
   };
 
@@ -276,6 +287,12 @@ export default function PlaceAdmin() {
     await run(async () => {
       if (selected.id) {
         await updatePlaceCandidate(adminKey, adminId, selected);
+        if (selected.status === 'approved') {
+          await approvePlaceCandidate(adminKey, adminId, selected.id, {
+            ...editorial,
+            bestTimeTags: commaValues(editorial.bestTimeTags),
+          });
+        }
         await loadWorkspace();
       } else {
         const result = await createPlaceCandidate(adminKey, adminId, selected);
