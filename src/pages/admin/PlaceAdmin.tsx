@@ -134,6 +134,15 @@ function commaValues(value: string) {
   return value.split(',').map((item) => item.trim()).filter(Boolean);
 }
 
+function emptyEditorial() {
+  return {
+    shortDescription: '',
+    caution: '',
+    bestTimeTags: '',
+    editorialScore: 50,
+  };
+}
+
 function displayAddress(candidate: PlaceCandidate) {
   return candidate.roadAddress || candidate.address || '주소 미등록';
 }
@@ -173,12 +182,7 @@ export default function PlaceAdmin() {
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
-  const [editorial, setEditorial] = useState({
-    shortDescription: '',
-    caution: '',
-    bestTimeTags: '',
-    editorialScore: 50,
-  });
+  const [editorial, setEditorial] = useState(emptyEditorial);
 
   const run = useCallback(async <T,>(work: () => Promise<T>, successMessage?: string) => {
     setLoading(true);
@@ -254,7 +258,13 @@ export default function PlaceAdmin() {
     await run(async () => {
       const result = await getPlaceCandidate(adminKey, adminId, candidateId);
       setSelected(result.candidate);
+      setEditorial(emptyEditorial());
     }).catch(() => undefined);
+  };
+
+  const startManualCandidate = () => {
+    setSelected(emptyCandidate(regionKey));
+    setEditorial(emptyEditorial());
   };
 
   const saveCandidate = async () => {
@@ -385,7 +395,7 @@ export default function PlaceAdmin() {
           <section className="admin-panel-block">
             <div className="admin-section-heading">
               <div><span>Apify 후보 수집</span><small>별점·리뷰 기준 통과 장소만 검수함에 저장</small></div>
-              <button className="admin-quiet-button" type="button" onClick={() => setSelected(emptyCandidate(regionKey))}>직접 등록</button>
+              <button className="admin-quiet-button" type="button" onClick={startManualCandidate}>직접 등록</button>
             </div>
             <ol className="admin-collection-flow" aria-label="장소 등록 진행 순서"><li><b>1</b>조건 입력</li><li><b>2</b>일괄 수집</li><li><b>3</b>팀 검수</li><li><b>4</b>승인</li></ol>
             <div className="admin-search-row">
