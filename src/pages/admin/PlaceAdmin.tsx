@@ -468,7 +468,7 @@ export default function PlaceAdmin() {
                     <label className="admin-check-label"><input type="checkbox" checked={selected.isFranchise} onChange={(event) => updateSelected('isFranchise', event.target.checked)} />프랜차이즈</label>
                   </div>
                   <div className="admin-form-grid two">
-                    <label>도로명 주소<input readOnly={selected.provider === 'kakao_local'} value={selected.roadAddress || ''} onChange={(event) => updateSelected('roadAddress', event.target.value)} /></label>
+                    <label>도로명 주소<input value={selected.roadAddress || ''} onChange={(event) => updateSelected('roadAddress', event.target.value)} /></label>
                     <label>전화번호<input readOnly={selected.provider === 'kakao_local'} value={selected.phone || ''} onChange={(event) => updateSelected('phone', event.target.value)} /></label>
                     <label>위도<input readOnly={selected.provider === 'kakao_local'} type="number" value={selected.latitude ?? ''} onChange={(event) => updateSelected('latitude', Number(event.target.value))} /></label>
                     <label>경도<input readOnly={selected.provider === 'kakao_local'} type="number" value={selected.longitude ?? ''} onChange={(event) => updateSelected('longitude', Number(event.target.value))} /></label>
