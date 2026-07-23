@@ -149,6 +149,7 @@ export interface ApifyCollectionResult extends ApiEnvelope {
     lowReviewCount: number;
     outsideRadius: number;
     nonVenue: number;
+    categoryMismatch: number;
     duplicate: number;
   };
 }
