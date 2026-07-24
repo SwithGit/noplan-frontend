@@ -694,6 +694,11 @@
   box-shadow: 0 12px 28px rgba(28, 37, 54, 0.16);
 }
 
+.admin-editor-scroll > .admin-form-section:last-child .admin-tag-options {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
+
 .admin-form-section .admin-tag-option {
   display: flex;
   min-height: 34px;

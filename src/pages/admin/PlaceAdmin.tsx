@@ -64,6 +64,8 @@ const ATMOSPHERE_TAG_OPTIONS = [
   '인스타 감성',
 ] as const;
 
+const BEST_TIME_TAG_OPTIONS = ['오전', '점심', '오후', '저녁', '밤'] as const;
+
 interface TagDropdownProps {
   label: string;
   options: readonly string[];
@@ -131,15 +133,11 @@ function emptyCandidate(regionKey: RegionKey): PlaceCandidate {
   };
 }
 
-function commaValues(value: string) {
-  return value.split(',').map((item) => item.trim()).filter(Boolean);
-}
-
 function emptyEditorial() {
   return {
     shortDescription: '',
     caution: '',
-    bestTimeTags: '',
+    bestTimeTags: [] as string[],
     editorialScore: 50,
   };
 }
@@ -149,7 +147,7 @@ function editorialFromCandidate(editorial?: PlaceEditorial) {
   return {
     shortDescription: editorial.shortDescription || '',
     caution: editorial.caution || '',
-    bestTimeTags: Array.isArray(editorial.bestTimeTags) ? editorial.bestTimeTags.join(', ') : '',
+    bestTimeTags: Array.isArray(editorial.bestTimeTags) ? editorial.bestTimeTags : [],
     editorialScore: Number(editorial.editorialScore) || 50,
   };
 }
@@ -259,7 +257,7 @@ export default function PlaceAdmin() {
       const skippedCount = Object.values(result.skipped).reduce((sum, count) => sum + count, 0);
       setNotice(
         `Apify 수집 완료: 원본 ${result.rawCount}개 중 신규 ${result.inserted}개가 검수함에 들어갔습니다. `
-        + `기준 미달·중복 등 제외 ${skippedCount}개.`,
+        + `네이버 확인 ${result.naverChecks}건 · 기준 미달·미확인·중복 등 제외 ${skippedCount}개.`,
       );
     }).catch(() => undefined);
   };
@@ -290,7 +288,7 @@ export default function PlaceAdmin() {
         if (selected.status === 'approved') {
           await approvePlaceCandidate(adminKey, adminId, selected.id, {
             ...editorial,
-            bestTimeTags: commaValues(editorial.bestTimeTags),
+            bestTimeTags: editorial.bestTimeTags,
           });
         }
         await loadWorkspace();
@@ -315,7 +313,7 @@ export default function PlaceAdmin() {
       await updatePlaceCandidate(adminKey, adminId, selected);
       await approvePlaceCandidate(adminKey, adminId, selected.id!, {
         ...editorial,
-        bestTimeTags: commaValues(editorial.bestTimeTags),
+        bestTimeTags: editorial.bestTimeTags,
       });
       const [queue, coverageResult] = await Promise.all([
         listPlaceCandidates(adminKey, adminId, regionKey, 'approved'),
@@ -472,6 +470,8 @@ export default function PlaceAdmin() {
                     <label>전화번호<input readOnly={selected.provider === 'kakao_local'} value={selected.phone || ''} onChange={(event) => updateSelected('phone', event.target.value)} /></label>
                     <label>위도<input readOnly={selected.provider === 'kakao_local'} type="number" value={selected.latitude ?? ''} onChange={(event) => updateSelected('latitude', Number(event.target.value))} /></label>
                     <label>경도<input readOnly={selected.provider === 'kakao_local'} type="number" value={selected.longitude ?? ''} onChange={(event) => updateSelected('longitude', Number(event.target.value))} /></label>
+                    <label>가게 인스타그램<input inputMode="url" value={selected.instagramUrl || ''} onChange={(event) => updateSelected('instagramUrl', event.target.value)} placeholder="https://instagram.com/..." /></label>
+                    <label>예약 링크<input inputMode="url" value={selected.reservationUrl || ''} onChange={(event) => updateSelected('reservationUrl', event.target.value)} placeholder="https://..." /></label>
                   </div>
                   {selected.provider === 'kakao_local' && <p className="admin-form-note">카카오 장소 ID와 주소·좌표·전화번호가 자동으로 연결되었습니다.</p>}
                 </fieldset>
@@ -510,7 +510,7 @@ export default function PlaceAdmin() {
                 <fieldset className="admin-form-section">
                   <div className="admin-section-heading"><legend>메뉴 <small>선택사항 · 직접 확인한 정보만</small></legend><button type="button" onClick={addMenu}>메뉴 추가</button></div>
                   <div className="admin-menu-list">
-                    {(selected.menus || []).map((menu, index) => <article className="admin-menu-editor compact" key={`${menu.id || 'new'}-${index}`}><input value={menu.name} onChange={(event) => updateSelected('menus', selected.menus!.map((item, itemIndex) => itemIndex === index ? { ...item, name: event.target.value } : item))} placeholder="메뉴명" /><input type="number" value={menu.price ?? ''} onChange={(event) => updateSelected('menus', selected.menus!.map((item, itemIndex) => itemIndex === index ? { ...item, price: Number(event.target.value) } : item))} placeholder="가격" /><button type="button" onClick={() => updateSelected('menus', selected.menus!.filter((_, itemIndex) => itemIndex !== index))}>삭제</button></article>)}
+                    {(selected.menus || []).map((menu, index) => <article className="admin-menu-editor compact" key={`${menu.id || 'new'}-${index}`}><input value={menu.name} onChange={(event) => updateSelected('menus', selected.menus!.map((item, itemIndex) => itemIndex === index ? { ...item, name: event.target.value } : item))} placeholder="메뉴명" /><input value={menu.priceText ?? menu.price ?? ''} onChange={(event) => { const value = event.target.value; const digits = value.replace(/[\s,원]/g, ''); const numericPrice = /^\d+$/.test(digits) ? Number(digits) : null; updateSelected('menus', selected.menus!.map((item, itemIndex) => itemIndex === index ? { ...item, price: numericPrice, priceText: numericPrice === null ? value || null : null } : item)); }} placeholder="가격 또는 가격 문의·변동" /><button type="button" onClick={() => updateSelected('menus', selected.menus!.filter((_, itemIndex) => itemIndex !== index))}>삭제</button></article>)}
                     {!selected.menus?.length && <p className="admin-empty-copy">지금 등록하지 않아도 승인할 수 있습니다.</p>}
                   </div>
                 </fieldset>
@@ -519,7 +519,7 @@ export default function PlaceAdmin() {
                   <legend>승인용 편집</legend>
                   <div className="admin-form-grid two">
                     <label>한 줄 소개<input value={editorial.shortDescription} onChange={(event) => setEditorial({ ...editorial, shortDescription: event.target.value })} /></label>
-                    <label>추천 시간대<input value={editorial.bestTimeTags} onChange={(event) => setEditorial({ ...editorial, bestTimeTags: event.target.value })} placeholder="점심, 오후, 저녁" /></label>
+                    <TagDropdown label="추천 시간대" options={BEST_TIME_TAG_OPTIONS} values={editorial.bestTimeTags} onChange={(values) => setEditorial({ ...editorial, bestTimeTags: values })} />
                     <label>주의사항<textarea rows={3} value={editorial.caution} onChange={(event) => setEditorial({ ...editorial, caution: event.target.value })} /></label>
                   </div>
                 </fieldset>

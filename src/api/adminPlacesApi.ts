@@ -18,6 +18,7 @@ export interface PlaceMenuInput {
   name: string;
   menuCategory?: string | null;
   price?: number | null;
+  priceText?: string | null;
   description?: string | null;
   imageUrl?: string | null;
   isSignature?: boolean | number;
@@ -47,6 +48,8 @@ export interface PlaceCandidate {
   longitude?: number | null;
   phone?: string | null;
   sourceUrl?: string | null;
+  instagramUrl?: string | null;
+  reservationUrl?: string | null;
   sourceQuery?: string | null;
   entityType: string;
   primaryType: PlaceType;
@@ -139,6 +142,7 @@ export function enrichPlacePreview(key: string, adminId: string, place: PlaceCan
 export interface ApifyCollectionResult extends ApiEnvelope {
   targetCount: number;
   rawCount: number;
+  naverRawCount: number;
   acceptedCount: number;
   inserted: number;
   updated: number;
@@ -150,8 +154,10 @@ export interface ApifyCollectionResult extends ApiEnvelope {
     outsideRadius: number;
     nonVenue: number;
     categoryMismatch: number;
+    naverNotFound: number;
     duplicate: number;
   };
+  naverChecks: number;
 }
 
 export function collectApifyCandidates(

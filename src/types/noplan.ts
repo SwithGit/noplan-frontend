@@ -40,6 +40,7 @@ export interface CourseMenuItem {
   name: string;
   menuCategory?: string;
   price?: number | null;
+  priceText?: string;
   description?: string;
   imageUrl?: string;
   isSignature?: boolean;
@@ -69,6 +70,8 @@ export interface CoursePlace {
   provider?: string;
   providerPlaceId?: string;
   sourceUrl?: string;
+  instagramUrl?: string;
+  reservationUrl?: string;
   reason: string;
   moveText: string;
   waitText: string;

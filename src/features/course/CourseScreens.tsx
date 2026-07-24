@@ -37,7 +37,8 @@ function hasCoordinates(place: CoursePlace) {
   return Number.isFinite(Number(place.lat)) && Number.isFinite(Number(place.lng));
 }
 
-function formatMenuPrice(price?: number | null) {
+function formatMenuPrice(price?: number | null, priceText?: string) {
+  if (priceText?.trim()) return priceText.trim();
   return price && price > 0 ? `${price.toLocaleString('ko-KR')}원` : '가격 확인';
 }
 
@@ -51,6 +52,17 @@ function openKakaoDestination(place: CoursePlace) {
   }
 
   window.open(`https://map.kakao.com/link/search/${keyword}`, '_blank', 'noopener,noreferrer');
+}
+
+function openPlaceLink(url?: string) {
+  if (!url) return;
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return;
+    window.open(parsed.toString(), '_blank', 'noopener,noreferrer');
+  } catch {
+    // 관리자가 완전한 URL을 입력하기 전에는 외부 링크를 열지 않는다.
+  }
 }
 
 function externalMapUrl(place: CoursePlace, provider: 'naver' | 'google') {
@@ -218,6 +230,8 @@ export function PlaceDetailScreen() {
       <section className="external-map-links" aria-label="외부 지도에서 장소 보기">
         <button type="button" onClick={() => openExternalMap(place, 'naver')}>네이버지도에서 보기</button>
         <button type="button" onClick={() => openExternalMap(place, 'google')}>Google Maps에서 보기</button>
+        {place.instagramUrl && <button type="button" onClick={() => openPlaceLink(place.instagramUrl)}>인스타그램 보기</button>}
+        {place.reservationUrl && <button type="button" onClick={() => openPlaceLink(place.reservationUrl)}>예약하기</button>}
       </section>
 
       {Boolean(place.menuItems?.length) && (
@@ -231,7 +245,7 @@ export function PlaceDetailScreen() {
                   <strong>{menu.name}{menu.isSignature ? ' · 대표' : ''}</strong>
                   {menu.description && <p>{menu.description}</p>}
                 </div>
-                <b>{formatMenuPrice(menu.price)}</b>
+                <b>{formatMenuPrice(menu.price, menu.priceText)}</b>
               </article>
             ))}
           </div>
