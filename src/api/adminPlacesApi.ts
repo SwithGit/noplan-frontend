@@ -176,9 +176,19 @@ export function listPlaceCandidates(
   adminId: string,
   regionKey: RegionKey,
   status: CandidateStatus,
+  page = 1,
+  pageSize = 50,
 ) {
-  return adminJson<ApiEnvelope & { candidates: PlaceCandidate[] }>(
-    `/api/admin/places/candidates?regionKey=${regionKey}&status=${status}`, key, adminId,
+  return adminJson<ApiEnvelope & {
+    candidates: PlaceCandidate[];
+    totalCount: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  }>(
+    `/api/admin/places/candidates?regionKey=${regionKey}&status=${status}&page=${page}&pageSize=${pageSize}`,
+    key,
+    adminId,
   );
 }
 

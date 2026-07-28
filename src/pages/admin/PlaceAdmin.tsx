@@ -65,6 +65,7 @@ const ATMOSPHERE_TAG_OPTIONS = [
 ] as const;
 
 const BEST_TIME_TAG_OPTIONS = ['오전', '점심', '오후', '저녁', '밤'] as const;
+const CANDIDATE_PAGE_SIZE = 50;
 
 interface TagDropdownProps {
   label: string;
@@ -186,6 +187,9 @@ export default function PlaceAdmin() {
   const [minRating, setMinRating] = useState(3.5);
   const [minReviewCount, setMinReviewCount] = useState(30);
   const [candidates, setCandidates] = useState<PlaceCandidate[]>([]);
+  const [candidatePage, setCandidatePage] = useState(1);
+  const [candidateTotal, setCandidateTotal] = useState(0);
+  const [candidateTotalPages, setCandidateTotalPages] = useState(1);
   const [coverage, setCoverage] = useState<PlaceCoverage[]>([]);
   const [selected, setSelected] = useState<PlaceCandidate | null>(null);
   const [loading, setLoading] = useState(false);
@@ -211,12 +215,15 @@ export default function PlaceAdmin() {
 
   const loadWorkspace = useCallback(async () => {
     const [queue, coverageResult] = await Promise.all([
-      listPlaceCandidates(adminKey, adminId || 'team', regionKey, status),
+      listPlaceCandidates(adminKey, adminId || 'team', regionKey, status, candidatePage, CANDIDATE_PAGE_SIZE),
       getPlaceCoverage(adminKey, adminId || 'team', regionKey),
     ]);
     setCandidates(queue.candidates);
+    setCandidatePage(queue.page);
+    setCandidateTotal(queue.totalCount);
+    setCandidateTotalPages(queue.totalPages);
     setCoverage(coverageResult.coverage);
-  }, [adminId, adminKey, regionKey, status]);
+  }, [adminId, adminKey, candidatePage, regionKey, status]);
 
   useEffect(() => {
     if (!unlocked) return;
@@ -247,11 +254,14 @@ export default function PlaceAdmin() {
         minReviewCount,
       });
       const [queue, coverageResult] = await Promise.all([
-        listPlaceCandidates(adminKey, adminId, regionKey, 'pending'),
+        listPlaceCandidates(adminKey, adminId, regionKey, 'pending', 1, CANDIDATE_PAGE_SIZE),
         getPlaceCoverage(adminKey, adminId, regionKey),
       ]);
       setStatus('pending');
+      setCandidatePage(queue.page);
       setCandidates(queue.candidates);
+      setCandidateTotal(queue.totalCount);
+      setCandidateTotalPages(queue.totalPages);
       setCoverage(coverageResult.coverage);
       setSelected(null);
       const skippedCount = Object.values(result.skipped).reduce((sum, count) => sum + count, 0);
@@ -296,12 +306,15 @@ export default function PlaceAdmin() {
         const result = await createPlaceCandidate(adminKey, adminId, selected);
         const detail = await getPlaceCandidate(adminKey, adminId, result.candidateId);
         const [queue, coverageResult] = await Promise.all([
-          listPlaceCandidates(adminKey, adminId, regionKey, 'pending'),
+          listPlaceCandidates(adminKey, adminId, regionKey, 'pending', 1, CANDIDATE_PAGE_SIZE),
           getPlaceCoverage(adminKey, adminId, regionKey),
         ]);
         setSelected(detail.candidate);
         setStatus('pending');
+        setCandidatePage(queue.page);
         setCandidates(queue.candidates);
+        setCandidateTotal(queue.totalCount);
+        setCandidateTotalPages(queue.totalPages);
         setCoverage(coverageResult.coverage);
       }
     }, selected.id ? '장소 정보를 저장했습니다.' : '검수 후보로 저장했습니다. 이제 확인 후 승인할 수 있습니다.').catch(() => undefined);
@@ -316,10 +329,13 @@ export default function PlaceAdmin() {
         bestTimeTags: editorial.bestTimeTags,
       });
       const [queue, coverageResult] = await Promise.all([
-        listPlaceCandidates(adminKey, adminId, regionKey, 'approved'),
+        listPlaceCandidates(adminKey, adminId, regionKey, 'approved', 1, CANDIDATE_PAGE_SIZE),
         getPlaceCoverage(adminKey, adminId, regionKey),
       ]);
+      setCandidatePage(queue.page);
       setCandidates(queue.candidates);
+      setCandidateTotal(queue.totalCount);
+      setCandidateTotalPages(queue.totalPages);
       setCoverage(coverageResult.coverage);
       setSelected(null);
       setStatus('approved');
@@ -385,7 +401,7 @@ export default function PlaceAdmin() {
         <div><p className="admin-eyebrow">NoPlan place catalog</p><h1>장소 등록·검수</h1></div>
         <div className="admin-header-actions">
           <div className="admin-segmented" aria-label="관리 지역">
-            {REGION_OPTIONS.map((region) => <button className={regionKey === region.key ? 'active' : ''} key={region.key} type="button" onClick={() => setRegionKey(region.key)}>{region.label}</button>)}
+            {REGION_OPTIONS.map((region) => <button className={regionKey === region.key ? 'active' : ''} key={region.key} type="button" onClick={() => { setRegionKey(region.key); setCandidatePage(1); setSelected(null); }}>{region.label}</button>)}
           </div>
           <span className="admin-user-chip">{adminId}</span>
           <button className="admin-quiet-button" type="button" onClick={() => { sessionStorage.removeItem('noplanAdminKey'); setUnlocked(false); }}>잠금</button>
@@ -425,9 +441,9 @@ export default function PlaceAdmin() {
           </section>
 
           <section className="admin-panel-block queue-block">
-            <div className="admin-section-heading"><div><span>검수함</span><small>{candidates.length}개 장소</small></div></div>
+            <div className="admin-section-heading"><div><span>검수함</span><small>전체 {candidateTotal}개 · 현재 페이지 {candidates.length}개</small></div></div>
             <div className="admin-status-tabs">
-              {STATUS_OPTIONS.map((option) => <button className={status === option.value ? 'active' : ''} key={option.value} type="button" onClick={() => setStatus(option.value)}>{option.label}</button>)}
+              {STATUS_OPTIONS.map((option) => <button className={status === option.value ? 'active' : ''} key={option.value} type="button" onClick={() => { setStatus(option.value); setCandidatePage(1); setSelected(null); }}>{option.label}</button>)}
             </div>
             <div className="admin-candidate-list">
               {candidates.map((candidate) => (
@@ -438,6 +454,13 @@ export default function PlaceAdmin() {
               ))}
               {!candidates.length && <p className="admin-empty-copy">이 상태의 장소가 없습니다.</p>}
             </div>
+            {candidateTotal > 0 && (
+              <div className="admin-candidate-pagination" aria-label="검수함 페이지 이동">
+                <button type="button" disabled={loading || candidatePage <= 1} onClick={() => { setSelected(null); setCandidatePage((page) => Math.max(1, page - 1)); }}>이전</button>
+                <span>{candidatePage} / {candidateTotalPages}</span>
+                <button type="button" disabled={loading || candidatePage >= candidateTotalPages} onClick={() => { setSelected(null); setCandidatePage((page) => Math.min(candidateTotalPages, page + 1)); }}>다음</button>
+              </div>
+            )}
           </section>
         </aside>
 
