@@ -9,6 +9,15 @@ interface GenerateCourseResponse {
   message?: string;
   generator?: string;
   catalogOnly?: boolean;
+  diagnostics?: {
+    purposeCoverage?: {
+      unmet?: Array<{
+        label?: string;
+        reason?: string;
+        replacement?: string | null;
+      }>;
+    };
+  };
   timeline?: {
     period?: string;
     startAt?: string;
@@ -267,6 +276,7 @@ function inferCompanionContext(condition: PlannerCondition) {
 export async function generateCourse(condition: PlannerCondition): Promise<CoursePlan> {
   const user = getLoggedInUser();
   const fallback = makeFallbackPlan(condition);
+  const purposes = parsePurposeSelections(condition.mood);
 
   try {
     const result = await apiJson<GenerateCourseResponse>('/api/course/generate/generate-course', {
@@ -275,9 +285,10 @@ export async function generateCourse(condition: PlannerCondition): Promise<Cours
         location: condition.location,
         startTime: condition.time,
         pax: condition.companion,
-        purpose: condition.mood,
+        purposes,
         duration: condition.duration,
-        vibe: [...condition.extras, condition.rawText].filter(Boolean).join(', '),
+        vibe: condition.extras.filter(Boolean).join(', '),
+        sourceText: condition.rawText,
         companionContext: inferCompanionContext(condition),
         userId: user?.userId || null,
       }),
@@ -307,6 +318,7 @@ export async function generateCourse(condition: PlannerCondition): Promise<Cours
         : `${courseData.length}곳 · 백엔드 추천`,
       courseData,
       backupPlaces,
+      message: makePurposeCoverageMessage(result),
       searchCourseId: result.searchCourseId || null,
       source: 'api',
       algorithmVersion: result.generator || 'unknown',
@@ -327,6 +339,39 @@ interface RecommendationEventInput {
   courseSlot?: string;
   recommendationSnapshot?: Record<string, unknown>;
   metadata?: Record<string, unknown>;
+}
+
+export interface PurposeSelectionRequest {
+  category: string;
+  detail: string | null;
+}
+
+export function parsePurposeSelections(mood: string): PurposeSelectionRequest[] {
+  return String(mood || '')
+    .split(/\s*·\s*/)
+    .map((group) => {
+      const [category = '', detail = ''] = group.split(/\s*,\s*/, 2);
+      const normalizedDetail = detail.trim();
+      return {
+        category: category.trim(),
+        detail: normalizedDetail && normalizedDetail !== '아무거나' ? normalizedDetail : null,
+      };
+    })
+    .filter((selection) => selection.category)
+    .slice(0, 3);
+}
+
+function makePurposeCoverageMessage(response: GenerateCourseResponse) {
+  const unmet = response.diagnostics?.purposeCoverage?.unmet || [];
+  if (unmet.length === 0) return response.message;
+
+  return unmet.map((item) => {
+    const label = item.label || '선택한 세부 목적';
+    const reason = item.reason || '조건을 통과한 후보가 부족해서';
+    return item.replacement
+      ? `${label}은 ${reason} ${item.replacement}(으)로 대체했어요.`
+      : `${label}은 ${reason} 다른 장소로 대체했어요.`;
+  }).join(' ');
 }
 
 function getAnalyticsSessionId(reset = false) {
