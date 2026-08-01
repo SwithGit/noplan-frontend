@@ -2029,6 +2029,11 @@ button {
   background: #f3efff;
 }
 
+.purpose-detail-group {
+  display: grid;
+  gap: 8px;
+}
+
 .pill-button {
   min-height: 36px;
   border-radius: 999px;
@@ -2340,6 +2345,11 @@ button {
 .edit-chip {
   padding: 0 8px;
   box-shadow: none;
+}
+
+.edit-chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
 }
 
 .edit-chip.pill {

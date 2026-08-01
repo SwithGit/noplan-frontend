@@ -26,6 +26,7 @@ const placeDetailOptions: Record<string, string[]> = {
   '산책/구경': ['산책', '공원', '야경', '쇼핑몰', '시장/상권', '아무거나'],
   '술/야간': ['포차', '펍', '와인/칵테일', '이자카야', '아무거나'],
 };
+const MAX_PLACE_SELECTIONS = 3;
 const durationOptions = ['2시간', '4시간', '저녁까지', '밤까지'];
 const tuningOptions = ['도보 짧게', '대기 적게', '사진 예쁜 곳', '조용한 곳', '비 안 맞게', '2시간 안에'];
 const companionImages: Record<string, string> = {
@@ -127,7 +128,12 @@ function companionPhrase(companion: string) {
   return `${companion}랑`;
 }
 
-function getMoodSelection(mood: string) {
+interface MoodSelection {
+  category: string;
+  detail: string;
+}
+
+function getMoodSelections(mood: string): MoodSelection[] {
   const value = String(mood || '').trim();
   const aliases: Record<string, string> = {
     음식점: '맛집',
@@ -139,24 +145,41 @@ function getMoodSelection(mood: string) {
     산책: '산책/구경',
     술집: '술/야간',
   };
-  const tokens = value.split(/\s*[,·]\s*/).filter(Boolean);
-  const category = placeOptions.find((option) => value === option || tokens.includes(option))
-    || aliases[tokens[0]]
-    || Object.entries(placeDetailOptions).find(([, details]) => details.includes(value))?.[0]
-    || '';
-  const details = category ? placeDetailOptions[category] || [] : [];
-  const detail = tokens.slice(1).find((token) => details.includes(token))
-    || (details.includes(value) ? value : '')
-    || (value === '운동' ? '스포츠' : '')
-    || (value === '전시' ? '전시' : '')
-    || (value === '산책' ? '산책' : '');
+  if (!value) return [];
 
-  return { category, detail };
+  const selections: MoodSelection[] = [];
+  const groups = value.split(/\s*·\s*/).filter(Boolean);
+
+  groups.forEach((group) => {
+    const tokens = group.split(/\s*,\s*/).map((token) => token.trim()).filter(Boolean);
+    const categories = tokens.map((token) => (
+      placeOptions.find((option) => token === option)
+      || aliases[token]
+      || Object.entries(placeDetailOptions).find(([, details]) => details.includes(token))?.[0]
+      || ''
+    )).filter(Boolean);
+
+    [...new Set(categories)].forEach((category) => {
+      if (selections.some((selection) => selection.category === category)) return;
+      const details = placeDetailOptions[category] || [];
+      const detail = tokens.find((token) => details.includes(token))
+        || (group === '운동' ? '스포츠' : '')
+        || (group === '전시' ? '전시' : '')
+        || (group === '산책' ? '산책' : '');
+      selections.push({ category, detail });
+    });
+  });
+
+  return selections.slice(0, MAX_PLACE_SELECTIONS);
 }
 
-function composeMood(category: string, detail: string) {
-  if (!category) return '';
-  return detail && detail !== '아무거나' ? `${category}, ${detail}` : category;
+function composeMoods(selections: MoodSelection[]) {
+  return selections
+    .slice(0, MAX_PLACE_SELECTIONS)
+    .map(({ category, detail }) => (
+      detail && detail !== '아무거나' ? `${category}, ${detail}` : category
+    ))
+    .join(' · ');
 }
 
 function buildHomePrompt({
@@ -318,9 +341,7 @@ export function ChatStart() {
   );
   const selectedPeople = peopleOptions.find((option) => condition.companion.includes(option)) || '';
   const selectedCompanion = companionOptions.find((option) => condition.companion.includes(option)) || '';
-  const moodSelection = getMoodSelection(condition.mood);
-  const selectedPlace = moodSelection.category;
-  const selectedDetail = moodSelection.detail;
+  const selectedPlaces = getMoodSelections(condition.mood);
   const companionStepComplete = selectedPeople === '혼자' ? selectedPeople : selectedCompanion;
   const completedSteps = [
     condition.location,
@@ -342,7 +363,7 @@ export function ChatStart() {
     { id: 'location', label: '출발지', value: locationLabel },
     { id: 'time', label: '시간', value: condition.time || '미선택' },
     { id: 'people', label: '인원', value: [selectedPeople, selectedCompanion].filter(Boolean).join(', ') || '미선택' },
-    { id: 'place', label: '목적', value: [selectedPlace, selectedDetail].filter(Boolean).join(', ') || '미선택' },
+    { id: 'place', label: '목적', value: condition.mood || '미선택' },
     { id: 'duration', label: '이용 시간', value: condition.duration || '자동 추천' },
   ];
 
@@ -439,16 +460,29 @@ export function ChatStart() {
   };
 
   const updatePlace = (place: string) => {
-    const nextMood = selectedPlace === place ? '' : place;
+    const exists = selectedPlaces.some((selection) => selection.category === place);
+    if (!exists && selectedPlaces.length >= MAX_PLACE_SELECTIONS) {
+      setStatusMessage(`목적은 최대 ${MAX_PLACE_SELECTIONS}개까지 고를 수 있어.`);
+      return;
+    }
+
+    const nextSelections = exists
+      ? selectedPlaces.filter((selection) => selection.category !== place)
+      : [...selectedPlaces, { category: place, detail: '' }];
+    const nextMood = composeMoods(nextSelections);
     const nextCondition = { ...condition, mood: nextMood };
 
     setCondition({ mood: nextMood, rawText: buildHomePrompt(nextCondition) });
     setStatusMessage('');
   };
 
-  const updateDetail = (detail: string) => {
-    const nextDetail = selectedDetail === detail ? '' : detail;
-    const nextMood = composeMood(selectedPlace, nextDetail);
+  const updateDetail = (place: string, detail: string) => {
+    const nextSelections = selectedPlaces.map((selection) => (
+      selection.category === place
+        ? { ...selection, detail: selection.detail === detail ? '' : detail }
+        : selection
+    ));
+    const nextMood = composeMoods(nextSelections);
     const nextCondition = { ...condition, mood: nextMood };
 
     setCondition({ mood: nextMood, rawText: buildHomePrompt(nextCondition) });
@@ -552,11 +586,11 @@ export function ChatStart() {
           </div>
         </QuickQuestion>
 
-        <QuickQuestion title="오늘 뭐 하고 싶나요?">
+        <QuickQuestion title="오늘 뭐 하고 싶나요?" subtitle={`최대 ${MAX_PLACE_SELECTIONS}개까지 고를 수 있어요.`}>
           <div className="option-grid five compact">
             {placeOptions.map((place) => (
               <button
-                className={`chip-button ${selectedPlace === place ? 'selected' : ''}`}
+                className={`chip-button ${selectedPlaces.some((selection) => selection.category === place) ? 'selected' : ''}`}
                 key={place}
                 onClick={() => updatePlace(place)}
                 type="button"
@@ -566,20 +600,23 @@ export function ChatStart() {
             ))}
           </div>
 
-          {selectedPlace && (
-            <div className="sub-option-panel">
-              {placeDetailOptions[selectedPlace].map((option) => (
-                <button
-                  className={`pill-button ${selectedDetail === option ? 'selected' : ''}`}
-                  key={option}
-                  onClick={() => updateDetail(option)}
-                  type="button"
-                >
-                  {option}
-                </button>
-              ))}
+          {selectedPlaces.map((selection) => (
+            <div className="purpose-detail-group" key={selection.category}>
+              <p className="option-label">{selection.category} 세부 선택</p>
+              <div className="sub-option-panel">
+                {placeDetailOptions[selection.category].map((option) => (
+                  <button
+                    className={`pill-button ${selection.detail === option ? 'selected' : ''}`}
+                    key={option}
+                    onClick={() => updateDetail(selection.category, option)}
+                    type="button"
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
             </div>
-          )}
+          ))}
         </QuickQuestion>
 
         <QuickQuestion title="얼마나 놀까요?" subtitle="선택하지 않으면 시작 시간에 맞춰 자동으로 짜드려요.">
@@ -652,9 +689,8 @@ export function ChatStart() {
           onDetectCurrentLocation={detectCurrentLocation}
           section={editSection}
           selectedCompanion={selectedCompanion}
-          selectedDetail={selectedDetail}
           selectedPeople={selectedPeople}
-          selectedPlace={selectedPlace}
+          selectedPlaces={selectedPlaces}
         />
       )}
     </div>
@@ -744,9 +780,8 @@ interface ConditionEditSheetProps {
   onDetectCurrentLocation: () => Promise<{ address: string; label: string }>;
   section: ConditionEditSection;
   selectedCompanion: string;
-  selectedDetail: string;
   selectedPeople: string;
-  selectedPlace: string;
+  selectedPlaces: MoodSelection[];
 }
 
 function ConditionEditSheet({
@@ -756,9 +791,8 @@ function ConditionEditSheet({
   onDetectCurrentLocation,
   section,
   selectedCompanion,
-  selectedDetail,
   selectedPeople,
-  selectedPlace,
+  selectedPlaces,
 }: ConditionEditSheetProps) {
   const [draftLocation, setDraftLocation] = useState(condition.location);
   const [draftLocationLabel, setDraftLocationLabel] = useState(condition.locationLabel || compactLocationLabel(condition.location));
@@ -766,8 +800,7 @@ function ConditionEditSheet({
   const [draftTime, setDraftTime] = useState(condition.time);
   const [draftPeople, setDraftPeople] = useState(selectedPeople);
   const [draftCompanion, setDraftCompanion] = useState(selectedCompanion);
-  const [draftPlace, setDraftPlace] = useState(selectedPlace);
-  const [draftDetail, setDraftDetail] = useState(selectedDetail);
+  const [draftPlaces, setDraftPlaces] = useState<MoodSelection[]>(selectedPlaces);
   const [draftDuration, setDraftDuration] = useState(condition.duration);
   const [dateTimeSheetMode, setDateTimeSheetMode] = useState<DateTimeSheetMode | null>(null);
   const [locationBusy, setLocationBusy] = useState(false);
@@ -819,10 +852,10 @@ function ConditionEditSheet({
       return;
     }
 
-    if (!draftPlace) return;
+    if (!draftPlaces.length) return;
 
     onApply({
-      mood: composeMood(draftPlace, draftDetail),
+      mood: composeMoods(draftPlaces),
     });
   };
 
@@ -830,7 +863,7 @@ function ConditionEditSheet({
     (section === 'location' && !draftLocation.trim()) ||
     (section === 'time' && !draftTime) ||
     (section === 'people' && !draftPeople) ||
-    (section === 'place' && !draftPlace);
+    (section === 'place' && !draftPlaces.length);
 
   return (
     <>
@@ -929,16 +962,20 @@ function ConditionEditSheet({
           {section === 'place' && (
             <>
               <h2>오늘 뭐 하고 싶나요?</h2>
+              <p className="edit-subtitle">최대 {MAX_PLACE_SELECTIONS}개까지 고를 수 있어요.</p>
               <div className="edit-grid three">
                 {placeOptions.map((place) => (
                   <button
-                    className={`edit-chip ${draftPlace === place ? 'selected' : ''}`}
+                    className={`edit-chip ${draftPlaces.some((selection) => selection.category === place) ? 'selected' : ''}`}
+                    disabled={draftPlaces.length >= MAX_PLACE_SELECTIONS && !draftPlaces.some((selection) => selection.category === place)}
                     key={place}
                     onClick={() => {
-                      const isSelected = draftPlace === place;
-
-                      setDraftPlace(isSelected ? '' : place);
-                      setDraftDetail('');
+                      const isSelected = draftPlaces.some((selection) => selection.category === place);
+                      setDraftPlaces((previous) => (
+                        isSelected
+                          ? previous.filter((selection) => selection.category !== place)
+                          : [...previous, { category: place, detail: '' }].slice(0, MAX_PLACE_SELECTIONS)
+                      ));
                     }}
                     type="button"
                   >
@@ -946,20 +983,27 @@ function ConditionEditSheet({
                   </button>
                 ))}
               </div>
-              {draftPlace && (
-                <div className="edit-grid cuisine">
-                  {placeDetailOptions[draftPlace].map((option) => (
-                    <button
-                      className={`edit-chip pill ${draftDetail === option ? 'selected' : ''}`}
-                      key={option}
-                      onClick={() => setDraftDetail((previous) => (previous === option ? '' : option))}
-                      type="button"
-                    >
-                      {option}
-                    </button>
-                  ))}
+              {draftPlaces.map((selection) => (
+                <div className="purpose-detail-group" key={selection.category}>
+                  <p className="edit-subtitle">{selection.category} 세부 선택</p>
+                  <div className="edit-grid cuisine">
+                    {placeDetailOptions[selection.category].map((option) => (
+                      <button
+                        className={`edit-chip pill ${selection.detail === option ? 'selected' : ''}`}
+                        key={option}
+                        onClick={() => setDraftPlaces((previous) => previous.map((item) => (
+                          item.category === selection.category
+                            ? { ...item, detail: item.detail === option ? '' : option }
+                            : item
+                        )))}
+                        type="button"
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              )}
+              ))}
             </>
           )}
 
@@ -1216,9 +1260,7 @@ export function ConditionConfirm() {
   const locationValue = condition.location ? locationText : '';
   const selectedPeople = peopleOptions.find((option) => condition.companion.includes(option)) || '';
   const selectedCompanion = companionOptions.find((option) => condition.companion.includes(option)) || '';
-  const moodSelection = getMoodSelection(condition.mood);
-  const selectedPlace = moodSelection.category;
-  const selectedDetail = moodSelection.detail;
+  const selectedPlaces = getMoodSelections(condition.mood);
 
   const applyConditionEdit = (patch: {
     companion?: string;
@@ -1321,9 +1363,8 @@ export function ConditionConfirm() {
           onDetectCurrentLocation={detectCurrentLocation}
           section={editSection}
           selectedCompanion={selectedCompanion}
-          selectedDetail={selectedDetail}
           selectedPeople={selectedPeople}
-          selectedPlace={selectedPlace}
+          selectedPlaces={selectedPlaces}
         />
       )}
     </div>
