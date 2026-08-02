@@ -1542,6 +1542,29 @@ export function ResultScreen() {
   const didTrackResult = useRef(false);
   const locationText = displayLocationLabel(condition);
   const hasCourse = plan.courseData.length > 0;
+  const failureContent = plan.failureReason === 'no_candidates'
+    ? {
+        badge: '장소 부족',
+        title: '주변에 승인된 장소가 없어요',
+        body: '현재 위치 근처에서 추천할 수 있는 등록 장소를 찾지 못했습니다.',
+      }
+    : plan.failureReason === 'verification_failed'
+      ? {
+          badge: '검증 실패',
+          title: '장소는 찾았지만 지금 추천하기 어려워요',
+          body: '현재 영업 중이면서 평점과 리뷰 기준을 통과한 장소를 확인하지 못했습니다.',
+        }
+      : plan.failureReason === 'unsupported_region'
+        ? {
+            badge: '미지원 지역',
+            title: '아직 추천하지 않는 지역이에요',
+            body: '현재 지원하는 지역 안에서 출발지를 선택해 주세요.',
+          }
+        : {
+            badge: '연결 오류',
+            title: '추천 서버에서 결과를 받지 못했어요',
+            body: '잠시 후 같은 조건으로 다시 시도해 주세요.',
+          };
 
   useEffect(() => {
     if (didTrackResult.current) return;
@@ -1575,8 +1598,12 @@ export function ResultScreen() {
     <div>
       <AppTopBar title="추천 코스" subtitle={`${locationText} · ${condition.time} · ${condition.companion} · ${condition.mood}`} />
       <NopiBubble
-        title={hasCourse ? '이 코스가 제일 가벼워.' : '검증된 장소를 못 찾았어.'}
-        body={hasCourse ? '이동 짧고, 분위기도 맞아.' : '평점, 리뷰, 영업시간 기준을 통과한 후보가 없었어.'}
+        title={hasCourse
+          ? plan.partial ? '확인된 장소까지만 골랐어.' : '이 코스가 제일 가벼워.'
+          : failureContent.title}
+        body={hasCourse
+          ? plan.partial ? '검증되지 않은 다음 일정은 안전하게 빼두었어.' : '이동 짧고, 분위기도 맞아.'
+          : failureContent.body}
         compact
       />
       {plan.message && <p className={`inline-message ${plan.source === 'fallback' ? 'warning' : ''}`}>{plan.message}</p>}
@@ -1591,7 +1618,7 @@ export function ResultScreen() {
 
       {hasCourse ? (
         <article className="result-card">
-          <span className="rank-pill">BEST 1</span>
+          <span className="rank-pill">{plan.partial ? '확인된 일정' : 'BEST 1'}</span>
           <h1>{plan.title}</h1>
           <p>{plan.durationText} · 실제 장소 추천</p>
           <div className="result-map-preview">
@@ -1609,9 +1636,9 @@ export function ResultScreen() {
         </article>
       ) : (
         <article className="result-card">
-          <span className="rank-pill">검증 실패</span>
-          <h1>추천할 실제 장소가 없어요</h1>
-          <p>평점 3.5 이상, 리뷰 30개 이상, 영업 중 기준을 통과한 후보가 없었습니다.</p>
+          <span className="rank-pill">{failureContent.badge}</span>
+          <h1>{failureContent.title}</h1>
+          <p>{failureContent.body}</p>
         </article>
       )}
 

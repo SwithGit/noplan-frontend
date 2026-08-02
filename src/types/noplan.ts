@@ -96,6 +96,8 @@ export interface CoursePlan {
   algorithmVersion?: string;
   analyticsSessionId?: string;
   catalogOnly?: boolean;
+  partial?: boolean;
+  failureReason?: 'no_candidates' | 'verification_failed' | 'unsupported_region' | 'server_error' | 'request_failed';
 }
 
 export interface SharedCourse {

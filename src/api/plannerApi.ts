@@ -3,6 +3,8 @@ import type { CoursePlace, CoursePlan, CurrentPosition, PlannerCondition } from 
 
 interface GenerateCourseResponse {
   success?: boolean;
+  partial?: boolean;
+  failureReason?: CoursePlan['failureReason'];
   course?: Array<Record<string, unknown>>;
   backupPlaces?: Array<Record<string, unknown>>;
   searchCourseId?: number;
@@ -310,6 +312,7 @@ export async function generateCourse(
       return {
         ...fallback,
         message: result.message || '백엔드에서 추천 코스를 받지 못했어요.',
+        failureReason: result.failureReason || 'request_failed',
       };
     }
 
@@ -335,11 +338,13 @@ export async function generateCourse(
       source: 'api',
       algorithmVersion: result.generator || 'unknown',
       catalogOnly: Boolean(result.catalogOnly),
+      partial: Boolean(result.partial),
     };
   } catch (error) {
     return {
       ...fallback,
       message: error instanceof Error ? `백엔드 연결 실패: ${error.message}` : fallback.message,
+      failureReason: 'request_failed',
     };
   }
 }
@@ -374,6 +379,7 @@ export function parsePurposeSelections(mood: string): PurposeSelectionRequest[] 
 }
 
 function makePurposeCoverageMessage(response: GenerateCourseResponse) {
+  if (response.message) return response.message;
   const unmet = response.diagnostics?.purposeCoverage?.unmet || [];
   if (unmet.length === 0) return response.message;
 
