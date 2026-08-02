@@ -1,5 +1,5 @@
 import { apiJson, getLoggedInUser } from './client';
-import type { CoursePlace, CoursePlan, PlannerCondition } from '../types/noplan';
+import type { CoursePlace, CoursePlan, CurrentPosition, PlannerCondition } from '../types/noplan';
 
 interface GenerateCourseResponse {
   success?: boolean;
@@ -273,16 +273,28 @@ function inferCompanionContext(condition: PlannerCondition) {
   return 'unspecified';
 }
 
-export async function generateCourse(condition: PlannerCondition): Promise<CoursePlan> {
+export async function generateCourse(
+  condition: PlannerCondition,
+  currentPosition: CurrentPosition | null = null,
+): Promise<CoursePlan> {
   const user = getLoggedInUser();
   const fallback = makeFallbackPlan(condition);
   const purposes = parsePurposeSelections(condition.mood);
+  const currentOrigin = currentPosition && currentPosition.address === condition.location
+    ? {
+        lat: currentPosition.lat,
+        lng: currentPosition.lng,
+        source: 'current' as const,
+      }
+    : null;
 
   try {
     const result = await apiJson<GenerateCourseResponse>('/api/course/generate/generate-course', {
       method: 'POST',
       body: JSON.stringify({
         location: condition.location,
+        locationLabel: condition.locationLabel || null,
+        origin: currentOrigin,
         startTime: condition.time,
         pax: condition.companion,
         purposes,

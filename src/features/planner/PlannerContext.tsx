@@ -69,9 +69,9 @@ function getBrowserPosition() {
     }
 
     navigator.geolocation.getCurrentPosition(resolve, reject, {
-      enableHighAccuracy: false,
-      maximumAge: 60000,
-      timeout: 7000,
+      enableHighAccuracy: true,
+      maximumAge: 15000,
+      timeout: 10000,
     });
   });
 }
@@ -314,7 +314,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     setIsSearching(true);
     setSearchError('');
     await trackPlannerEvent('course_generate_start', undefined, condition).catch(() => undefined);
-    const nextPlan = await generateCourse(condition);
+    const nextPlan = await generateCourse(condition, currentPosition);
     if (nextPlan.source === 'fallback' && nextPlan.message) {
       setSearchError(nextPlan.message);
       await trackPlannerEvent('course_generate_failure', { errorType: 'no_verified_course' }, condition).catch(() => undefined);
