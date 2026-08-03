@@ -1,4 +1,4 @@
-import { apiJson, getLoggedInUser } from './client';
+import { ApiError, apiJson, getLoggedInUser } from './client';
 import type { CoursePlace, CoursePlan, CurrentPosition, PlannerCondition } from '../types/noplan';
 
 interface GenerateCourseResponse {
@@ -289,10 +289,13 @@ export async function generateCourse(
         source: 'current' as const,
       }
     : null;
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), 25000);
 
   try {
     const result = await apiJson<GenerateCourseResponse>('/api/course/generate/generate-course', {
       method: 'POST',
+      signal: controller.signal,
       body: JSON.stringify({
         location: condition.location,
         locationLabel: condition.locationLabel || null,
@@ -341,11 +344,24 @@ export async function generateCourse(
       partial: Boolean(result.partial),
     };
   } catch (error) {
+    if (error instanceof ApiError) {
+      const response = error.data as GenerateCourseResponse;
+      return {
+        ...fallback,
+        message: response.message || error.message,
+        failureReason: response.failureReason || 'request_failed',
+      };
+    }
+    const isTimeout = error instanceof Error && error.name === 'AbortError';
     return {
       ...fallback,
-      message: error instanceof Error ? `백엔드 연결 실패: ${error.message}` : fallback.message,
+      message: isTimeout
+        ? '추천 확인이 25초를 넘겨 중단했어요. 잠시 후 다시 시도해 주세요.'
+        : error instanceof Error ? `백엔드 연결 실패: ${error.message}` : fallback.message,
       failureReason: 'request_failed',
     };
+  } finally {
+    window.clearTimeout(timeoutId);
   }
 }
 
