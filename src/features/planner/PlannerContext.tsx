@@ -1,6 +1,13 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import { generateCourse, makeFallbackPlan, parsePlannerCondition, trackPlannerEvent, trackRecommendationImpressions } from '../../api/plannerApi';
 import type { CoursePlace, CoursePlan, CurrentPosition, PlannerCondition } from '../../types/noplan';
+import {
+  categoryLabelFromKey,
+  inferAtmosphereTags,
+  inferCoreIntentFromText,
+  inferMainCategoryFromText,
+  normalizeCoreIntent,
+} from './plannerIntents';
 
 interface KakaoGeocodeResult {
   address?: {
@@ -55,6 +62,11 @@ const defaultCondition: PlannerCondition = {
   time: '',
   companion: '',
   mood: '',
+  mainCategory: '',
+  supportingCategories: [],
+  coreIntent: '',
+  coreIntentSkipped: false,
+  atmosphereTags: [],
   duration: '',
   extras: [],
 };
@@ -254,6 +266,15 @@ function inferConditionFromText(text: string): Partial<PlannerCondition> {
   else if (/술|포차|펍|와인|칵테일|이자카야/.test(text)) patch.mood = '술/야간';
   else if (/놀|놀거리|체험|방탈출|보드게임|볼링|노래방|오락실|공방|스포츠/.test(text)) patch.mood = '놀거리';
 
+  const mainCategory = inferMainCategoryFromText(text);
+  if (mainCategory) {
+    patch.mainCategory = mainCategory;
+    patch.supportingCategories = [];
+    patch.coreIntent = inferCoreIntentFromText(text, mainCategory);
+    patch.coreIntentSkipped = false;
+  }
+  patch.atmosphereTags = inferAtmosphereTags(text);
+
   if (/실내|비\s*(?:안|피)|추워|더워/.test(text)) patch.extras = ['실내 중심'];
 
   if (/2\s*시간/.test(text)) patch.duration = '2시간';
@@ -273,7 +294,15 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
   const [searchError, setSearchError] = useState('');
 
   const setCondition = (patch: Partial<PlannerCondition>) => {
-    setConditionState((prev) => ({ ...prev, ...patch }));
+    setConditionState((prev) => {
+      const next = { ...prev, ...patch };
+      if (patch.mainCategory !== undefined && patch.mainCategory !== prev.mainCategory) {
+        const validIntent = normalizeCoreIntent(next.mainCategory, next.coreIntent);
+        next.coreIntent = validIntent;
+        if (!validIntent) next.coreIntentSkipped = false;
+      }
+      return next;
+    });
   };
 
   const startFromText = async (text: string) => {
@@ -286,13 +315,21 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       parsedCondition ? 'condition_parse_success' : 'condition_parse_failure',
       { parser: parsedCondition ? 'openai' : 'fallback' },
     ).catch(() => undefined);
-    const resolvedCondition = parsedCondition || {
-      location: fallbackCondition.location || null,
-      locationLabel: fallbackCondition.locationLabel || null,
-      time: fallbackCondition.time || null,
-      companion: fallbackCondition.companion || null,
-      mood: fallbackCondition.mood || null,
-      duration: fallbackCondition.duration || null,
+    const resolvedCondition = {
+      location: parsedCondition?.location || fallbackCondition.location || null,
+      locationLabel: parsedCondition?.locationLabel || fallbackCondition.locationLabel || null,
+      time: parsedCondition?.time || fallbackCondition.time || null,
+      companion: parsedCondition?.companion || fallbackCondition.companion || null,
+      mood: parsedCondition?.mood || fallbackCondition.mood || null,
+      mainCategory: parsedCondition?.mainCategory || fallbackCondition.mainCategory || null,
+      supportingCategories: parsedCondition?.supportingCategories?.length
+        ? parsedCondition.supportingCategories
+        : fallbackCondition.supportingCategories || [],
+      coreIntent: parsedCondition?.coreIntent || fallbackCondition.coreIntent || null,
+      atmosphereTags: parsedCondition?.atmosphereTags?.length
+        ? parsedCondition.atmosphereTags
+        : fallbackCondition.atmosphereTags || [],
+      duration: parsedCondition?.duration || fallbackCondition.duration || null,
     };
 
     setConditionState((prev) => ({
@@ -303,7 +340,12 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
         : prev.locationLabel,
       time: resolvedCondition.time || '',
       companion: resolvedCondition.companion || '',
-      mood: resolvedCondition.mood || '',
+      mood: resolvedCondition.mood || categoryLabelFromKey(resolvedCondition.mainCategory) || '',
+      mainCategory: resolvedCondition.mainCategory || '',
+      supportingCategories: resolvedCondition.supportingCategories || [],
+      coreIntent: normalizeCoreIntent(resolvedCondition.mainCategory, resolvedCondition.coreIntent),
+      coreIntentSkipped: false,
+      atmosphereTags: resolvedCondition.atmosphereTags || fallbackCondition.atmosphereTags || [],
       duration: resolvedCondition.duration || '',
       extras: fallbackCondition.extras || [],
       rawText,
@@ -370,6 +412,12 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
   const replacePlace = (index: number, place: CoursePlace) => {
     setPlan((prev) => {
       const courseData = [...prev.courseData];
+      const duplicatesExistingPlace = courseData.some((item, itemIndex) => (
+        itemIndex !== index
+        && ((place.catalogPlaceId && item.catalogPlaceId === place.catalogPlaceId)
+          || (place.brandName && item.brandName === place.brandName))
+      ));
+      if (duplicatesExistingPlace) return prev;
       courseData[index] = { ...place, time: courseData[index]?.time || String(index + 1) };
 
       return { ...prev, courseData };

@@ -1,5 +1,11 @@
 import { ApiError, apiJson, getLoggedInUser } from './client';
 import type { CoursePlace, CoursePlan, CurrentPosition, PlannerCondition } from '../types/noplan';
+import {
+  categoryKeyFromLabel,
+  inferAtmosphereTags,
+  inferCoreIntentFromText,
+  normalizeCoreIntent,
+} from '../features/planner/plannerIntents';
 
 interface GenerateCourseResponse {
   success?: boolean;
@@ -35,6 +41,10 @@ export interface ParsedPlannerCondition {
   location: string | null;
   locationLabel: string | null;
   mood: string | null;
+  mainCategory: string | null;
+  supportingCategories: string[];
+  coreIntent: string | null;
+  atmosphereTags: string[];
   time: string | null;
 }
 
@@ -156,9 +166,14 @@ function normalizePlace(item: Record<string, unknown>, index: number): CoursePla
   const title = valueOf(item, ['title', 'name', 'searchKeyword'], fallbackPlaces[index % fallbackPlaces.length].title);
   const keyword = valueOf(item, ['searchKeyword', 'name', 'title'], title);
   const type = valueOf(item, ['type', 'category'], index === 0 ? 'cafe' : 'walk');
-  const time = valueOf(item, ['time'], String(index + 1));
+  const rawTime = valueOf(item, ['time'], String(index + 1));
   const summary = valueOf(item, ['summary', 'hanjul'], valueOf(item, ['description'], index === 0 ? '대화하기 좋은 첫 장소' : '짧은 이동 코스'));
-  const shouldShowTime = /^(오전|오후)\s*\d/.test(time);
+  const shouldShowTime = /^(오전|오후)\s*\d/.test(rawTime);
+  const time = shouldShowTime && !/(시작|부터)$/.test(rawTime) ? `${rawTime} 시작` : rawTime;
+  const durationMinutes = numberOf(item.durationMinutes);
+  const scheduleSummary = shouldShowTime
+    ? [time, durationMinutes ? `예상 ${durationMinutes}분` : ''].filter(Boolean).join(' · ')
+    : '';
   const category =
     type === 'food'
       ? '맛집'
@@ -181,12 +196,17 @@ function normalizePlace(item: Record<string, unknown>, index: number): CoursePla
     name: keyword,
     type,
     detailType: valueOf(item, ['detailType']),
+    isFranchise: Boolean(item.isFranchise),
+    brandName: valueOf(item, ['brandName']) || undefined,
     category,
-    summary: shouldShowTime ? `${time} · ${summary}` : summary,
+    summary: shouldShowTime ? `${scheduleSummary} · ${summary}` : summary,
     description: valueOf(item, ['description'], '조건에 맞춰 추천된 장소예요.'),
     address: valueOf(item, ['address']),
     hours: valueOf(item, ['hours', 'businessHours']),
     phone: valueOf(item, ['phone']),
+    durationMinutes,
+    scheduledStart: valueOf(item, ['scheduledStart']) || undefined,
+    scheduledEnd: valueOf(item, ['scheduledEnd']) || undefined,
     imageUrl: imageUrl || undefined,
     galleryImages,
     menuItems,
@@ -253,7 +273,7 @@ export async function parsePlannerCondition(text: string): Promise<ParsedPlanner
       signal: controller.signal,
     });
 
-    if (!result.success || result.parser !== 'openai' || !result.condition) return null;
+    if (!result.success || !result.condition) return null;
 
     return {
       companion: normalizeParsedValue(result.condition.companion),
@@ -261,6 +281,14 @@ export async function parsePlannerCondition(text: string): Promise<ParsedPlanner
       location: normalizeParsedValue(result.condition.location),
       locationLabel: normalizeParsedValue(result.condition.locationLabel),
       mood: normalizeParsedValue(result.condition.mood),
+      mainCategory: normalizeParsedValue(result.condition.mainCategory),
+      supportingCategories: Array.isArray(result.condition.supportingCategories)
+        ? result.condition.supportingCategories.map(String).filter(Boolean)
+        : [],
+      coreIntent: normalizeParsedValue(result.condition.coreIntent),
+      atmosphereTags: Array.isArray(result.condition.atmosphereTags)
+        ? result.condition.atmosphereTags.map(String).filter(Boolean)
+        : [],
       time: normalizeParsedValue(result.condition.time),
     };
   } catch {
@@ -282,6 +310,19 @@ export async function generateCourse(
   const user = getLoggedInUser();
   const fallback = makeFallbackPlan(condition);
   const purposes = parsePurposeSelections(condition.mood);
+  const mainCategory = condition.mainCategory || categoryKeyFromLabel(purposes[0]?.category);
+  const supportingCategories = condition.supportingCategories.length
+    ? condition.supportingCategories
+    : purposes.slice(1).map((purpose) => categoryKeyFromLabel(purpose.category)).filter(Boolean);
+  const coreIntent = normalizeCoreIntent(
+    mainCategory,
+    condition.coreIntent || inferCoreIntentFromText(condition.rawText || condition.mood, mainCategory),
+  );
+  const atmosphereTags = [...new Set([
+    ...condition.atmosphereTags,
+    ...inferAtmosphereTags([condition.rawText, condition.extras.join(' ')].filter(Boolean).join(' ')),
+  ])];
+  const sessionId = getAnalyticsSessionId();
   const currentOrigin = currentPosition && currentPosition.address === condition.location
     ? {
         lat: currentPosition.lat,
@@ -302,7 +343,13 @@ export async function generateCourse(
         origin: currentOrigin,
         startTime: condition.time,
         pax: condition.companion,
+        companion: condition.companion,
+        sessionId,
         purposes,
+        mainCategory: mainCategory || null,
+        supportingCategories,
+        coreIntent: coreIntent || null,
+        atmosphereTags,
         duration: condition.duration,
         vibe: condition.extras.filter(Boolean).join(', '),
         sourceText: condition.rawText,
@@ -342,6 +389,7 @@ export async function generateCourse(
       algorithmVersion: result.generator || 'unknown',
       catalogOnly: Boolean(result.catalogOnly),
       partial: Boolean(result.partial),
+      analyticsSessionId: sessionId,
     };
   } catch (error) {
     if (error instanceof ApiError) {
@@ -428,6 +476,11 @@ function safeConditionSnapshot(condition?: PlannerCondition) {
     time: condition.time,
     companion: condition.companion,
     mood: condition.mood,
+    mainCategory: condition.mainCategory,
+    supportingCategories: condition.supportingCategories,
+    coreIntent: condition.coreIntent,
+    coreIntentSkipped: condition.coreIntentSkipped,
+    atmosphereTags: condition.atmosphereTags,
     duration: condition.duration,
     extras: condition.extras,
   };
@@ -459,7 +512,7 @@ async function sendRecommendationEvents(
 
 export async function trackRecommendationImpressions(plan: CoursePlan, condition: PlannerCondition) {
   if (plan.source !== 'api' || plan.courseData.length === 0) return;
-  const sessionId = getAnalyticsSessionId();
+  const sessionId = plan.analyticsSessionId || getAnalyticsSessionId();
   await sendRecommendationEvents(
     sessionId,
     plan.courseData.map((place, index) => ({

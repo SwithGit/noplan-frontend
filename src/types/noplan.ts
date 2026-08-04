@@ -18,6 +18,11 @@ export interface PlannerCondition {
   time: string;
   companion: string;
   mood: string;
+  mainCategory: string;
+  supportingCategories: string[];
+  coreIntent: string;
+  coreIntentSkipped: boolean;
+  atmosphereTags: string[];
   duration: string;
   extras: string[];
 }
@@ -49,10 +54,15 @@ export interface CourseMenuItem {
 export interface CoursePlace {
   id: string;
   time?: string;
+  durationMinutes?: number;
+  scheduledStart?: string;
+  scheduledEnd?: string;
   title: string;
   name: string;
   type: string;
   detailType?: string;
+  isFranchise?: boolean;
+  brandName?: string;
   category: string;
   summary: string;
   description: string;

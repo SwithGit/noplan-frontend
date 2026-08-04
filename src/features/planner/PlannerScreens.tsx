@@ -12,12 +12,23 @@ import companionFriendImage from '../../assets/nopi/친구.png';
 import nopiImage from '../../assets/nopi/nopi.png';
 import { saveCourse } from '../../api/courseApi';
 import { trackMvpFeedback, trackPlannerEvent } from '../../api/plannerApi';
+import type { PlannerCondition } from '../../types/noplan';
 import { usePlanner } from './PlannerContext';
+import {
+  PLANNER_CATEGORIES,
+  categoryKeyFromLabel,
+  categoryLabelFromKey,
+  getCoreIntentLabel,
+  getCoreIntentOptions,
+  inferCoreIntentFromText,
+  needsCoreIntentQuestion,
+  normalizeCoreIntent,
+} from './plannerIntents';
 
 const timeOptions = ['지금', '오늘 저녁', '오늘 밤', '내일', '이번 주말'];
 const peopleOptions = ['혼자', '두명', '3-4명', '5명 이상'];
 const companionOptions = ['친구', '연인', '가족', '동료'];
-const placeOptions = ['맛집', '카페/디저트', '놀거리', '문화/전시', '산책/구경', '술/야간'];
+const placeOptions = PLANNER_CATEGORIES.map((category) => category.label);
 const placeDetailOptions: Record<string, string[]> = {
   맛집: ['한식', '일식', '중식', '양식', '고기', '분식', '해산물', '아무거나'],
   '카페/디저트': ['커피', '디저트', '베이커리', '브런치', '아무거나'],
@@ -182,6 +193,28 @@ function composeMoods(selections: MoodSelection[]) {
     .join(' · ');
 }
 
+function makeCategoryPreferencePatch(
+  selections: MoodSelection[],
+  condition: Pick<PlannerCondition, 'mainCategory' | 'coreIntent' | 'coreIntentSkipped'>,
+) {
+  const mainCategory = categoryKeyFromLabel(selections[0]?.category);
+  const supportingCategories = selections.slice(1)
+    .map((selection) => categoryKeyFromLabel(selection.category))
+    .filter(Boolean);
+  const mainChanged = mainCategory !== condition.mainCategory;
+  const inferredIntent = inferCoreIntentFromText(composeMoods(selections), mainCategory);
+  const coreIntent = mainChanged
+    ? inferredIntent
+    : normalizeCoreIntent(mainCategory, condition.coreIntent) || inferredIntent;
+
+  return {
+    mainCategory,
+    supportingCategories,
+    coreIntent,
+    coreIntentSkipped: mainChanged || coreIntent ? false : condition.coreIntentSkipped,
+  };
+}
+
 function buildHomePrompt({
   companion,
   location,
@@ -297,7 +330,17 @@ export function PlannerHome() {
         type="button"
         onClick={() => {
           void trackPlannerEvent('planner_start', { entryMode: 'quick' }, undefined, { resetSession: true }).catch(() => undefined);
-          setCondition({ companion: '', mood: '', rawText: '', time: '' });
+          setCondition({
+            companion: '',
+            mood: '',
+            mainCategory: '',
+            supportingCategories: [],
+            coreIntent: '',
+            coreIntentSkipped: false,
+            atmosphereTags: [],
+            rawText: '',
+            time: '',
+          });
           navigate('/planner/chat');
         }}
       >
@@ -363,7 +406,13 @@ export function ChatStart() {
     { id: 'location', label: '출발지', value: locationLabel },
     { id: 'time', label: '시간', value: condition.time || '미선택' },
     { id: 'people', label: '인원', value: [selectedPeople, selectedCompanion].filter(Boolean).join(', ') || '미선택' },
-    { id: 'place', label: '목적', value: condition.mood || '미선택' },
+    {
+      id: 'place',
+      label: '목적',
+      value: selectedPlaces.length
+        ? `${selectedPlaces[0].category} 중심${selectedPlaces.length > 1 ? ` · 추가 ${selectedPlaces.slice(1).map((item) => item.category).join(', ')}` : ''}`
+        : '미선택',
+    },
     { id: 'duration', label: '이용 시간', value: condition.duration || '자동 추천' },
   ];
 
@@ -433,9 +482,12 @@ export function ChatStart() {
     time?: string;
   }) => {
     const { source, ...conditionPatch } = patch;
-    const nextCondition = { ...condition, ...conditionPatch };
+    const categoryPatch = conditionPatch.mood !== undefined
+      ? makeCategoryPreferencePatch(getMoodSelections(conditionPatch.mood), condition)
+      : {};
+    const nextCondition = { ...condition, ...conditionPatch, ...categoryPatch };
 
-    setCondition({ ...conditionPatch, rawText: buildHomePrompt(nextCondition) });
+    setCondition({ ...conditionPatch, ...categoryPatch, rawText: buildHomePrompt(nextCondition) });
     if (source) setLocationSelectionSource(source);
     setEditSection(null);
     setStatusMessage('');
@@ -470,9 +522,10 @@ export function ChatStart() {
       ? selectedPlaces.filter((selection) => selection.category !== place)
       : [...selectedPlaces, { category: place, detail: '' }];
     const nextMood = composeMoods(nextSelections);
-    const nextCondition = { ...condition, mood: nextMood };
+    const preferencePatch = makeCategoryPreferencePatch(nextSelections, condition);
+    const nextCondition = { ...condition, mood: nextMood, ...preferencePatch };
 
-    setCondition({ mood: nextMood, rawText: buildHomePrompt(nextCondition) });
+    setCondition({ mood: nextMood, ...preferencePatch, rawText: buildHomePrompt(nextCondition) });
     setStatusMessage('');
   };
 
@@ -483,9 +536,10 @@ export function ChatStart() {
         : selection
     ));
     const nextMood = composeMoods(nextSelections);
-    const nextCondition = { ...condition, mood: nextMood };
+    const preferencePatch = makeCategoryPreferencePatch(nextSelections, condition);
+    const nextCondition = { ...condition, mood: nextMood, ...preferencePatch };
 
-    setCondition({ mood: nextMood, rawText: buildHomePrompt(nextCondition) });
+    setCondition({ mood: nextMood, ...preferencePatch, rawText: buildHomePrompt(nextCondition) });
     setStatusMessage('');
   };
 
@@ -1261,6 +1315,18 @@ export function ConditionConfirm() {
   const selectedPeople = peopleOptions.find((option) => condition.companion.includes(option)) || '';
   const selectedCompanion = companionOptions.find((option) => condition.companion.includes(option)) || '';
   const selectedPlaces = getMoodSelections(condition.mood);
+  const mainCategoryLabel = categoryLabelFromKey(condition.mainCategory) || selectedPlaces[0]?.category || '';
+  const supportingCategoryLabels = (condition.supportingCategories.length
+    ? condition.supportingCategories.map(categoryLabelFromKey)
+    : selectedPlaces.slice(1).map((selection) => selection.category))
+    .filter(Boolean);
+  const coreIntentLabel = getCoreIntentLabel(condition.mainCategory, condition.coreIntent);
+  const coreIntentOptions = getCoreIntentOptions(condition.mainCategory);
+  const shouldAskCoreIntent = needsCoreIntentQuestion(
+    condition.mainCategory,
+    condition.coreIntent,
+    condition.coreIntentSkipped,
+  );
 
   const applyConditionEdit = (patch: {
     companion?: string;
@@ -1273,9 +1339,12 @@ export function ConditionConfirm() {
   }) => {
     const conditionPatch = { ...patch };
     delete conditionPatch.source;
-    const nextCondition = { ...condition, ...conditionPatch };
+    const categoryPatch = conditionPatch.mood !== undefined
+      ? makeCategoryPreferencePatch(getMoodSelections(conditionPatch.mood), condition)
+      : {};
+    const nextCondition = { ...condition, ...conditionPatch, ...categoryPatch };
 
-    setCondition({ ...conditionPatch, rawText: buildHomePrompt(nextCondition) });
+    setCondition({ ...conditionPatch, ...categoryPatch, rawText: buildHomePrompt(nextCondition) });
     void trackPlannerEvent('condition_edit', {
       field: Object.keys(conditionPatch)[0] || editSection || 'unknown',
     }, nextCondition).catch(() => undefined);
@@ -1311,7 +1380,8 @@ export function ConditionConfirm() {
           <ConditionCard color="#315BFF" label="장소" onClick={() => setEditSection('location')} value={locationValue} />
           <ConditionCard color="#7B61FF" label="시간" onClick={() => setEditSection('time')} value={condition.time} />
           <ConditionCard color="#16A17D" label="동행" onClick={() => setEditSection('people')} value={condition.companion} />
-          <ConditionCard color="#F0A23A" label="취향" onClick={() => setEditSection('place')} value={condition.mood} />
+          <ConditionCard color="#F0A23A" label="주요 장소" onClick={() => setEditSection('place')} value={mainCategoryLabel} />
+          <ConditionCard color="#E1784B" label="추가 희망 장소" onClick={() => setEditSection('place')} value={supportingCategoryLabels.join(', ') || '없음'} />
           <ConditionCard className="wide" color="#14A6A1" label="이용 시간" onClick={() => setEditSection('duration')} value={condition.duration || '자동 추천'} />
         </div>
         <button className="location-refresh-button" type="button" onClick={() => void detectCurrentLocation()}>
@@ -1319,10 +1389,47 @@ export function ConditionConfirm() {
         </button>
       </section>
 
+      {shouldAskCoreIntent && (
+        <section className="screen-section core-intent-question" aria-labelledby="core-intent-title">
+          <span className="core-intent-eyebrow">한 가지만 더 알려주세요</span>
+          <h2 id="core-intent-title">
+            {mainCategoryLabel === '카페/디저트'
+              ? '카페에서 가장 하고 싶은 것은 무엇인가요?'
+              : `${mainCategoryLabel}에서 가장 중요한 것은 무엇인가요?`}
+          </h2>
+          <p>메인 장소에만 반영하고, 추가 희망 장소에는 다시 묻지 않아요.</p>
+          <div className="chip-row core-intent-options">
+            {coreIntentOptions.map((option) => (
+              <Chip
+                active={condition.coreIntent === option.key}
+                key={option.key}
+                onClick={() => setCondition({ coreIntent: option.key, coreIntentSkipped: false })}
+              >
+                {option.label}
+              </Chip>
+            ))}
+            <Chip
+              active={condition.coreIntentSkipped}
+              onClick={() => setCondition({ coreIntent: '', coreIntentSkipped: true })}
+            >
+              아무거나
+            </Chip>
+          </div>
+        </section>
+      )}
+
       <section className="prompt-summary">
         <span>찾을 때 쓸 핵심 조건</span>
         <strong>
-          {[locationValue, condition.time, condition.companion, condition.mood, condition.duration || '자동 추천']
+          {[
+            locationValue,
+            condition.time,
+            condition.companion,
+            mainCategoryLabel ? `주요 ${mainCategoryLabel}` : '',
+            supportingCategoryLabels.length ? `추가 ${supportingCategoryLabels.join(', ')}` : '',
+            coreIntentLabel ? `핵심 ${coreIntentLabel}` : condition.coreIntentSkipped ? '핵심 아무거나' : '',
+            condition.duration || '자동 추천',
+          ]
             .map(displayConditionValue)
             .join(' · ')}
         </strong>
@@ -1651,6 +1758,9 @@ export function ResultScreen() {
                 <PlaceVisual alt={place.name} color={place.color} imageUrl={place.imageUrl} label={String(index + 1)} type={place.type} detailType={place.detailType} />
                 <span>
                   <strong>{place.searchKeyword || place.title}</strong>
+                  {place.time && (
+                    <small>{place.time}{place.durationMinutes ? ` · 예상 ${place.durationMinutes}분` : ''}</small>
+                  )}
                   <small>{place.description}</small>
                   {place.rating != null && place.reviewCount != null && (
                     <small className="google-place-meta">Google 평점 {place.rating.toFixed(1)} · 리뷰 {place.reviewCount.toLocaleString('ko-KR')}개 · Google Maps 제공</small>

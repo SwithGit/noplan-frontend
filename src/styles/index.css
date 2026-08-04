@@ -613,6 +613,16 @@
   font-weight: 900;
 }
 
+.admin-priority-section {
+  border-color: #b9cbff;
+  background: #f7f9ff;
+  box-shadow: inset 3px 0 0 #315bff;
+}
+
+.admin-priority-section legend {
+  color: #2448c8;
+}
+
 .admin-form-section legend small {
   margin-left: 6px;
   color: #7c879a;
@@ -3467,6 +3477,33 @@ button {
   color: #6d788d;
   font-size: 12px;
   font-weight: 750;
+}
+
+.core-intent-question {
+  border: 1px solid #cfe0ff;
+  background: linear-gradient(145deg, #f7faff 0%, #ffffff 100%);
+}
+
+.core-intent-question > p {
+  margin: 6px 0 14px;
+  color: #64708a;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.core-intent-eyebrow {
+  display: inline-flex;
+  margin-bottom: 8px;
+  border-radius: 999px;
+  background: #eaf1ff;
+  color: #315bff;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 5px 9px;
+}
+
+.core-intent-options {
+  gap: 8px;
 }
 
 .result-place-list .google-place-meta {

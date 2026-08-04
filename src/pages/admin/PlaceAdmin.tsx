@@ -20,25 +20,35 @@ import {
   type RegionKey,
 } from '../../api/adminPlacesApi';
 import { PlaceVisual } from '../../components/ui/PlaceVisual';
+import {
+  ATMOSPHERE_OPTIONS,
+  PLANNER_CATEGORIES,
+  getCoreIntentOptions,
+  getPlannerCategory,
+  normalizeCoreIntent,
+  type PlannerCategoryKey,
+} from '../../features/planner/plannerIntents';
 
 const REGION_OPTIONS: Array<{ key: RegionKey; label: string }> = [
   { key: 'hongdae', label: '홍대입구역' },
 ];
 
-const TYPE_OPTIONS: Array<{ value: PlaceType; label: string }> = [
-  { value: 'food', label: '음식점' },
-  { value: 'cafe', label: '카페·디저트' },
-  { value: 'activity', label: '놀거리·문화' },
-  { value: 'drink', label: '술·야간' },
-  { value: 'hotplace', label: '산책·구경' },
-];
-
-const DETAIL_OPTIONS: Record<PlaceType, string[]> = {
+const DETAIL_OPTIONS: Record<PlannerCategoryKey, string[]> = {
   food: ['해산물', '고기', '한식', '일식', '중식', '양식', '분식', '기타 음식'],
   cafe: ['커피', '디저트', '베이커리', '브런치', '기타 카페'],
-  activity: ['공방/체험', '방탈출', '보드게임', '볼링', '노래방', '오락실', '스포츠', '전시', '영화', '공연', '팝업', '미술관/박물관', '서브컬쳐'],
+  activity: ['공방/체험', '방탈출', '보드게임', '볼링', '노래방', '오락실', '스포츠', '서브컬쳐'],
+  culture: ['전시', '영화', '공연', '팝업', '미술관/박물관', '독립서점', '복합문화공간'],
   drink: ['펍', '포차', '와인/칵테일', '이자카야', '기타 술집'],
-  hotplace: ['산책', '공원', '야경', '쇼핑몰', '시장/상권', '기타 명소'],
+  walk: ['산책', '공원', '야경', '쇼핑몰', '시장/상권', '기타 명소'],
+};
+
+const CATEGORY_PLACE_TYPE: Record<PlannerCategoryKey, PlaceType> = {
+  food: 'food',
+  cafe: 'cafe',
+  activity: 'activity',
+  culture: 'activity',
+  walk: 'hotplace',
+  drink: 'drink',
 };
 
 const STATUS_OPTIONS: Array<{ value: CandidateStatus; label: string }> = [
@@ -47,41 +57,43 @@ const STATUS_OPTIONS: Array<{ value: CandidateStatus; label: string }> = [
   { value: 'rejected', label: '제외됨' },
 ];
 
-const INTENT_TAG_OPTIONS = [
-  '데이트/로맨스',
-  '편한 모임',
-  '회식/단체',
-  '자기계발',
-  '경험/체험',
-  '감정/무드',
-] as const;
-
-const ATMOSPHERE_TAG_OPTIONS = [
-  '조용한',
-  '활기찬',
-  '깔끔한',
-  '이색적인',
-  '인스타 감성',
-] as const;
+const ATMOSPHERE_TAG_OPTIONS = ATMOSPHERE_OPTIONS.map((option) => ({ value: option.key, label: option.label }));
+const AMENITY_TAG_OPTIONS = [
+  { value: 'parking', label: '주차 가능' },
+  { value: 'pet_friendly', label: '반려동물 동반' },
+  { value: 'reservation', label: '예약 가능' },
+];
+const COMPANION_OPTIONS = [
+  { value: 'friends', label: '친구' },
+  { value: 'couple', label: '연인' },
+  { value: 'family', label: '가족' },
+  { value: 'coworkers', label: '동료' },
+  { value: 'solo', label: '혼자' },
+];
 
 const BEST_TIME_TAG_OPTIONS = ['오전', '점심', '오후', '저녁', '밤'] as const;
 const CANDIDATE_PAGE_SIZE = 50;
 
 interface TagDropdownProps {
   label: string;
-  options: readonly string[];
+  options: ReadonlyArray<string | { value: string; label: string }>;
   values: string[];
   onChange: (values: string[]) => void;
 }
 
 function TagDropdown({ label, options, values, onChange }: TagDropdownProps) {
-  const selectedValues = options.filter((option) => values.includes(option));
+  const normalizedOptions = options.map((option) => (
+    typeof option === 'string' ? { value: option, label: option } : option
+  ));
+  const selectedValues = normalizedOptions.filter((option) => (
+    values.includes(option.value) || values.includes(option.label)
+  ));
 
   const toggleOption = (option: string) => {
-    const nextValues = new Set(selectedValues);
+    const nextValues = new Set(selectedValues.map((item) => item.value));
     if (nextValues.has(option)) nextValues.delete(option);
     else nextValues.add(option);
-    onChange(options.filter((item) => nextValues.has(item)));
+    onChange(normalizedOptions.map((item) => item.value).filter((item) => nextValues.has(item)));
   };
 
   return (
@@ -90,19 +102,19 @@ function TagDropdown({ label, options, values, onChange }: TagDropdownProps) {
       <details className="admin-tag-dropdown">
         <summary>
           <span className={selectedValues.length ? '' : 'placeholder'}>
-            {selectedValues.length ? selectedValues.join(', ') : '선택하세요'}
+            {selectedValues.length ? selectedValues.map((item) => item.label).join(', ') : '선택하세요'}
           </span>
           <span aria-hidden="true" className="admin-tag-chevron">⌄</span>
         </summary>
         <div className="admin-tag-options" role="group" aria-label={`${label} 선택`}>
-          {options.map((option) => (
-            <label className="admin-tag-option" key={option}>
+          {normalizedOptions.map((option) => (
+            <label className="admin-tag-option" key={option.value}>
               <input
                 type="checkbox"
-                checked={selectedValues.includes(option)}
-                onChange={() => toggleOption(option)}
+                checked={selectedValues.some((item) => item.value === option.value)}
+                onChange={() => toggleOption(option.value)}
               />
-              <span>{option}</span>
+              <span>{option.label}</span>
             </label>
           ))}
         </div>
@@ -121,6 +133,8 @@ function emptyCandidate(regionKey: RegionKey): PlaceCandidate {
     entityType: 'venue',
     primaryType: 'activity',
     detailType: '보드게임',
+    categoryRaw: '놀거리',
+    categoryPathRaw: '놀거리 > 보드게임',
     intentTags: [],
     atmosphereTags: [],
     amenityTags: [],
@@ -155,6 +169,16 @@ function editorialFromCandidate(editorial?: PlaceEditorial) {
 
 function displayAddress(candidate: PlaceCandidate) {
   return candidate.roadAddress || candidate.address || '주소 미등록';
+}
+
+function mainCategoryKeyForCandidate(candidate: PlaceCandidate): PlannerCategoryKey {
+  const explicit = getPlannerCategory(candidate.categoryRaw)?.key;
+  if (explicit) return explicit;
+  if (candidate.primaryType === 'food') return 'food';
+  if (candidate.primaryType === 'cafe') return 'cafe';
+  if (candidate.primaryType === 'drink') return 'drink';
+  if (candidate.primaryType === 'hotplace') return 'walk';
+  return DETAIL_OPTIONS.culture.includes(candidate.detailType || '') ? 'culture' : 'activity';
 }
 
 function kakaoMapUrl(candidate: PlaceCandidate) {
@@ -196,6 +220,14 @@ export default function PlaceAdmin() {
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [editorial, setEditorial] = useState(emptyEditorial);
+  const selectedMainCategory: PlannerCategoryKey = selected ? mainCategoryKeyForCandidate(selected) : 'activity';
+  const selectedCoreIntentOptions = getCoreIntentOptions(selectedMainCategory).map((option) => ({
+    value: option.key,
+    label: option.label,
+  }));
+  const validSelectedIntentTags = selected
+    ? [...new Set(selected.intentTags.map((tag) => normalizeCoreIntent(selectedMainCategory, tag)).filter(Boolean))]
+    : [];
 
   const run = useCallback(async <T,>(work: () => Promise<T>, successMessage?: string) => {
     setLoading(true);
@@ -292,9 +324,14 @@ export default function PlaceAdmin() {
       setError('장소명, 좌표, 큰 분류와 상세 분류를 확인해 주세요.');
       return;
     }
+    if (!validSelectedIntentTags.length) {
+      setError('이 장소의 핵심 목적을 하나 이상 선택해 주세요.');
+      return;
+    }
+    const candidateToSave = { ...selected, intentTags: validSelectedIntentTags };
     await run(async () => {
       if (selected.id) {
-        await updatePlaceCandidate(adminKey, adminId, selected);
+        await updatePlaceCandidate(adminKey, adminId, candidateToSave);
         if (selected.status === 'approved') {
           await approvePlaceCandidate(adminKey, adminId, selected.id, {
             ...editorial,
@@ -303,7 +340,7 @@ export default function PlaceAdmin() {
         }
         await loadWorkspace();
       } else {
-        const result = await createPlaceCandidate(adminKey, adminId, selected);
+        const result = await createPlaceCandidate(adminKey, adminId, candidateToSave);
         const detail = await getPlaceCandidate(adminKey, adminId, result.candidateId);
         const [queue, coverageResult] = await Promise.all([
           listPlaceCandidates(adminKey, adminId, regionKey, 'pending', 1, CANDIDATE_PAGE_SIZE),
@@ -322,8 +359,12 @@ export default function PlaceAdmin() {
 
   const approve = async () => {
     if (!selected?.id) return;
+    if (!validSelectedIntentTags.length) {
+      setError('승인 전에 이 장소의 핵심 목적을 하나 이상 선택해 주세요.');
+      return;
+    }
     await run(async () => {
-      await updatePlaceCandidate(adminKey, adminId, selected);
+      await updatePlaceCandidate(adminKey, adminId, { ...selected, intentTags: validSelectedIntentTags });
       await approvePlaceCandidate(adminKey, adminId, selected.id!, {
         ...editorial,
         bestTimeTags: editorial.bestTimeTags,
@@ -377,7 +418,7 @@ export default function PlaceAdmin() {
     }, '팀 소유 사진을 업로드했습니다.').catch(() => undefined);
   };
 
-  const detailOptions = useMemo(() => selected ? DETAIL_OPTIONS[selected.primaryType] : [], [selected]);
+  const detailOptions = useMemo(() => selected ? DETAIL_OPTIONS[selectedMainCategory] : [], [selected, selectedMainCategory]);
   const selectedKakaoMapUrl = useMemo(() => selected ? kakaoMapUrl(selected) : null, [selected]);
 
   if (!unlocked) {
@@ -478,14 +519,64 @@ export default function PlaceAdmin() {
               </div>
 
               <div className="admin-editor-scroll">
+                <fieldset className="admin-form-section admin-priority-section">
+                  <legend>분류와 핵심 목적 <small>추천에 가장 먼저 사용되는 정보</small></legend>
+                  <div className="admin-form-grid two">
+                    <label>
+                      메인 카테고리
+                      <select
+                        value={selectedMainCategory}
+                        onChange={(event) => {
+                          const categoryKey = event.target.value as PlannerCategoryKey;
+                          const category = PLANNER_CATEGORIES.find((item) => item.key === categoryKey)!;
+                          const detailType = DETAIL_OPTIONS[categoryKey][0];
+                          setSelected({
+                            ...selected,
+                            primaryType: CATEGORY_PLACE_TYPE[categoryKey],
+                            detailType,
+                            categoryRaw: category.label,
+                            categoryPathRaw: `${category.label} > ${detailType}`,
+                            intentTags: [],
+                          });
+                        }}
+                      >
+                        {PLANNER_CATEGORIES.map((category) => (
+                          <option key={category.key} value={category.key}>{category.label}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      세부 카테고리
+                      <select
+                        value={selected.detailType || ''}
+                        onChange={(event) => {
+                          const detailType = event.target.value;
+                          setSelected({
+                            ...selected,
+                            detailType,
+                            categoryPathRaw: `${getPlannerCategory(selectedMainCategory)?.label} > ${detailType}`,
+                          });
+                        }}
+                      >
+                        {detailOptions.map((detail) => <option key={detail}>{detail}</option>)}
+                      </select>
+                    </label>
+                  </div>
+                  <TagDropdown
+                    label="핵심 목적 (복수 선택)"
+                    options={selectedCoreIntentOptions}
+                    values={validSelectedIntentTags}
+                    onChange={(values) => updateSelected('intentTags', values)}
+                  />
+                  <p className="admin-form-note">이미지나 메뉴가 없어도 이 세 항목과 좌표가 있으면 승인할 수 있습니다.</p>
+                </fieldset>
+
                 <fieldset className="admin-form-section">
                   <legend>기본 정보</legend>
                   <div className="admin-form-grid three">
                     <label>장소명<input value={selected.name} onChange={(event) => updateSelected('name', event.target.value)} /></label>
                     <label>지점명<input value={selected.branchName || ''} onChange={(event) => updateSelected('branchName', event.target.value)} /></label>
                     <label>실제 업장 여부<select value={selected.entityType} onChange={(event) => updateSelected('entityType', event.target.value)}><option value="venue">실제 방문 업장</option><option value="organization">협회·단체</option><option value="office">사무실·본사</option><option value="public">공공시설</option><option value="unknown">확인 필요</option></select></label>
-                    <label>큰 분류<select value={selected.primaryType} onChange={(event) => { const primaryType = event.target.value as PlaceType; setSelected({ ...selected, primaryType, detailType: DETAIL_OPTIONS[primaryType][0] }); }}>{TYPE_OPTIONS.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}</select></label>
-                    <label>상세 분류<select value={selected.detailType || ''} onChange={(event) => updateSelected('detailType', event.target.value)}>{detailOptions.map((detail) => <option key={detail}>{detail}</option>)}</select></label>
                     <label className="admin-check-label"><input type="checkbox" checked={selected.isFranchise} onChange={(event) => updateSelected('isFranchise', event.target.checked)} />프랜차이즈</label>
                   </div>
                   <div className="admin-form-grid two">
@@ -508,16 +599,24 @@ export default function PlaceAdmin() {
                   </div>
                   <div className="admin-form-grid two">
                     <TagDropdown
-                      label="목적 태그"
-                      options={INTENT_TAG_OPTIONS}
-                      values={selected.intentTags}
-                      onChange={(values) => updateSelected('intentTags', values)}
-                    />
-                    <TagDropdown
                       label="분위기 태그"
                       options={ATMOSPHERE_TAG_OPTIONS}
                       values={selected.atmosphereTags}
                       onChange={(values) => updateSelected('atmosphereTags', values)}
+                    />
+                    <TagDropdown
+                      label="편의 태그"
+                      options={AMENITY_TAG_OPTIONS}
+                      values={selected.amenityTags}
+                      onChange={(values) => updateSelected('amenityTags', values)}
+                    />
+                    <TagDropdown
+                      label="추천 동행"
+                      options={COMPANION_OPTIONS}
+                      values={COMPANION_OPTIONS.filter((option) => Number(selected.companionScores[option.value] || 0) > 0.5).map((option) => option.value)}
+                      onChange={(values) => updateSelected('companionScores', Object.fromEntries(
+                        COMPANION_OPTIONS.map((option) => [option.value, values.includes(option.value) ? 1 : 0.5]),
+                      ))}
                     />
                   </div>
                 </fieldset>
