@@ -325,7 +325,7 @@ export function PlannerHome() {
 
       <p className="home-service-area-note">
         <span aria-hidden="true">i</span>
-        현재 추천 코스는 홍대입구·연남동 주변 지역에서 이용할 수 있어요.
+        현재 서비스는 홍대입구·연남동 주변 지역에서 이용할 수 있어요.
       </p>
 
       {locationMessage && <p className="home-location-note">{locationMessage}</p>}
