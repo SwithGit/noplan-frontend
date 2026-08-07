@@ -1443,6 +1443,31 @@ button {
   line-height: 1.4;
 }
 
+.home-service-area-note {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: -6px 2px 0;
+  color: #536582;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.home-service-area-note span {
+  display: inline-grid;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  place-items: center;
+  border-radius: 50%;
+  background: #e8efff;
+  color: #2457f5;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 950;
+}
+
 .quick-start-button {
   display: flex;
   min-height: 64px;

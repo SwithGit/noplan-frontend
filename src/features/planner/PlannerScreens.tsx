@@ -310,7 +310,7 @@ export function PlannerHome() {
         <div>
           <input
             id="home-prompt"
-            placeholder="예: 성수에서 친구랑 조용한 카페"
+            placeholder="예: 연남동에서 친구랑 조용한 카페"
             value={text}
             onChange={(event) => setText(event.target.value)}
             onKeyDown={(event) => {
@@ -322,6 +322,11 @@ export function PlannerHome() {
           </button>
         </div>
       </section>
+
+      <p className="home-service-area-note">
+        <span aria-hidden="true">i</span>
+        현재 추천 코스는 홍대입구·연남동 주변 지역에서 이용할 수 있어요.
+      </p>
 
       {locationMessage && <p className="home-location-note">{locationMessage}</p>}
 
