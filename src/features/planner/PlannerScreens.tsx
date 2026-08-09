@@ -10,7 +10,8 @@ import companionFamilyImage from '../../assets/nopi/가족.png';
 import companionCoworkerImage from '../../assets/nopi/동료.png';
 import companionCoupleImage from '../../assets/nopi/연인.png';
 import companionFriendImage from '../../assets/nopi/친구.png';
-import nopiImage from '../../assets/nopi/nopi.png';
+import homeNopiImage from '../../assets/nopi/nopi-home.png';
+import nopiIconImage from '../../assets/nopi/nopi-icon.png';
 import { saveCourse } from '../../api/courseApi';
 import { trackMvpFeedback, trackPlannerEvent } from '../../api/plannerApi';
 import type { PlannerCondition } from '../../types/noplan';
@@ -303,7 +304,7 @@ export function PlannerHome() {
           <h1>어디 갈까?</h1>
           <p>상황만 알려줘. 코스는 내가 골라볼게.</p>
         </div>
-        <img alt="" src={nopiImage} />
+        <img alt="" src={homeNopiImage} />
       </section>
 
       <section className="prompt-card">
@@ -788,7 +789,7 @@ function QuickBotMessage({ children }: { children: ReactNode }) {
   return (
     <div className="bot-row">
       <div className="avatar" aria-hidden="true">
-        <img alt="" src={nopiImage} />
+        <img alt="" src={nopiIconImage} />
       </div>
       <div className="bot-bubble">{children}</div>
     </div>

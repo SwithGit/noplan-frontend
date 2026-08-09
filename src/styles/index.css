@@ -2868,7 +2868,7 @@ button {
   align-items: end;
 }
 
-.nopi-bubble-row.compact {
+.nopi-bubble-row.is-compact {
   grid-template-columns: 34px minmax(0, 1fr);
 }
 
@@ -2878,7 +2878,7 @@ button {
   object-fit: contain;
 }
 
-.nopi-bubble-row.compact .nopi-bubble-avatar {
+.nopi-bubble-row.is-compact .nopi-bubble-avatar {
   width: 34px;
   height: 34px;
 }
