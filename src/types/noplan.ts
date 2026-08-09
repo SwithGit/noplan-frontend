@@ -137,6 +137,7 @@ export interface ExploreCourse {
   id: number;
   title: string;
   location?: string;
+  location_dong?: string;
   course_data?: string | CoursePlace[];
   courseData?: CoursePlace[];
   likes?: number;
@@ -146,6 +147,8 @@ export interface ExploreCourse {
   review_image?: string;
   review_text?: string;
   is_visited?: boolean;
+  is_public?: boolean;
+  published_at?: string;
   created_at?: string;
 }
 

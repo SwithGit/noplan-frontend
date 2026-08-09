@@ -4648,6 +4648,16 @@ button {
 
 /* Explore */
 .explore-header h1 { margin-bottom: 0; color: var(--nopi-ink); font-size: 25px; font-weight: 850; }
+.explore-neighborhood { display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid var(--nopi-border); border-radius: 14px; background: #fff; padding: 12px 13px; }
+.explore-neighborhood div { min-width: 0; }
+.explore-neighborhood span { display: block; color: var(--nopi-muted); font-size: 10px; }
+.explore-neighborhood strong { display: block; margin-top: 2px; overflow: hidden; color: var(--nopi-ink); font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+.explore-neighborhood button { flex: 0 0 auto; min-height: 38px; border: 0; border-radius: 10px; background: var(--nopi-surface-soft); color: var(--nopi-primary); padding: 0 11px; font-size: 11px; font-weight: 800; }
+.explore-location-fallback { display: grid; gap: 8px; border-radius: 14px; background: #fff4de; padding: 11px; }
+.explore-location-fallback p { margin: 0; color: #9b6414; font-size: 11px; }
+.explore-location-fallback div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px; }
+.explore-location-fallback input { min-width: 0; min-height: 40px; border: 1px solid #e5c992; border-radius: 10px; background: #fff; padding: 0 11px; font-size: 13px; }
+.explore-location-fallback button { border: 0; border-radius: 10px; background: #fff; color: #8b5a13; padding: 0 11px; font-size: 11px; font-weight: 800; }
 .explore-search { border-color: var(--nopi-border); border-radius: 14px; box-shadow: none; }
 .explore-sort .np-chip { min-height: 40px; border-color: var(--nopi-border); }
 .explore-sort .np-chip.active { border-color: var(--nopi-primary); background: var(--nopi-primary); box-shadow: none; }
@@ -4706,9 +4716,23 @@ button {
 .my-empty-state p { margin: 0; color: var(--nopi-muted); font-size: 13px; }
 .my-empty-state button { border: 0; border-radius: 10px; background: var(--nopi-surface-soft); color: var(--nopi-primary); }
 .my-course-card { grid-template-columns: 58px minmax(0, 1fr) 86px; }
-.my-course-card > button { min-width: 0; padding: 0 7px; font-size: 11px; white-space: nowrap; }
+.my-course-card-actions { display: grid; align-self: stretch; gap: 6px; }
+.my-course-card-actions button { min-width: 0; min-height: 36px; padding: 0 6px; font-size: 10px; white-space: nowrap; }
+.my-course-card-actions button.publish { border: 1px solid var(--nopi-border); background: #fff; color: var(--nopi-primary); }
 .my-course-card small { display: block; margin-top: 5px; color: var(--nopi-danger); font-size: 10px; }
 .my-course-card button:disabled { opacity: .55; }
+.publish-course-overlay { position: fixed; inset: 0; z-index: 90; display: grid; align-items: end; background: rgba(25, 33, 58, .46); }
+.publish-course-dialog { width: min(100%, 430px); margin: 0 auto; border-radius: 24px 24px 0 0; background: var(--nopi-bg); padding: 18px 18px calc(18px + env(safe-area-inset-bottom)); box-shadow: 0 -20px 70px rgba(25, 33, 58, .2); }
+.publish-course-dialog header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.publish-course-dialog header span { color: var(--nopi-primary); font-size: 11px; font-weight: 850; }
+.publish-course-dialog h2 { margin: 3px 0 0; color: var(--nopi-ink); font-size: 20px; }
+.publish-course-dialog header button { width: 44px; min-width: 44px; border: 0; border-radius: 50%; background: #eceaf4; color: var(--nopi-ink); font-size: 24px; }
+.publish-course-dialog > p { margin: 14px 0; color: var(--nopi-muted); font-size: 12px; line-height: 1.5; }
+.publish-course-dialog label { display: grid; gap: 6px; }
+.publish-course-dialog label span { color: var(--nopi-text); font-size: 12px; font-weight: 800; }
+.publish-course-dialog input { min-height: 46px; border: 1px solid var(--nopi-border); border-radius: 12px; background: #fff; padding: 0 13px; font-size: 14px; }
+.publish-course-actions { display: grid; grid-template-columns: .8fr 1.2fr; gap: 8px; margin-top: 14px; }
+.publish-course-actions button { min-height: 46px; border: 0; border-radius: 12px; background: #eceaf4; }
 
 @keyframes nopi-spin { to { transform: rotate(360deg); } }
 
@@ -4722,7 +4746,7 @@ button {
   .course-screen .route-item { grid-template-columns: 50px minmax(0, 1fr); }
   .course-screen .route-item > button { grid-column: 1 / -1; width: 100%; }
   .my-course-card { grid-template-columns: 54px minmax(0, 1fr); }
-  .my-course-card > button { grid-column: 1 / -1; width: 100%; min-height: 38px; }
+  .my-course-card-actions { grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {

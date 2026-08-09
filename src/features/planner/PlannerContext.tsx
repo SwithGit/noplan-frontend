@@ -48,7 +48,7 @@ interface PlannerContextValue {
   isSearching: boolean;
   locationStatus: 'idle' | 'locating' | 'success' | 'error';
   searchError: string;
-  detectCurrentLocation: () => Promise<{ address: string; label: string }>;
+  detectCurrentLocation: (options?: { updateCondition?: boolean; updateStatus?: boolean }) => Promise<{ address: string; label: string }>;
   setCondition: (patch: Partial<PlannerCondition>) => void;
   startFromText: (text: string) => Promise<void>;
   runSearch: () => Promise<boolean>;
@@ -385,8 +385,8 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     return searchSucceeded;
   };
 
-  const detectCurrentLocation = async () => {
-    setLocationStatus('locating');
+  const detectCurrentLocation = async (options: { updateCondition?: boolean; updateStatus?: boolean } = {}) => {
+    if (options.updateStatus !== false) setLocationStatus('locating');
 
     try {
       const position = await getBrowserPosition();
@@ -395,16 +395,18 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       const location = await reverseGeocode(lat, lng);
 
       setCurrentPosition({ address: location.address, label: location.label, lat, lng });
-      setConditionState((prev) => ({
-        ...prev,
-        location: location.address,
-        locationLabel: location.label,
-      }));
-      setLocationStatus('success');
+      if (options.updateCondition !== false) {
+        setConditionState((prev) => ({
+          ...prev,
+          location: location.address,
+          locationLabel: location.label,
+        }));
+      }
+      if (options.updateStatus !== false) setLocationStatus('success');
 
       return location;
     } catch (error) {
-      setLocationStatus('error');
+      if (options.updateStatus !== false) setLocationStatus('error');
       throw error instanceof Error ? error : new Error('현재 위치를 가져오지 못했어요.');
     }
   };

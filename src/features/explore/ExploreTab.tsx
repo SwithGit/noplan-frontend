@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchExploreCourses, toggleCourseLike } from '../../api/exploreApi';
 import ExploreDetailModal from '../../components/ExploreDetailModal';
@@ -6,33 +6,103 @@ import { Chip } from '../../components/ui/Chip';
 import { PlaceVisual } from '../../components/ui/PlaceVisual';
 import type { ExploreCourse } from '../../types/noplan';
 import { courseSearchText, exploreCourseToPlan, parseExploreCoursePlaces } from '../../utils/coursePlan';
+import { extractDongFromText, normalizeDongInput } from '../../utils/location';
 import { usePlanner } from '../planner/PlannerContext';
+
+const EXPLORE_DONG_STORAGE_KEY = 'noplanExploreDong';
+
+function readSavedDong() {
+  try {
+    return normalizeDongInput(localStorage.getItem(EXPLORE_DONG_STORAGE_KEY) || '');
+  } catch {
+    return '';
+  }
+}
 
 export function ExploreTab() {
   const navigate = useNavigate();
-  const { loadPlan } = usePlanner();
+  const { detectCurrentLocation, loadPlan } = usePlanner();
   const [courses, setCourses] = useState<ExploreCourse[]>([]);
   const [sort, setSort] = useState<'likes' | 'views'>('likes');
   const [query, setQuery] = useState('');
+  const [dong, setDong] = useState(readSavedDong);
+  const [manualDong, setManualDong] = useState('');
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [selectedCourse, setSelectedCourse] = useState<ExploreCourse | null>(null);
+  const didRequestLocation = useRef(false);
+
+  const applyDong = useCallback((nextDong: string) => {
+    setDong(nextDong);
+    setManualDong('');
+    setLocationError('');
+    try {
+      localStorage.setItem(EXPLORE_DONG_STORAGE_KEY, nextDong);
+    } catch {
+      // 동네 저장이 막혀 있어도 현재 탐색은 계속한다.
+    }
+  }, []);
+
+  const locateNeighborhood = useCallback(async (silentWithSavedDong = false) => {
+    setLocating(true);
+    setLocationError('');
+
+    try {
+      const location = await detectCurrentLocation({ updateCondition: false, updateStatus: false });
+      const nextDong = extractDongFromText(location.label, location.address);
+      if (!nextDong) throw new Error('현재 주소에서 동 정보를 확인하지 못했어요.');
+      applyDong(nextDong);
+    } catch (error) {
+      if (!silentWithSavedDong || !dong) {
+        setLocationError(error instanceof Error ? error.message : '현재 동네를 찾지 못했어요.');
+      }
+    } finally {
+      setLocating(false);
+    }
+  }, [applyDong, detectCurrentLocation, dong]);
+
+  useEffect(() => {
+    if (didRequestLocation.current) return;
+    didRequestLocation.current = true;
+    void locateNeighborhood(true);
+  }, [locateNeighborhood]);
 
   const loadCourses = async () => {
+    if (!dong) {
+      setCourses([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setLoadError('');
-    const nextCourses = await fetchExploreCourses(sort);
-    setCourses(nextCourses);
-    if (!nextCourses.length) setLoadError('공개된 코스를 불러오지 못했어요.');
-    setLoading(false);
+    try {
+      setCourses(await fetchExploreCourses(sort, dong));
+    } catch (error) {
+      setCourses([]);
+      setLoadError(error instanceof Error ? error.message : '공개된 코스를 불러오지 못했어요.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     void loadCourses();
     // sort가 바뀔 때 실제 정렬 API를 다시 조회한다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sort]);
+  }, [dong, sort]);
+
+  const applyManualDong = () => {
+    const nextDong = normalizeDongInput(manualDong);
+    if (!nextDong) {
+      setLocationError('연남동처럼 동 단위로 입력해 주세요.');
+      return;
+    }
+    applyDong(nextDong);
+  };
 
   const visibleCourses = useMemo(() => {
     const keyword = query.trim().toLocaleLowerCase('ko-KR');
@@ -65,8 +135,23 @@ export function ExploreTab() {
   return (
     <div className="explore-screen">
       <header className="explore-header">
-        <div><span className="eyebrow">둘러보기</span><h1>다른 사람의 홍대 코스</h1></div>
+        <div><span className="eyebrow">둘러보기</span><h1>{dong ? `${dong} 주변 코스` : '내 주변 코스'}</h1></div>
       </header>
+
+      <section className="explore-neighborhood" aria-label="탐색 동네">
+        <div><span>내 동네</span><strong>{dong ? `${dong} 주변` : locating ? '현재 동네 찾는 중' : '동네를 설정해 주세요'}</strong></div>
+        <button disabled={locating} type="button" onClick={() => void locateNeighborhood()}>{locating ? '확인 중' : '현 위치로 설정'}</button>
+      </section>
+
+      {(!dong || locationError) && (
+        <section className="explore-location-fallback">
+          {locationError && <p role="alert">{locationError}</p>}
+          <div>
+            <input aria-label="탐색할 동네" placeholder="예: 연남동" value={manualDong} onChange={(event) => setManualDong(event.target.value)} />
+            <button type="button" onClick={applyManualDong}>동네 적용</button>
+          </div>
+        </section>
+      )}
 
       <label className="explore-search">
         <span aria-hidden="true" className="line-icon-search" />
@@ -83,7 +168,10 @@ export function ExploreTab() {
       {!loading && loadError && (
         <section className="list-state-card" role="alert"><h2>코스를 불러오지 못했어요</h2><p>{loadError}</p><button className="primary" type="button" onClick={() => void loadCourses()}>다시 시도</button></section>
       )}
-      {!loading && !loadError && visibleCourses.length === 0 && (
+      {!loading && !loadError && dong && courses.length === 0 && (
+        <section className="list-state-card"><h2>{dong}에 공개된 코스가 아직 없어요</h2><p>다른 동네를 입력하거나 현 위치를 다시 확인해 주세요.</p></section>
+      )}
+      {!loading && !loadError && courses.length > 0 && visibleCourses.length === 0 && (
         <section className="list-state-card"><h2>검색 결과가 없어요</h2><p>장소 이름이나 동네 이름으로 다시 검색해 보세요.</p><button type="button" onClick={() => setQuery('')}>검색어 지우기</button></section>
       )}
 
