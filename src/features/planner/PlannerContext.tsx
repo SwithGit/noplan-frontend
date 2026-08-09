@@ -43,6 +43,7 @@ interface PlannerContextValue {
   condition: PlannerCondition;
   currentPosition: CurrentPosition | null;
   plan: CoursePlan;
+  activePlan: CoursePlan | null;
   hasActivePlan: boolean;
   isSearching: boolean;
   locationStatus: 'idle' | 'locating' | 'success' | 'error';
@@ -52,6 +53,7 @@ interface PlannerContextValue {
   startFromText: (text: string) => Promise<void>;
   runSearch: () => Promise<boolean>;
   loadPlan: (nextPlan: CoursePlan) => void;
+  selectCurrentPlan: () => boolean;
   replacePlace: (index: number, place: CoursePlace) => void;
   resetPlanner: () => void;
 }
@@ -290,7 +292,8 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
   const [condition, setConditionState] = useState(defaultCondition);
   const [currentPosition, setCurrentPosition] = useState<CurrentPosition | null>(null);
   const [plan, setPlan] = useState(() => makeFallbackPlan(defaultCondition));
-  const [hasActivePlan, setHasActivePlan] = useState(false);
+  const [activePlan, setActivePlan] = useState<CoursePlan | null>(null);
+  const hasActivePlan = Boolean(activePlan && activePlan.courseData.length > 0 && activePlan.source !== 'fallback');
   const [isSearching, setIsSearching] = useState(false);
   const [locationStatus, setLocationStatus] = useState<'idle' | 'locating' | 'success' | 'error'>('idle');
   const [searchError, setSearchError] = useState('');
@@ -313,7 +316,6 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
   const startFromText = async (text: string) => {
     const rawText = text.trim();
     if (!rawText) return;
-    setHasActivePlan(false);
     await trackPlannerEvent('planner_start', { entryMode: 'text' }, undefined, { resetSession: true }).catch(() => undefined);
     const fallbackCondition = inferConditionFromText(rawText);
     const parsedCondition = await parsePlannerCondition(rawText);
@@ -361,7 +363,6 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
   const runSearch = async () => {
     setIsSearching(true);
     setSearchError('');
-    setHasActivePlan(false);
     await trackPlannerEvent('course_generate_start', undefined, condition).catch(() => undefined);
     const nextPlan = await generateCourse(condition, currentPosition);
     if (nextPlan.source === 'fallback' && nextPlan.message) {
@@ -379,7 +380,6 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     }
     setPlan(nextPlan);
     const searchSucceeded = nextPlan.source !== 'fallback' && nextPlan.courseData.length > 0;
-    setHasActivePlan(searchSucceeded);
     trackRecommendationImpressions(nextPlan, condition).catch(() => undefined);
     window.setTimeout(() => setIsSearching(false), 550);
     return searchSucceeded;
@@ -412,7 +412,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
   const loadPlan = (nextPlan: CoursePlan) => {
     setPlan(nextPlan);
     setSearchError('');
-    setHasActivePlan(nextPlan.courseData.length > 0 && nextPlan.source !== 'fallback');
+    if (nextPlan.courseData.length > 0 && nextPlan.source !== 'fallback') setActivePlan(nextPlan);
     setConditionState((prev) => ({
       ...prev,
       rawText: nextPlan.title,
@@ -421,8 +421,15 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     }));
   };
 
+  const selectCurrentPlan = () => {
+    if (plan.courseData.length === 0 || plan.source === 'fallback') return false;
+    setActivePlan(plan);
+    return true;
+  };
+
   const replacePlace = (index: number, place: CoursePlace) => {
-    setPlan((prev) => {
+    setActivePlan((prev) => {
+      if (!prev) return prev;
       const courseData = [...prev.courseData];
       const duplicatesExistingPlace = courseData.some((item, itemIndex) => (
         itemIndex !== index
@@ -439,7 +446,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
   const resetPlanner = () => {
     setConditionState(defaultCondition);
     setPlan(makeFallbackPlan(defaultCondition));
-    setHasActivePlan(false);
+    setActivePlan(null);
     setSearchError('');
   };
 
@@ -447,12 +454,14 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     condition,
     currentPosition,
     plan,
+    activePlan,
     hasActivePlan,
     isSearching,
     locationStatus,
     searchError,
     detectCurrentLocation,
     loadPlan,
+    selectCurrentPlan,
     setCondition,
     startFromText,
     runSearch,

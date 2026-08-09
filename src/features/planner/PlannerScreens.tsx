@@ -1764,7 +1764,7 @@ function SkeletonCard() {
 
 export function ResultScreen() {
   const navigate = useNavigate();
-  const { condition, hasActivePlan, plan, runSearch, setCondition } = usePlanner();
+  const { condition, plan, runSearch, selectCurrentPlan, setCondition } = usePlanner();
   const feedbackStorageKey = `noplanMvpFeedback:${plan.searchCourseId || plan.algorithmVersion || 'current'}`;
   const [saveMessage, setSaveMessage] = useState('');
   const [feedbackScore, setFeedbackScore] = useState(0);
@@ -1772,7 +1772,7 @@ export function ResultScreen() {
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(() => sessionStorage.getItem(feedbackStorageKey) === 'submitted');
   const didTrackResult = useRef(false);
   const locationText = displayLocationLabel(condition);
-  const hasCourse = hasActivePlan && plan.courseData.length > 0;
+  const hasCourse = plan.source !== 'fallback' && plan.courseData.length > 0;
   const crowding = plan.courseData.find((place) => place.crowding)?.crowding;
   const walkingSummary = plan.courseData
     .slice(1)
@@ -1928,7 +1928,9 @@ export function ResultScreen() {
             ) : (
               <button type="button" onClick={handleSave}>저장</button>
             )}
-            <button className="primary" type="button" onClick={() => navigate('/course/map')}>
+            <button className="primary" type="button" onClick={() => {
+              if (selectCurrentPlan()) navigate('/course/map');
+            }}>
               이 코스로 출발
             </button>
           </>

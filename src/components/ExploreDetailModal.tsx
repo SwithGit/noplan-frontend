@@ -96,7 +96,7 @@ export default function ExploreDetailModal({ course, places, onClose, onLike, on
 
         <div className="explore-preview-actions">
           <button type="button" onClick={onLike}>좋아요 {course.likes || 0}</button>
-          <button className="primary" type="button" onClick={onUseCourse}>이 코스로 사용</button>
+          <button className="primary" type="button" onClick={onUseCourse}>이 코스로 출발</button>
         </div>
       </section>
     </div>

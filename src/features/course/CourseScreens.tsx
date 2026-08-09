@@ -97,19 +97,19 @@ function openKakaoRoute(places: CoursePlace[]) {
 export function CourseMapScreen() {
   const navigate = useNavigate();
   const routeLocation = useLocation();
-  const { condition, hasActivePlan, plan } = usePlanner();
+  const { activePlan: plan, condition, hasActivePlan } = usePlanner();
   const replacementMessage = (routeLocation.state as { replacementMessage?: string } | null)?.replacementMessage;
 
-  if (!hasActivePlan || plan.courseData.length === 0) {
+  if (!hasActivePlan || !plan || plan.courseData.length === 0) {
     return (
       <div className="course-screen course-empty-screen">
         <AppTopBar title="내 코스" subtitle="아직 출발할 코스가 없어요" />
         <section className="course-empty-state">
           <span aria-hidden="true">⌁</span>
-          <h1>활성 코스가 없어요</h1>
-          <p>조건을 입력해 새 코스를 찾거나, 둘러보기에서 저장된 코스를 골라주세요.</p>
-          <button className="primary" type="button" onClick={() => navigate('/')}>코스 찾기</button>
-          <button type="button" onClick={() => navigate('/explore')}>둘러보기</button>
+          <h1>아직 선택한 코스가 없어요</h1>
+          <p>검색 결과에서 ‘이 코스로 출발’을 누르거나 탐색에서 마음에 드는 코스를 골라보세요.</p>
+          <button className="primary" type="button" onClick={() => navigate('/')}>코스 추천받기</button>
+          <button type="button" onClick={() => navigate('/explore')}>탐색에서 둘러보기</button>
         </section>
       </div>
     );
@@ -169,10 +169,11 @@ export function CourseMapScreen() {
 export function PlaceDetailScreen() {
   const navigate = useNavigate();
   const { index } = useParams();
-  const { hasActivePlan, plan } = usePlanner();
-  const place = placeAt(plan.courseData, index);
+  const { activePlan: plan, hasActivePlan } = usePlanner();
+  const activePlaces = plan?.courseData || [];
+  const place = placeAt(activePlaces, index);
   const placeIndex = Math.max(Number(index || 0), 0);
-  const nextPlace = plan.courseData[placeIndex + 1];
+  const nextPlace = activePlaces[placeIndex + 1];
 
   useEffect(() => {
     if (!place) return;
@@ -181,7 +182,7 @@ export function PlaceDetailScreen() {
     if (place.menuItems?.length) trackPlaceInteraction('menu_view', place, placeIndex + 1).catch(() => undefined);
   }, [place, placeIndex]);
 
-  if (!hasActivePlan || !place) {
+  if (!hasActivePlan || !plan || !place) {
     return (
       <div className="place-detail-screen course-empty-screen">
         <AppTopBar title="장소 상세" />
@@ -307,15 +308,15 @@ export function ReplacementCandidates() {
   const navigate = useNavigate();
   const { index } = useParams();
   const placeIndex = Math.max(Number(index || 0), 0);
-  const { hasActivePlan, plan, replacePlace } = usePlanner();
-  const current = placeAt(plan.courseData, index);
+  const { activePlan: plan, hasActivePlan, replacePlace } = usePlanner();
+  const current = placeAt(plan?.courseData || [], index);
   const candidates = useMemo(() => {
-    if (!current) return [];
+    if (!current || !plan) return [];
     const sameType = plan.backupPlaces.filter((place) => place.type === current.type || place.category === current.category);
     return sameType.length ? sameType : plan.backupPlaces;
-  }, [current, plan.backupPlaces]);
+  }, [current, plan]);
 
-  if (!hasActivePlan || !current) {
+  if (!hasActivePlan || !plan || !current) {
     return (
       <div className="replacement-screen course-empty-screen">
         <AppTopBar title="장소 바꾸기" />
