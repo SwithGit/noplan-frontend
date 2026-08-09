@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AppTopBar } from '../../components/ui/AppTopBar';
 import { Chip } from '../../components/ui/Chip';
 import MapBoard from '../../components/MapBoard';
@@ -96,8 +96,26 @@ function openKakaoRoute(places: CoursePlace[]) {
 
 export function CourseMapScreen() {
   const navigate = useNavigate();
-  const { condition, plan } = usePlanner();
+  const routeLocation = useLocation();
+  const { condition, hasActivePlan, plan } = usePlanner();
+  const replacementMessage = (routeLocation.state as { replacementMessage?: string } | null)?.replacementMessage;
+
+  if (!hasActivePlan || plan.courseData.length === 0) {
+    return (
+      <div className="course-screen course-empty-screen">
+        <AppTopBar title="내 코스" subtitle="아직 출발할 코스가 없어요" />
+        <section className="course-empty-state">
+          <span aria-hidden="true">⌁</span>
+          <h1>활성 코스가 없어요</h1>
+          <p>조건을 입력해 새 코스를 찾거나, 둘러보기에서 저장된 코스를 골라주세요.</p>
+          <button className="primary" type="button" onClick={() => navigate('/')}>코스 찾기</button>
+          <button type="button" onClick={() => navigate('/explore')}>둘러보기</button>
+        </section>
+      </div>
+    );
+  }
   const firstPlace = plan.courseData[0];
+  const nextPlace = plan.courseData[1];
   const locationText = compactCourseLocation(plan.location, condition.locationLabel);
 
   return (
@@ -108,11 +126,13 @@ export function CourseMapScreen() {
         <MapBoard courseList={plan.courseData} userLocation={plan.location} />
       </section>
 
-      <NopiBubble
-        compact
-        title="이 순서가 가장 편해 보여."
-        body={`${firstPlace?.title || '첫 장소'}부터 시작하면 이동이 짧고 분위기도 자연스럽게 이어져.`}
-      />
+      {replacementMessage && <p className="inline-message" role="status">{replacementMessage}</p>}
+
+      <section className="route-progress-panel">
+        <span>현재 코스 · 1/{plan.courseData.length}</span>
+        <strong>{firstPlace.title}</strong>
+        <p>{nextPlace ? `다음은 ${nextPlace.title} · ${nextPlace.moveText}` : '이 장소가 코스의 마지막이에요.'}</p>
+      </section>
 
       <section className="route-list">
         {plan.courseData.map((place, index) => (
@@ -133,7 +153,7 @@ export function CourseMapScreen() {
 
       <div className="sticky-actions">
         <button type="button" onClick={() => navigate('/planner/result')}>
-          결과로
+          추천 결과
         </button>
         <button className="primary" type="button" onClick={() => {
           if (firstPlace) trackPlaceInteraction('course_start', firstPlace, 1).catch(() => undefined);
@@ -149,7 +169,7 @@ export function CourseMapScreen() {
 export function PlaceDetailScreen() {
   const navigate = useNavigate();
   const { index } = useParams();
-  const { plan } = usePlanner();
+  const { hasActivePlan, plan } = usePlanner();
   const place = placeAt(plan.courseData, index);
   const placeIndex = Math.max(Number(index || 0), 0);
   const nextPlace = plan.courseData[placeIndex + 1];
@@ -161,26 +181,42 @@ export function PlaceDetailScreen() {
     if (place.menuItems?.length) trackPlaceInteraction('menu_view', place, placeIndex + 1).catch(() => undefined);
   }, [place, placeIndex]);
 
+  if (!hasActivePlan || !place) {
+    return (
+      <div className="place-detail-screen course-empty-screen">
+        <AppTopBar title="장소 상세" />
+        <section className="course-empty-state">
+          <h1>열 수 있는 장소가 없어요</h1>
+          <p>먼저 코스를 선택해 주세요.</p>
+          <button className="primary" type="button" onClick={() => navigate('/explore')}>코스 둘러보기</button>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="place-detail-screen">
       <AppTopBar title={place.title} subtitle={place.category || place.type} />
 
+      {place.galleryImages?.length ? (
+        <section className="place-gallery place-gallery-first" aria-label="장소 사진">
+          {place.galleryImages!.slice(0, 6).map((image, imageIndex) => (
+            <img alt={`${place.name} ${image.imageType || '사진'} ${imageIndex + 1}`} key={`${image.imageUrl}-${imageIndex}`} loading="lazy" src={image.thumbnailUrl || image.imageUrl} />
+          ))}
+        </section>
+      ) : (
+        <section className="place-detail-cover">
+          <PlaceVisual alt={place.name} color={place.color} imageUrl={place.imageUrl} label={String(placeIndex + 1)} type={place.type} detailType={place.detailType} />
+        </section>
+      )}
+
       <section className="place-hero">
-        <PlaceVisual alt={place.name} color={place.color} imageUrl={place.imageUrl} label={String(placeIndex + 1)} type={place.type} detailType={place.detailType} />
         <div>
           <span>{place.moveText}</span>
           <h1>{place.title}</h1>
           <p>{place.description}</p>
         </div>
       </section>
-
-      {Boolean(place.galleryImages?.length) && (
-        <section className="place-gallery" aria-label="장소 사진">
-          {place.galleryImages!.slice(0, 6).map((image, imageIndex) => (
-            <img alt={`${place.name} ${image.imageType || '사진'} ${imageIndex + 1}`} key={`${image.imageUrl}-${imageIndex}`} loading="lazy" src={image.thumbnailUrl || image.imageUrl} />
-          ))}
-        </section>
-      )}
 
       <div className="chip-row">
         {place.tags.map((tag) => (
@@ -271,25 +307,43 @@ export function ReplacementCandidates() {
   const navigate = useNavigate();
   const { index } = useParams();
   const placeIndex = Math.max(Number(index || 0), 0);
-  const { plan, replacePlace } = usePlanner();
+  const { hasActivePlan, plan, replacePlace } = usePlanner();
   const current = placeAt(plan.courseData, index);
   const candidates = useMemo(() => {
+    if (!current) return [];
     const sameType = plan.backupPlaces.filter((place) => place.type === current.type || place.category === current.category);
     return sameType.length ? sameType : plan.backupPlaces;
-  }, [current.category, current.type, plan.backupPlaces]);
+  }, [current, plan.backupPlaces]);
+
+  if (!hasActivePlan || !current) {
+    return (
+      <div className="replacement-screen course-empty-screen">
+        <AppTopBar title="장소 바꾸기" />
+        <section className="course-empty-state">
+          <h1>바꿀 장소가 없어요</h1>
+          <p>먼저 코스를 선택해 주세요.</p>
+          <button className="primary" type="button" onClick={() => navigate('/explore')}>코스 둘러보기</button>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="replacement-screen">
       <AppTopBar title="다른 후보" subtitle={`${current.title} 대신 갈 만한 곳`} />
-      <NopiBubble
-        title="코스는 하나지만, 장소 하나씩은 바꿀 수 있어."
-        body="지금 코스 흐름은 유지하고 해당 자리만 교체해볼게."
-        compact
-      />
+      <section className="replacement-current-card">
+        <span>현재 장소</span>
+        <strong>{current.title}</strong>
+        <p>{current.category} · {current.moveText} · {current.waitText}</p>
+      </section>
 
       <section className="candidate-list">
         {candidates.length === 0 && (
-          <p className="inline-message warning">백엔드에서 받은 교체 후보가 아직 없어요. 조건을 바꿔 다시 찾아봐줘.</p>
+          <section className="replacement-empty">
+            <p className="inline-message warning">현재 코스와 비슷한 교체 후보가 아직 없어요.</p>
+            <button type="button" onClick={() => navigate('/planner/condition')}>조건 수정하기</button>
+            <button className="primary" type="button" onClick={() => navigate('/course/map')}>현재 장소 유지</button>
+          </section>
         )}
         {candidates.map((candidate) => (
           <article className="candidate-card" key={candidate.id}>
@@ -298,6 +352,7 @@ export function ReplacementCandidates() {
               <span>{candidate.category}</span>
               <strong>{candidate.title}</strong>
               <p>{candidate.summary}</p>
+              <small>{candidate.moveText} · {candidate.waitText} · {candidate.moodText}</small>
               <small>{candidate.reason}</small>
               <CrowdingStatus compact snapshot={candidate.crowding} />
             </div>
@@ -306,7 +361,7 @@ export function ReplacementCandidates() {
               onClick={() => {
                 trackPlaceInteraction('place_replace', candidate, placeIndex + 1).catch(() => undefined);
                 replacePlace(placeIndex, candidate);
-                navigate('/course/map');
+                navigate('/course/map', { state: { replacementMessage: `${current.title}을(를) ${candidate.title}(으)로 바꿨어요.` } });
               }}
             >
               교체

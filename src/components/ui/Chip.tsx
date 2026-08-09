@@ -6,7 +6,7 @@ interface ChipProps {
 
 export function Chip({ active = false, children, onClick }: ChipProps) {
   return (
-    <button className={`np-chip ${active ? 'active' : ''}`} type="button" onClick={onClick}>
+    <button aria-pressed={active} className={`np-chip ${active ? 'active' : ''}`} type="button" onClick={onClick}>
       {active && <span aria-hidden="true" className="chip-check">✓</span>}
       {children}
     </button>

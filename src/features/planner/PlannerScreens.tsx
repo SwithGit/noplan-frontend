@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Chip } from '../../components/ui/Chip';
 import { AppTopBar } from '../../components/ui/AppTopBar';
-import MapBoard from '../../components/MapBoard';
 import { NopiBubble } from '../../components/ui/NopiBubble';
 import { PlaceVisual } from '../../components/ui/PlaceVisual';
 import { CrowdingStatus } from '../../components/ui/CrowdingStatus';
@@ -20,7 +19,6 @@ import {
   PLANNER_CATEGORIES,
   categoryKeyFromLabel,
   categoryLabelFromKey,
-  getCoreIntentLabel,
   getCoreIntentOptions,
   inferCoreIntentFromText,
   needsCoreIntentQuestion,
@@ -41,7 +39,7 @@ const placeDetailOptions: Record<string, string[]> = {
 };
 const MAX_PLACE_SELECTIONS = 3;
 const durationOptions = ['2시간', '4시간', '저녁까지', '밤까지'];
-const tuningOptions = ['도보 짧게', '대기 적게', '사진 예쁜 곳', '조용한 곳', '비 안 맞게', '2시간 안에'];
+const tuningOptions = ['도보 짧게', '대기 적게', '사진 예쁜 곳', '조용한 곳', '비 안 맞게'];
 const companionImages: Record<string, string> = {
   가족: companionFamilyImage,
   동료: companionCoworkerImage,
@@ -52,12 +50,6 @@ const companionImages: Record<string, string> = {
 type DateTimeSheetMode = 'date' | 'time';
 type ConditionEditSection = 'location' | 'time' | 'people' | 'place' | 'duration';
 type Meridiem = 'AM' | 'PM';
-
-interface SummaryRow {
-  id: ConditionEditSection;
-  label: string;
-  value: string;
-}
 
 const pad2 = (value: number) => String(value).padStart(2, '0');
 const hourOptions = Array.from({ length: 12 }, (_, index) => pad2(index + 1));
@@ -106,6 +98,52 @@ const isSameDate = (first: Date, second: Date) =>
   first.getMonth() === second.getMonth() &&
   first.getDate() === second.getDate();
 
+function useDialogAccessibility<T extends HTMLElement>(onClose: () => void) {
+  const dialogRef = useRef<T>(null);
+  const closeRef = useRef(onClose);
+
+  useEffect(() => {
+    closeRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    const previousFocus = document.activeElement as HTMLElement | null;
+    dialogRef.current?.querySelector<HTMLElement>('button, input, select, textarea')?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!dialogRef.current) return;
+      const overlays = [...document.querySelectorAll('.date-time-overlay')];
+      if (!overlays.at(-1)?.contains(dialogRef.current)) return;
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeRef.current();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const controls = [...dialogRef.current.querySelectorAll<HTMLElement>('button, input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+        .filter((element) => !element.hasAttribute('disabled'));
+      if (!controls.length) return;
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      previousFocus?.focus();
+    };
+  }, []);
+
+  return dialogRef;
+}
+
 function compactLocationLabel(location: string) {
   if (!location) return '현재 위치';
 
@@ -127,6 +165,10 @@ function compactLocationLabel(location: string) {
 
 function displayLocationLabel(condition: { location: string; locationLabel?: string }) {
   return condition.locationLabel || compactLocationLabel(condition.location);
+}
+
+function isSupportedPlannerLocation(location: string) {
+  return /홍대|연남|동교|서교|합정|상수|성미산|와우산|창전/u.test(location);
 }
 
 function displayConditionValue(value: unknown) {
@@ -381,10 +423,17 @@ export function PlannerHome() {
 export function ChatStart() {
   const navigate = useNavigate();
   const { condition, detectCurrentLocation, locationStatus, setCondition } = usePlanner();
+  const [activeStep, setActiveStep] = useState(() => {
+    const hasPeople = peopleOptions.some((option) => condition.companion.includes(option));
+    if (!condition.location) return 0;
+    if (!condition.time) return 1;
+    if (!hasPeople) return 2;
+    if (!condition.mood) return 3;
+    return 4;
+  });
   const [statusMessage, setStatusMessage] = useState('');
   const [dateTimeSheetMode, setDateTimeSheetMode] = useState<DateTimeSheetMode | null>(null);
   const [addressSheetOpen, setAddressSheetOpen] = useState(false);
-  const [editSection, setEditSection] = useState<ConditionEditSection | null>(null);
   const [manualAddress, setManualAddress] = useState('');
   const [locationSelectionSource, setLocationSelectionSource] = useState<'current' | 'manual' | null>(
     condition.location ? 'current' : null,
@@ -392,15 +441,7 @@ export function ChatStart() {
   const selectedPeople = peopleOptions.find((option) => condition.companion.includes(option)) || '';
   const selectedCompanion = companionOptions.find((option) => condition.companion.includes(option)) || '';
   const selectedPlaces = getMoodSelections(condition.mood);
-  const companionStepComplete = selectedPeople === '혼자' ? selectedPeople : selectedCompanion;
-  const completedSteps = [
-    condition.location,
-    condition.time,
-    selectedPeople,
-    companionStepComplete,
-    condition.mood,
-  ].filter(Boolean).length;
-  const locationLabel = condition.location ? displayLocationLabel(condition) : '현재 위치 확인 중';
+  const locationLabel = condition.location ? displayLocationLabel(condition) : '출발지 미선택';
   const currentLocationLabel =
     locationStatus === 'locating'
       ? '현재 위치 확인 중...'
@@ -409,23 +450,24 @@ export function ChatStart() {
         : '현재 위치로 시작';
   const manualAddressLabel =
     locationSelectionSource === 'manual' && condition.location ? locationLabel : '주소 직접 입력';
-  const summaryRows: SummaryRow[] = [
-    { id: 'location', label: '출발지', value: locationLabel },
-    { id: 'time', label: '시간', value: condition.time || '미선택' },
-    { id: 'people', label: '인원', value: [selectedPeople, selectedCompanion].filter(Boolean).join(', ') || '미선택' },
-    {
-      id: 'place',
-      label: '목적',
-      value: selectedPlaces.length
-        ? `${selectedPlaces[0].category} 중심${selectedPlaces.length > 1 ? ` · 추가 ${selectedPlaces.slice(1).map((item) => item.category).join(', ')}` : ''}`
-        : '미선택',
-    },
-    { id: 'duration', label: '이용 시간', value: condition.duration || '자동 추천' },
+  const stepSummaries = [
+    { label: '출발지', value: locationLabel, complete: Boolean(condition.location) },
+    { label: '시간', value: condition.time || '미선택', complete: Boolean(condition.time) },
+    { label: '동행', value: condition.companion || '미선택', complete: Boolean(selectedPeople) },
+    { label: '목적', value: condition.mood || '미선택', complete: Boolean(condition.mood) },
+    { label: '이용 시간', value: condition.duration || '자동 추천', complete: true },
   ];
+  const stepComplete = stepSummaries[activeStep].complete;
 
   const applyCurrentLocation = async () => {
     try {
       const location = await detectCurrentLocation();
+      if (!isSupportedPlannerLocation(`${location.address} ${location.label}`)) {
+        setCondition({ location: '', locationLabel: '' });
+        setLocationSelectionSource(null);
+        setStatusMessage('현재 위치는 아직 서비스 범위 밖이에요. 홍대입구 주변 지역을 선택해 주세요.');
+        return;
+      }
       const nextCondition = { ...condition, location: location.address, locationLabel: location.label };
       setCondition({ location: location.address, locationLabel: location.label, rawText: buildHomePrompt(nextCondition) });
       setLocationSelectionSource('current');
@@ -462,6 +504,11 @@ export function ChatStart() {
     const nextAddress = manualAddress.trim();
 
     if (!nextAddress) return;
+    if (!isSupportedPlannerLocation(nextAddress)) {
+      setAddressSheetOpen(false);
+      setStatusMessage('아직 홍대입구·연남동 주변만 추천할 수 있어요. 지원 지역을 다시 선택해 주세요.');
+      return;
+    }
 
     const nextCondition = {
       ...condition,
@@ -479,24 +526,10 @@ export function ChatStart() {
     setStatusMessage('');
   };
 
-  const applyConditionEdit = (patch: {
-    companion?: string;
-    location?: string;
-    locationLabel?: string;
-    mood?: string;
-    duration?: string;
-    source?: 'current' | 'manual';
-    time?: string;
-  }) => {
-    const { source, ...conditionPatch } = patch;
-    const categoryPatch = conditionPatch.mood !== undefined
-      ? makeCategoryPreferencePatch(getMoodSelections(conditionPatch.mood), condition)
-      : {};
-    const nextCondition = { ...condition, ...conditionPatch, ...categoryPatch };
-
-    setCondition({ ...conditionPatch, ...categoryPatch, rawText: buildHomePrompt(nextCondition) });
-    if (source) setLocationSelectionSource(source);
-    setEditSection(null);
+  const chooseFallbackArea = (area: string) => {
+    const nextCondition = { ...condition, location: area, locationLabel: area };
+    setCondition({ location: area, locationLabel: area, rawText: buildHomePrompt(nextCondition) });
+    setLocationSelectionSource('manual');
     setStatusMessage('');
   };
 
@@ -550,37 +583,54 @@ export function ChatStart() {
     setStatusMessage('');
   };
 
-  const goConfirm = () => {
-    if (!condition.location) {
-      setStatusMessage('출발 위치를 먼저 확인해줘.');
+  const advance = () => {
+    if (!stepComplete) return;
+    if (activeStep < 4) {
+      setActiveStep((step) => step + 1);
+      setStatusMessage('');
       return;
     }
-
-    if (!condition.time || !condition.companion || !condition.mood) {
-      setStatusMessage('시간, 동행, 목적을 골라줘.');
-      return;
-    }
-
     setCondition({ rawText: buildHomePrompt(condition) });
     navigate('/planner/condition');
   };
 
+  const goBack = () => {
+    if (activeStep === 0) {
+      navigate('/');
+      return;
+    }
+    setActiveStep((step) => step - 1);
+    setStatusMessage('');
+  };
+
   return (
     <div className="quick-chat-screen">
-      <QuickChatHeader completedSteps={completedSteps} onBack={() => navigate(-1)} />
+      <QuickChatHeader activeStep={activeStep} onBack={goBack} />
 
       <section className="quick-chat-content">
+        <nav aria-label="완료한 조건" className="chat-summary-chips">
+          {stepSummaries.map((step, index) => step.complete && index < activeStep ? (
+            <button key={step.label} onClick={() => setActiveStep(index)} type="button">
+              <span>{step.label}</span>
+              <strong>{step.value}</strong>
+            </button>
+          ) : null)}
+        </nav>
+
         <QuickBotMessage>
-          안녕하세요 👋
-          <br />
-          오늘 어떤 코스를 찾고 계신가요?
-          <br />
-          원하시는 조건을 하나씩 알려주세요!
+          {[
+            '어디에서 시작할지 알려줘.',
+            '출발할 시간을 골라줘.',
+            '누구와 함께하는지 알려줘.',
+            '하고 싶은 걸 최대 3개 골라줘.',
+            '마지막으로 얼마나 놀지 정해보자.',
+          ][activeStep]}
         </QuickBotMessage>
 
-        <QuickQuestion title="어디에서 출발할까요?">
+        {activeStep === 0 && <QuickQuestion title="어디에서 출발할까요?">
           <button
-            className={`wide-option selected ${locationStatus === 'locating' ? 'loading' : ''}`}
+            aria-pressed={locationSelectionSource === 'current' && Boolean(condition.location)}
+            className={`wide-option ${locationSelectionSource === 'current' && condition.location ? 'selected' : ''} ${locationStatus === 'locating' ? 'loading' : ''}`}
             disabled={locationStatus === 'locating'}
             onClick={applyCurrentLocation}
             type="button"
@@ -588,6 +638,7 @@ export function ChatStart() {
             {currentLocationLabel}
           </button>
           <button
+            aria-pressed={locationSelectionSource === 'manual' && Boolean(condition.location)}
             className={`wide-option pale ${locationSelectionSource === 'manual' ? 'selected' : ''}`}
             disabled={locationStatus === 'locating'}
             onClick={openAddressSheet}
@@ -595,32 +646,38 @@ export function ChatStart() {
           >
             {manualAddressLabel}
           </button>
-        </QuickQuestion>
+          {(locationStatus === 'error' || statusMessage) && (
+            <div className="location-fallback-options">
+              <p>{statusMessage || '현재 위치를 못 찾았어요. 가까운 지역을 바로 골라도 돼요.'}</p>
+              <div>{['홍대입구', '연남동', '상수', '합정'].map((area) => (
+                <button aria-pressed={condition.location === area} key={area} onClick={() => chooseFallbackArea(area)} type="button">{area}</button>
+              ))}</div>
+            </div>
+          )}
+        </QuickQuestion>}
 
-        <QuickQuestion title="언제 출발 하시나요?">
-          <div className="split-options">
+        {activeStep === 1 && <QuickQuestion title="언제 출발하시나요?">
+          <div className="single-step-options">
+            {['지금', '오늘 저녁', '오늘 밤'].map((option) => (
+              <button aria-pressed={condition.time === option} className={`chip-button ${condition.time === option ? 'selected' : ''}`} key={option} onClick={() => applyQuickCondition('time', option)} type="button">{option}</button>
+            ))}
             <button
-              className={`chip-button ${condition.time === timeOptions[0] ? 'selected' : ''}`}
-              onClick={() => applyQuickCondition('time', timeOptions[0])}
-              type="button"
-            >
-              지금
-            </button>
-            <button
-              className={`chip-button ${condition.time && condition.time !== timeOptions[0] ? 'selected' : ''}`}
+              aria-pressed={Boolean(condition.time && !['지금', '오늘 저녁', '오늘 밤'].includes(condition.time))}
+              className={`chip-button ${condition.time && !['지금', '오늘 저녁', '오늘 밤'].includes(condition.time) ? 'selected' : ''}`}
               onClick={() => setDateTimeSheetMode('date')}
               type="button"
             >
-              {condition.time && condition.time !== timeOptions[0] ? condition.time : '날짜 / 시간 선택'}
+              {condition.time && !['지금', '오늘 저녁', '오늘 밤'].includes(condition.time) ? condition.time : '날짜·시간 직접 선택'}
             </button>
           </div>
-        </QuickQuestion>
+        </QuickQuestion>}
 
-        <QuickQuestion title="누구와 함께 가시나요?">
+        {activeStep === 2 && <QuickQuestion title="누구와 함께 가시나요?">
           <p className="option-label">인원 선택</p>
           <div className="option-grid four">
             {peopleOptions.map((option) => (
               <button
+                aria-pressed={selectedPeople === option}
                 className={`chip-button ${selectedPeople === option ? 'selected' : ''}`}
                 key={option}
                 onClick={() => updatePeople(option)}
@@ -635,6 +692,7 @@ export function ChatStart() {
           <div className="option-grid four companion-grid">
             {companionOptions.map((option) => (
               <button
+                aria-pressed={selectedCompanion === option}
                 className={`companion-button ${selectedCompanion === option ? 'selected' : ''}`}
                 key={option}
                 onClick={() => updateCompanionType(option)}
@@ -645,12 +703,16 @@ export function ChatStart() {
               </button>
             ))}
           </div>
-        </QuickQuestion>
+          {selectedPeople && selectedPeople !== '혼자' && (
+            <button aria-pressed={!selectedCompanion} className={`wide-option pale ${!selectedCompanion ? 'selected' : ''}`} onClick={() => updateCompanion(selectedPeople, '')} type="button">관계 선택 안 함</button>
+          )}
+        </QuickQuestion>}
 
-        <QuickQuestion title="오늘 뭐 하고 싶나요?" subtitle={`최대 ${MAX_PLACE_SELECTIONS}개까지 고를 수 있어요.`}>
+        {activeStep === 3 && <QuickQuestion title="오늘 뭐 하고 싶나요?" subtitle={`1개 이상, 최대 ${MAX_PLACE_SELECTIONS}개까지 고를 수 있어요.`}>
           <div className="option-grid five compact">
             {placeOptions.map((place) => (
               <button
+                aria-pressed={selectedPlaces.some((selection) => selection.category === place)}
                 className={`chip-button ${selectedPlaces.some((selection) => selection.category === place) ? 'selected' : ''}`}
                 key={place}
                 onClick={() => updatePlace(place)}
@@ -667,6 +729,7 @@ export function ChatStart() {
               <div className="sub-option-panel">
                 {placeDetailOptions[selection.category].map((option) => (
                   <button
+                    aria-pressed={selection.detail === option}
                     className={`pill-button ${selection.detail === option ? 'selected' : ''}`}
                     key={option}
                     onClick={() => updateDetail(selection.category, option)}
@@ -678,12 +741,14 @@ export function ChatStart() {
               </div>
             </div>
           ))}
-        </QuickQuestion>
+        </QuickQuestion>}
 
-        <QuickQuestion title="얼마나 놀까요?" subtitle="선택하지 않으면 시작 시간에 맞춰 자동으로 짜드려요.">
+        {activeStep === 4 && <QuickQuestion title="얼마나 놀까요?" subtitle="자동 추천은 시작 시간과 영업시간에 맞춰 코스를 정해요.">
           <div className="option-grid duration-grid">
+            <button aria-pressed={!condition.duration} className={`chip-button ${!condition.duration ? 'selected' : ''}`} onClick={() => setCondition({ duration: '' })} type="button">자동 추천</button>
             {durationOptions.map((option) => (
               <button
+                aria-pressed={condition.duration === option}
                 className={`chip-button ${condition.duration === option ? 'selected' : ''}`}
                 key={option}
                 onClick={() => {
@@ -710,15 +775,13 @@ export function ChatStart() {
               value={condition.duration.startsWith('종료 ') ? condition.duration.slice(3) : ''}
             />
           </label>
-        </QuickQuestion>
+        </QuickQuestion>}
 
-        <QuickConditionSummary rows={summaryRows} onEdit={setEditSection} />
+        {statusMessage && activeStep !== 0 && <p className="inline-message warning">{statusMessage}</p>}
 
-        {statusMessage && <p className="inline-message warning">{statusMessage}</p>}
-
-        <div className="inline-result-actions">
-          <button className="primary-result-button" type="button" onClick={goConfirm}>
-            조건 확인하기
+        <div className="chat-step-footer">
+          <button className="primary-result-button" disabled={!stepComplete} type="button" onClick={advance}>
+            {activeStep === 4 ? '조건 확인하기' : '다음'}
           </button>
         </div>
       </section>
@@ -742,28 +805,16 @@ export function ChatStart() {
         />
       )}
 
-      {editSection && (
-        <ConditionEditSheet
-          condition={condition}
-          onApply={applyConditionEdit}
-          onClose={() => setEditSection(null)}
-          onDetectCurrentLocation={detectCurrentLocation}
-          section={editSection}
-          selectedCompanion={selectedCompanion}
-          selectedPeople={selectedPeople}
-          selectedPlaces={selectedPlaces}
-        />
-      )}
     </div>
   );
 }
 
 interface QuickChatHeaderProps {
-  completedSteps: number;
+  activeStep: number;
   onBack: () => void;
 }
 
-function QuickChatHeader({ completedSteps, onBack }: QuickChatHeaderProps) {
+function QuickChatHeader({ activeStep, onBack }: QuickChatHeaderProps) {
   const totalSteps = 5;
 
   return (
@@ -772,14 +823,14 @@ function QuickChatHeader({ completedSteps, onBack }: QuickChatHeaderProps) {
         ‹
       </button>
       <div>
-        <h1>Nopi 와 대화중</h1>
-        <p>원하는 조건을 알려주세요!</p>
+        <h1>노피와 코스 찾기</h1>
+        <p>한 번에 하나씩 알려주세요</p>
       </div>
-      <div aria-label={`진행률 ${completedSteps} / ${totalSteps}`} className="progress-row">
+      <div aria-label={`진행률 ${activeStep + 1} / ${totalSteps}`} className="progress-row">
         {Array.from({ length: totalSteps }, (_, index) => (
-          <span className={index < completedSteps ? 'done' : ''} key={index} />
+          <span className={index <= activeStep ? 'done' : ''} key={index} />
         ))}
-        <strong>{completedSteps} / {totalSteps}</strong>
+        <strong>{activeStep + 1} / {totalSteps}</strong>
       </div>
     </header>
   );
@@ -793,29 +844,6 @@ function QuickBotMessage({ children }: { children: ReactNode }) {
       </div>
       <div className="bot-bubble">{children}</div>
     </div>
-  );
-}
-
-interface QuickConditionSummaryProps {
-  onEdit: (section: ConditionEditSection) => void;
-  rows: SummaryRow[];
-}
-
-function QuickConditionSummary({ onEdit, rows }: QuickConditionSummaryProps) {
-  return (
-    <section className="condition-summary">
-      <h2>현재 선택된 조건</h2>
-      {rows.map((row) => (
-        <button className="summary-row" key={row.label} onClick={() => onEdit(row.id)} type="button">
-          <span />
-          <div>
-            <p>{row.label}</p>
-            <strong>{row.value}</strong>
-          </div>
-          <b>›</b>
-        </button>
-      ))}
-    </section>
   );
 }
 
@@ -855,6 +883,7 @@ function ConditionEditSheet({
   selectedPeople,
   selectedPlaces,
 }: ConditionEditSheetProps) {
+  const dialogRef = useDialogAccessibility<HTMLElement>(onClose);
   const [draftLocation, setDraftLocation] = useState(condition.location);
   const [draftLocationLabel, setDraftLocationLabel] = useState(condition.locationLabel || compactLocationLabel(condition.location));
   const [draftLocationSource, setDraftLocationSource] = useState<'current' | 'manual'>('manual');
@@ -865,6 +894,7 @@ function ConditionEditSheet({
   const [draftDuration, setDraftDuration] = useState(condition.duration);
   const [dateTimeSheetMode, setDateTimeSheetMode] = useState<DateTimeSheetMode | null>(null);
   const [locationBusy, setLocationBusy] = useState(false);
+  const [locationError, setLocationError] = useState('');
 
   const chooseCurrentLocation = async () => {
     if (locationBusy) return;
@@ -873,9 +903,17 @@ function ConditionEditSheet({
       setLocationBusy(true);
       const location = await onDetectCurrentLocation();
 
+      if (!isSupportedPlannerLocation(`${location.address} ${location.label}`)) {
+        setDraftLocation('');
+        setDraftLocationLabel('');
+        setLocationError('현재 위치는 아직 서비스 범위 밖이에요. 홍대입구 주변 주소를 입력해 주세요.');
+        return;
+      }
+
       setDraftLocation(location.address);
       setDraftLocationLabel(location.label);
       setDraftLocationSource('current');
+      setLocationError('');
     } finally {
       setLocationBusy(false);
     }
@@ -885,6 +923,10 @@ function ConditionEditSheet({
     if (section === 'location') {
       const nextLocation = draftLocation.trim();
       if (!nextLocation) return;
+      if (!isSupportedPlannerLocation(nextLocation)) {
+        setLocationError('현재는 홍대입구·연남동 주변 주소만 선택할 수 있어요.');
+        return;
+      }
 
       onApply({
         location: nextLocation,
@@ -930,7 +972,7 @@ function ConditionEditSheet({
     <>
       <div aria-modal="true" className="date-time-overlay" role="dialog">
         <button aria-label="조건 수정 닫기" className="date-time-backdrop" onClick={onClose} type="button" />
-        <section className="condition-edit-sheet">
+        <section className="condition-edit-sheet" ref={dialogRef}>
           {section === 'location' && (
             <>
               <h2>어디서 출발하세요?</h2>
@@ -960,6 +1002,7 @@ function ConditionEditSheet({
                   <b>›</b>
                 </button>
               )}
+              {locationError && <p className="inline-message warning" role="alert">{locationError}</p>}
             </>
           )}
 
@@ -967,6 +1010,7 @@ function ConditionEditSheet({
             <>
               <h2>언제 출발하시나요?</h2>
               <button
+                aria-pressed={draftTime === '지금'}
                 className={`edit-option ${draftTime === '지금' ? 'selected' : ''}`}
                 onClick={() => setDraftTime((previous) => (previous === '지금' ? '' : '지금'))}
                 type="button"
@@ -975,6 +1019,7 @@ function ConditionEditSheet({
                 {draftTime === '지금' && <b>›</b>}
               </button>
               <button
+                aria-pressed={Boolean(draftTime && draftTime !== '지금')}
                 className={`edit-option ${draftTime && draftTime !== '지금' ? 'selected' : ''}`}
                 onClick={() => setDateTimeSheetMode('date')}
                 type="button"
@@ -991,6 +1036,7 @@ function ConditionEditSheet({
               <div className="edit-grid four">
                 {peopleOptions.map((option) => (
                   <button
+                    aria-pressed={draftPeople === option}
                     className={`edit-chip ${draftPeople === option ? 'selected' : ''}`}
                     key={option}
                     onClick={() => {
@@ -1008,6 +1054,7 @@ function ConditionEditSheet({
               <div className="edit-grid four">
                 {companionOptions.map((option) => (
                   <button
+                    aria-pressed={draftCompanion === option}
                     className={`edit-chip ${draftCompanion === option ? 'selected' : ''}`}
                     key={option}
                     onClick={() => setDraftCompanion((previous) => (previous === option ? '' : option))}
@@ -1027,6 +1074,7 @@ function ConditionEditSheet({
               <div className="edit-grid three">
                 {placeOptions.map((place) => (
                   <button
+                    aria-pressed={draftPlaces.some((selection) => selection.category === place)}
                     className={`edit-chip ${draftPlaces.some((selection) => selection.category === place) ? 'selected' : ''}`}
                     disabled={draftPlaces.length >= MAX_PLACE_SELECTIONS && !draftPlaces.some((selection) => selection.category === place)}
                     key={place}
@@ -1050,6 +1098,7 @@ function ConditionEditSheet({
                   <div className="edit-grid cuisine">
                     {placeDetailOptions[selection.category].map((option) => (
                       <button
+                        aria-pressed={selection.detail === option}
                         className={`edit-chip pill ${selection.detail === option ? 'selected' : ''}`}
                         key={option}
                         onClick={() => setDraftPlaces((previous) => previous.map((item) => (
@@ -1075,6 +1124,7 @@ function ConditionEditSheet({
               <div className="edit-grid four">
                 {durationOptions.map((option) => (
                   <button
+                    aria-pressed={draftDuration === option}
                     className={`edit-chip ${draftDuration === option ? 'selected' : ''}`}
                     key={option}
                     onClick={() => setDraftDuration((previous) => (previous === option ? '' : option))}
@@ -1127,6 +1177,7 @@ interface DateTimeSheetProps {
 }
 
 function DateTimeSheet({ initialValue, mode, onClose, onConfirm, onModeChange }: DateTimeSheetProps) {
+  const dialogRef = useDialogAccessibility<HTMLElement>(onClose);
   const initialDateTime = useMemo(() => getInitialDateTime(initialValue), [initialValue]);
   const [selectedDate, setSelectedDate] = useState(initialDateTime.date);
   const [displayMonth, setDisplayMonth] = useState(
@@ -1146,7 +1197,7 @@ function DateTimeSheet({ initialValue, mode, onClose, onConfirm, onModeChange }:
   return (
     <div aria-modal="true" className="date-time-overlay" role="dialog">
       <button aria-label="날짜 시간 선택 닫기" className="date-time-backdrop" onClick={onClose} type="button" />
-      <section className="date-time-sheet">
+      <section className="date-time-sheet" ref={dialogRef}>
         <h2>언제 출발하시나요?</h2>
 
         <div aria-label="날짜 시간 선택" className="date-time-tabs" role="tablist">
@@ -1260,6 +1311,7 @@ interface AddressInputSheetProps {
 }
 
 function AddressInputSheet({ onChange, onClose, onConfirm, value }: AddressInputSheetProps) {
+  const dialogRef = useDialogAccessibility<HTMLFormElement>(onClose);
   const trimmedValue = value.trim();
 
   return (
@@ -1267,6 +1319,7 @@ function AddressInputSheet({ onChange, onClose, onConfirm, value }: AddressInput
       <button aria-label="주소 입력 닫기" className="date-time-backdrop" onClick={onClose} type="button" />
       <form
         className="address-sheet"
+        ref={dialogRef}
         onSubmit={(event) => {
           event.preventDefault();
           onConfirm();
@@ -1316,6 +1369,7 @@ export function ConditionConfirm() {
   const navigate = useNavigate();
   const { condition, detectCurrentLocation, locationStatus, runSearch, searchError, setCondition } = usePlanner();
   const [editSection, setEditSection] = useState<ConditionEditSection | null>(null);
+  const [locationMessage, setLocationMessage] = useState('');
   const didTrackView = useRef(false);
   const locationText = displayLocationLabel(condition);
   const locationValue = condition.location ? locationText : '';
@@ -1327,13 +1381,32 @@ export function ConditionConfirm() {
     ? condition.supportingCategories.map(categoryLabelFromKey)
     : selectedPlaces.slice(1).map((selection) => selection.category))
     .filter(Boolean);
-  const coreIntentLabel = getCoreIntentLabel(condition.mainCategory, condition.coreIntent);
   const coreIntentOptions = getCoreIntentOptions(condition.mainCategory);
   const shouldAskCoreIntent = needsCoreIntentQuestion(
     condition.mainCategory,
     condition.coreIntent,
     condition.coreIntentSkipped,
   );
+  const firstMissingSection: ConditionEditSection | null = !condition.location
+    ? 'location'
+    : !condition.time
+      ? 'time'
+      : !selectedPeople
+        ? 'people'
+        : !selectedPlaces.length || shouldAskCoreIntent
+          ? 'place'
+          : null;
+  const conditionRows = [
+    { id: 'location' as const, label: '출발지', value: locationValue },
+    { id: 'time' as const, label: '시간', value: condition.time },
+    { id: 'people' as const, label: '동행', value: condition.companion },
+    {
+      id: 'place' as const,
+      label: '목적',
+      value: [mainCategoryLabel, ...supportingCategoryLabels].filter(Boolean).join(' · '),
+    },
+    { id: 'duration' as const, label: '이용 시간', value: condition.duration || '자동 추천' },
+  ];
 
   const applyConditionEdit = (patch: {
     companion?: string;
@@ -1365,35 +1438,63 @@ export function ConditionConfirm() {
   }, [condition]);
 
   const startSearch = async () => {
+    if (firstMissingSection) {
+      setEditSection(firstMissingSection);
+      return;
+    }
     navigate('/planner/searching');
-    await Promise.all([
+    const [searchSucceeded] = await Promise.all([
       runSearch(),
       new Promise((resolve) => {
-        window.setTimeout(resolve, 3600);
+        window.setTimeout(resolve, 1200);
       }),
     ]);
-    navigate('/planner/result', { replace: true });
+    if (searchSucceeded) navigate('/planner/result', { replace: true });
+  };
+
+  const retryCurrentLocation = async () => {
+    try {
+      const location = await detectCurrentLocation();
+      if (!isSupportedPlannerLocation(`${location.address} ${location.label}`)) {
+        setCondition({ location: '', locationLabel: '' });
+        setLocationMessage('현재 위치는 서비스 범위 밖이에요. 출발지를 직접 수정해 주세요.');
+        return;
+      }
+      setLocationMessage('현재 위치를 새로 반영했어요.');
+    } catch (error) {
+      setLocationMessage(error instanceof Error ? error.message : '현재 위치를 다시 확인하지 못했어요.');
+    }
   };
 
   return (
-    <div>
+    <div className="condition-confirm-screen non-home-screen">
       <AppTopBar title="조건 확인" subtitle="Nopi가 이해한 내용을 다듬어줘" />
-      <NopiBubble title="이 조건이면 가볍게 찾을 수 있어." body="부족한 것만 바꾸면 돼." />
-      {searchError && <p className="inline-message warning">{searchError}</p>}
+      <NopiBubble title="마지막으로 조건을 확인해줘." body="바꾸고 싶은 항목만 누르면 돼." />
+      {firstMissingSection && <p className="inline-message warning">필수 조건이 비어 있어요. 표시된 항목을 먼저 선택해 주세요.</p>}
 
       <section className="screen-section">
         <h2>정리된 조건</h2>
-        <div className="condition-grid">
-          <ConditionCard color="#315BFF" label="장소" onClick={() => setEditSection('location')} value={locationValue} />
-          <ConditionCard color="#7B61FF" label="시간" onClick={() => setEditSection('time')} value={condition.time} />
-          <ConditionCard color="#16A17D" label="동행" onClick={() => setEditSection('people')} value={condition.companion} />
-          <ConditionCard color="#F0A23A" label="주요 장소" onClick={() => setEditSection('place')} value={mainCategoryLabel} />
-          <ConditionCard color="#E1784B" label="추가 희망 장소" onClick={() => setEditSection('place')} value={supportingCategoryLabels.join(', ') || '없음'} />
-          <ConditionCard className="wide" color="#14A6A1" label="이용 시간" onClick={() => setEditSection('duration')} value={condition.duration || '자동 추천'} />
+        <div className="condition-summary-list">
+          {conditionRows.map((row) => (
+            <div className="condition-row-group" key={row.id}>
+              <ConditionCard
+                color={row.id === firstMissingSection ? '#cf4d5b' : '#5b5ce2'}
+                label={row.label}
+                onClick={() => setEditSection(row.id)}
+                value={row.value}
+              />
+              {row.id === 'location' && (
+                <div className="condition-location-retry">
+                  <span>현재 위치가 정확하지 않나요?</span>
+                  <button className="location-refresh-button" type="button" onClick={() => void retryCurrentLocation()}>
+                    {locationStatus === 'locating' ? '위치 확인 중' : '현재 위치 다시 잡기'}
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
-        <button className="location-refresh-button" type="button" onClick={() => void detectCurrentLocation()}>
-          {locationStatus === 'locating' ? '현재 위치 확인 중' : '현재 위치 다시 잡기'}
-        </button>
+        {locationMessage && <p className={`inline-message ${condition.location ? '' : 'warning'}`} role="status">{locationMessage}</p>}
       </section>
 
       {shouldAskCoreIntent && (
@@ -1425,24 +1526,6 @@ export function ConditionConfirm() {
         </section>
       )}
 
-      <section className="prompt-summary">
-        <span>찾을 때 쓸 핵심 조건</span>
-        <strong>
-          {[
-            locationValue,
-            condition.time,
-            condition.companion,
-            mainCategoryLabel ? `주요 ${mainCategoryLabel}` : '',
-            supportingCategoryLabels.length ? `추가 ${supportingCategoryLabels.join(', ')}` : '',
-            coreIntentLabel ? `핵심 ${coreIntentLabel}` : condition.coreIntentSkipped ? '핵심 아무거나' : '',
-            condition.duration || '자동 추천',
-          ]
-            .map(displayConditionValue)
-            .join(' · ')}
-        </strong>
-        <p>각 조건을 확인하면서 코스를 고를게.</p>
-      </section>
-
       <section className="screen-section">
         <h2>더 맞춰볼까요?</h2>
         <div className="chip-row">
@@ -1465,7 +1548,9 @@ export function ConditionConfirm() {
         </div>
       </section>
 
-      <button className="primary-bottom-button" type="button" onClick={startSearch}>
+      {searchError && <p className="inline-message warning">이전 검색: {searchError}</p>}
+
+      <button className="primary-bottom-button condition-search-button" type="button" onClick={startSearch}>
         이 조건으로 코스 찾기
       </button>
 
@@ -1517,8 +1602,10 @@ function ConditionCard({
 }
 
 export function SearchingScreen() {
-  const { condition, isSearching } = usePlanner();
+  const navigate = useNavigate();
+  const { condition, isSearching, runSearch, searchError } = usePlanner();
   const [checkedCount, setCheckedCount] = useState(0);
+  const [searchTakingLong, setSearchTakingLong] = useState(false);
   const locationText = displayLocationLabel(condition);
   const searchSteps = useMemo(
     () =>
@@ -1559,26 +1646,44 @@ export function SearchingScreen() {
   const activeStep = searchSteps[Math.min(checkedCount, searchSteps.length - 1)];
 
   useEffect(() => {
-    const timers = searchSteps.map((_, index) =>
+    const timers = searchSteps.slice(0, 4).map((_, index) =>
       window.setTimeout(() => {
         setCheckedCount(index + 1);
       }, 650 + index * 620),
     );
+    const delayedTimer = window.setTimeout(() => setSearchTakingLong(true), 8000);
 
-    return () => timers.forEach((timer) => window.clearTimeout(timer));
+    return () => {
+      timers.forEach((timer) => window.clearTimeout(timer));
+      window.clearTimeout(delayedTimer);
+    };
   }, [searchSteps]);
 
+  const retrySearch = async () => {
+    setSearchTakingLong(false);
+    const succeeded = await runSearch();
+    if (succeeded) navigate('/planner/result', { replace: true });
+  };
+
+  const searchFailed = Boolean(searchError && !isSearching);
+
   return (
-    <div>
+    <div className="searching-screen non-home-screen">
       <AppTopBar title="코스 찾는 중" subtitle="조건에 맞는 장소를 고르고 있어" />
       <NopiBubble title={activeStep.nopi} body="조건이 맞는지 하나씩 확인하고 있어." />
       <p className="search-live-status">
-        {checkedCount < searchSteps.length
+        {searchFailed
+          ? '조건에 맞는 코스를 완성하지 못했어요.'
+          : checkedCount < searchSteps.length
           ? `${activeStep.label} 조건을 확인하고 있어요.`
           : isSearching
             ? '후보 장소를 마지막으로 정리하고 있어요.'
             : '추천 결과를 정리했어요.'}
       </p>
+
+      {searchTakingLong && isSearching && (
+        <p className="inline-message warning">평소보다 확인이 길어지고 있어요. 영업시간과 위치 정보를 조금 더 살펴보고 있어요.</p>
+      )}
 
       <section className="reading-card">
         <strong>읽고 있는 조건</strong>
@@ -1622,11 +1727,23 @@ export function SearchingScreen() {
         </div>
       </section>
 
-      <section className="screen-section">
-        <h2>곧 추천 코스가 나와요</h2>
-        <SkeletonCard />
-        <SkeletonCard />
-      </section>
+      {searchFailed ? (
+        <section className="search-failure-card" role="alert">
+          <span>검색 실패</span>
+          <h2>이번 조건으로 코스를 완성하지 못했어요</h2>
+          <p>{searchError}</p>
+          <div>
+            <button type="button" onClick={() => navigate('/planner/condition', { replace: true })}>조건 수정</button>
+            <button className="primary" type="button" onClick={() => void retrySearch()}>같은 조건으로 다시 찾기</button>
+          </div>
+        </section>
+      ) : (
+        <section className="screen-section">
+          <h2>곧 추천 코스가 나와요</h2>
+          <SkeletonCard />
+          <SkeletonCard />
+        </section>
+      )}
     </div>
   );
 }
@@ -1647,7 +1764,7 @@ function SkeletonCard() {
 
 export function ResultScreen() {
   const navigate = useNavigate();
-  const { condition, plan } = usePlanner();
+  const { condition, hasActivePlan, plan, runSearch, setCondition } = usePlanner();
   const feedbackStorageKey = `noplanMvpFeedback:${plan.searchCourseId || plan.algorithmVersion || 'current'}`;
   const [saveMessage, setSaveMessage] = useState('');
   const [feedbackScore, setFeedbackScore] = useState(0);
@@ -1655,7 +1772,14 @@ export function ResultScreen() {
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(() => sessionStorage.getItem(feedbackStorageKey) === 'submitted');
   const didTrackResult = useRef(false);
   const locationText = displayLocationLabel(condition);
-  const hasCourse = plan.courseData.length > 0;
+  const hasCourse = hasActivePlan && plan.courseData.length > 0;
+  const crowding = plan.courseData.find((place) => place.crowding)?.crowding;
+  const walkingSummary = plan.courseData
+    .slice(1)
+    .map((place) => place.moveText)
+    .filter(Boolean)
+    .slice(0, 2)
+    .join(' · ') || '장소 간 이동 정보 확인';
   const failureContent = plan.failureReason === 'no_candidates'
     ? {
         badge: '장소 부족',
@@ -1708,46 +1832,35 @@ export function ResultScreen() {
     setFeedbackSubmitted(true);
   };
 
-  return (
-    <div>
-      <AppTopBar title="추천 코스" subtitle={`${locationText} · ${condition.time} · ${condition.companion} · ${condition.mood}`} />
-      <NopiBubble
-        title={hasCourse
-          ? plan.partial ? '확인된 장소까지만 골랐어.' : '이 코스가 제일 가벼워.'
-          : failureContent.title}
-        body={hasCourse
-          ? plan.partial ? '검증되지 않은 다음 일정은 안전하게 빼두었어.' : '이동 짧고, 분위기도 맞아.'
-          : failureContent.body}
-        compact
-      />
-      {plan.message && <p className={`inline-message ${plan.source === 'fallback' ? 'warning' : ''}`}>{plan.message}</p>}
+  const retrySearch = async (widen = false) => {
+    if (widen) setCondition({ extras: [] });
+    navigate('/planner/searching');
+    const succeeded = await runSearch();
+    if (succeeded) navigate('/planner/result', { replace: true });
+  };
 
-      <div className="chip-row result-chips">
-        {[locationText, condition.time, condition.companion, condition.mood].map((token, index) => (
-          <Chip active={index === 0} key={token}>
-            {token}
-          </Chip>
-        ))}
-      </div>
+  return (
+    <div className="result-screen non-home-screen">
+      <AppTopBar title="추천 코스" subtitle={`${locationText} · ${condition.time} · ${condition.companion} · ${condition.mood}`} />
+      {hasCourse && (
+        <NopiBubble
+          title={plan.partial ? '확인된 장소까지만 골랐어.' : '이 코스가 조건에 가장 잘 맞아.'}
+          body={plan.partial ? '검증되지 않은 일정은 빼고, 바로 갈 수 있는 장소만 남겼어.' : '이동 거리와 영업시간, 선택한 목적을 함께 확인했어.'}
+          compact
+        />
+      )}
+      {hasCourse && plan.partial && <p className="inline-message warning">일부 조건을 통과한 장소가 부족해 확인된 일정만 보여드려요.</p>}
 
       {hasCourse ? (
         <article className="result-card">
-          <span className="rank-pill">{plan.partial ? '확인된 일정' : 'BEST 1'}</span>
+          <span className="rank-pill">{plan.partial ? '부분 추천' : '추천 완료'}</span>
           <h1>{plan.title}</h1>
-          <p>{plan.durationText} · 실제 장소 추천</p>
-          <div className="result-map-preview">
-            <MapBoard courseList={plan.courseData} userLocation={plan.location} />
+          <p>{plan.courseData.length}곳 · {plan.durationText}</p>
+          <div className="result-summary-grid">
+            <div><span>이동</span><strong>{walkingSummary}</strong></div>
+            <div><span>혼잡도</span><strong>{crowding ? `${crowding.areaName || '주변'} · ${crowding.label}` : '정보 확인 중'}</strong></div>
           </div>
-          <CrowdingStatus snapshot={plan.courseData.find((place) => place.crowding)?.crowding} />
-          <div className="result-stops">
-            {plan.courseData.slice(0, 2).map((place, index) => (
-              <div key={place.id}>
-                <b>{index + 1}</b>
-                <strong>{place.title}</strong>
-                <span>{place.summary}</span>
-              </div>
-            ))}
-          </div>
+          <p className="result-reason"><strong>추천 이유</strong>{plan.courseData[0]?.reason || '선택한 조건과 동선이 잘 맞는 코스예요.'}</p>
         </article>
       ) : (
         <article className="result-card">
@@ -1766,10 +1879,8 @@ export function ResultScreen() {
                 <PlaceVisual alt={place.name} color={place.color} imageUrl={place.imageUrl} label={String(index + 1)} type={place.type} detailType={place.detailType} />
                 <div className="result-place-copy">
                   <strong>{place.searchKeyword || place.title}</strong>
-                  {place.time && (
-                    <small>{place.time}{place.durationMinutes ? ` · 예상 ${place.durationMinutes}분` : ''}</small>
-                  )}
-                  <small>{place.description}</small>
+                  <small>{place.category || place.detailType || place.type}{place.durationMinutes ? ` · 예상 ${place.durationMinutes}분` : ''}</small>
+                  <small>{index === 0 ? '출발지에서 이동' : place.moveText} · {place.businessStatus || place.hours || '영업 정보 확인 필요'}</small>
                   <CrowdingStatus compact snapshot={place.crowding} />
                   {place.rating != null && place.reviewCount != null && (
                     <small className="google-place-meta">Google 평점 {place.rating.toFixed(1)} · 리뷰 {place.reviewCount.toLocaleString('ko-KR')}개 · Google Maps 제공</small>
@@ -1812,16 +1923,20 @@ export function ResultScreen() {
       <div className="sticky-actions result-actions">
         {hasCourse ? (
           <>
-            <button type="button" onClick={handleSave}>저장</button>
+            {plan.partial ? (
+              <button type="button" onClick={() => void retrySearch(true)}>범위를 넓혀 다시 찾기</button>
+            ) : (
+              <button type="button" onClick={handleSave}>저장</button>
+            )}
             <button className="primary" type="button" onClick={() => navigate('/course/map')}>
-              이 코스로 시작하기
+              이 코스로 출발
             </button>
           </>
         ) : (
           <>
-            <button type="button" onClick={() => navigate('/planner/chat')}>조건 다시 고르기</button>
-            <button className="primary" type="button" onClick={() => navigate('/planner/condition')}>
-              조건 확인하기
+            <button type="button" onClick={() => navigate('/planner/condition')}>조건 수정</button>
+            <button className="primary" type="button" onClick={() => void retrySearch()}>
+              같은 조건으로 다시 찾기
             </button>
           </>
         )}
