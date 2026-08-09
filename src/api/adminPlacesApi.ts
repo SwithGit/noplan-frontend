@@ -50,6 +50,9 @@ export interface PlaceCandidate {
   sourceUrl?: string | null;
   instagramUrl?: string | null;
   reservationUrl?: string | null;
+  crowdingAreaCode?: string | null;
+  crowdingAreaName?: string | null;
+  crowdingProviderPlaceId?: string | null;
   sourceQuery?: string | null;
   entityType: string;
   primaryType: PlaceType;

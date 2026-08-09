@@ -3478,7 +3478,7 @@ button {
   font-weight: 950;
 }
 
-.result-place-list span {
+.result-place-list .result-place-copy {
   min-width: 0;
 }
 
@@ -4224,4 +4224,131 @@ button {
 .place-menu-list article > b {
   color: #2856f6;
   white-space: nowrap;
+}
+
+.crowding-status {
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  gap: 9px;
+  margin-top: 10px;
+  border: 1px solid #dfe6f0;
+  border-radius: 8px;
+  background: #f7f9fc;
+  padding: 10px 11px;
+  color: #27334a;
+  text-align: left;
+}
+
+.crowding-status > span {
+  display: block;
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  margin-top: 4px;
+  border-radius: 50%;
+  background: #7b8799;
+}
+
+.crowding-status > div {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.crowding-status strong,
+.crowding-status small,
+.crowding-status p {
+  display: block;
+  margin: 0;
+  overflow: visible;
+  color: inherit;
+  line-height: 1.35;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.crowding-status strong {
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.crowding-status small,
+.crowding-status p {
+  font-size: 10px;
+  font-weight: 700;
+  opacity: 0.76;
+}
+
+.crowding-status p {
+  margin-top: 3px;
+}
+
+.crowding-status.compact {
+  gap: 7px;
+  margin-top: 6px;
+  padding: 7px 8px;
+}
+
+.crowding-status.compact > span {
+  width: 7px;
+  height: 7px;
+}
+
+.crowding-status.compact strong {
+  font-size: 11px;
+}
+
+.crowding-status.compact small {
+  font-size: 9px;
+}
+
+.crowding-relaxed {
+  border-color: #bcebd8;
+  background: #effbf6;
+  color: #187258;
+}
+
+.crowding-relaxed > span { background: #20a77a; }
+
+.crowding-normal {
+  border-color: #cadcfb;
+  background: #f2f7ff;
+  color: #315d9f;
+}
+
+.crowding-normal > span { background: #4c81d8; }
+
+.crowding-busy {
+  border-color: #f5dda7;
+  background: #fff9e9;
+  color: #91640d;
+}
+
+.crowding-busy > span { background: #e5a82d; }
+
+.crowding-very_busy {
+  border-color: #f3c5c5;
+  background: #fff3f3;
+  color: #a13b3b;
+}
+
+.crowding-very_busy > span { background: #df5757; }
+
+.route-item .crowding-status,
+.candidate-card .crowding-status {
+  align-self: stretch;
+}
+
+.route-item .crowding-status span,
+.candidate-card .crowding-status span,
+.result-place-list .crowding-status span {
+  width: 7px;
+  height: 7px;
+  margin-top: 4px;
+}
+
+.route-item .crowding-status p,
+.candidate-card .crowding-status p {
+  white-space: normal;
 }

@@ -1,5 +1,5 @@
 import { ApiError, apiJson, getLoggedInUser } from './client';
-import type { CoursePlace, CoursePlan, CurrentPosition, PlannerCondition } from '../types/noplan';
+import type { CrowdingSnapshot, CoursePlace, CoursePlan, CurrentPosition, PlannerCondition } from '../types/noplan';
 import {
   categoryKeyFromLabel,
   inferAtmosphereTags,
@@ -162,6 +162,41 @@ function normalizeMenuItems(value: unknown) {
   });
 }
 
+function normalizeCrowding(value: unknown): CrowdingSnapshot | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const crowding = value as Record<string, unknown>;
+  const scope = crowding.scope === 'place' ? 'place' : crowding.scope === 'area' ? 'area' : null;
+  const source = ['seoul', 'skt', 'merchant', 'unknown'].includes(String(crowding.source))
+    ? crowding.source as CrowdingSnapshot['source']
+    : 'unknown';
+  const level = ['relaxed', 'normal', 'busy', 'very_busy', 'unknown'].includes(String(crowding.level))
+    ? crowding.level as CrowdingSnapshot['level']
+    : 'unknown';
+  if (!scope || level === 'unknown') return undefined;
+
+  const fallbackLabel: Record<CrowdingSnapshot['level'], CrowdingSnapshot['label']> = {
+    relaxed: '여유',
+    normal: '보통',
+    busy: '약간 붐빔',
+    very_busy: '붐빔',
+    unknown: '정보 없음',
+  };
+
+  return {
+    scope,
+    source,
+    areaCode: valueOf(crowding, ['areaCode']) || undefined,
+    areaName: valueOf(crowding, ['areaName']) || undefined,
+    providerPlaceId: valueOf(crowding, ['providerPlaceId']) || undefined,
+    level,
+    label: (valueOf(crowding, ['label']) || fallbackLabel[level]) as CrowdingSnapshot['label'],
+    message: valueOf(crowding, ['message']),
+    observedAt: valueOf(crowding, ['observedAt']) || undefined,
+    fetchedAt: valueOf(crowding, ['fetchedAt'], new Date().toISOString()),
+    stale: Boolean(crowding.stale),
+  };
+}
+
 function normalizePlace(item: Record<string, unknown>, index: number): CoursePlace {
   const title = valueOf(item, ['title', 'name', 'searchKeyword'], fallbackPlaces[index % fallbackPlaces.length].title);
   const keyword = valueOf(item, ['searchKeyword', 'name', 'title'], title);
@@ -228,6 +263,7 @@ function normalizePlace(item: Record<string, unknown>, index: number): CoursePla
     lat: item.lat as number | string | undefined,
     lng: item.lng as number | string | undefined,
     searchKeyword: keyword,
+    crowding: normalizeCrowding(item.crowding),
     tags: Array.isArray(item.tags)
       ? item.tags.map(String)
       : [valueOf(item, ['detailType'], category), index === 0 ? '시작' : '근처'],
@@ -352,6 +388,9 @@ export async function generateCourse(
         atmosphereTags,
         duration: condition.duration,
         vibe: condition.extras.filter(Boolean).join(', '),
+        preferences: {
+          avoidCrowds: condition.extras.includes('대기 적게'),
+        },
         sourceText: condition.rawText,
         companionContext: inferCompanionContext(condition),
         userId: user?.userId || null,

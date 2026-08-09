@@ -5,6 +5,7 @@ import { AppTopBar } from '../../components/ui/AppTopBar';
 import MapBoard from '../../components/MapBoard';
 import { NopiBubble } from '../../components/ui/NopiBubble';
 import { PlaceVisual } from '../../components/ui/PlaceVisual';
+import { CrowdingStatus } from '../../components/ui/CrowdingStatus';
 import companionFamilyImage from '../../assets/nopi/가족.png';
 import companionCoworkerImage from '../../assets/nopi/동료.png';
 import companionCoupleImage from '../../assets/nopi/연인.png';
@@ -1736,6 +1737,7 @@ export function ResultScreen() {
           <div className="result-map-preview">
             <MapBoard courseList={plan.courseData} userLocation={plan.location} />
           </div>
+          <CrowdingStatus snapshot={plan.courseData.find((place) => place.crowding)?.crowding} />
           <div className="result-stops">
             {plan.courseData.slice(0, 2).map((place, index) => (
               <div key={place.id}>
@@ -1761,16 +1763,17 @@ export function ResultScreen() {
             {plan.courseData.map((place, index) => (
               <button key={place.id} type="button" onClick={() => navigate(`/course/place/${index}`)}>
                 <PlaceVisual alt={place.name} color={place.color} imageUrl={place.imageUrl} label={String(index + 1)} type={place.type} detailType={place.detailType} />
-                <span>
+                <div className="result-place-copy">
                   <strong>{place.searchKeyword || place.title}</strong>
                   {place.time && (
                     <small>{place.time}{place.durationMinutes ? ` · 예상 ${place.durationMinutes}분` : ''}</small>
                   )}
                   <small>{place.description}</small>
+                  <CrowdingStatus compact snapshot={place.crowding} />
                   {place.rating != null && place.reviewCount != null && (
                     <small className="google-place-meta">Google 평점 {place.rating.toFixed(1)} · 리뷰 {place.reviewCount.toLocaleString('ko-KR')}개 · Google Maps 제공</small>
                   )}
-                </span>
+                </div>
               </button>
             ))}
           </div>

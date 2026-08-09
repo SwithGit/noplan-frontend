@@ -5,6 +5,7 @@ import { Chip } from '../../components/ui/Chip';
 import MapBoard from '../../components/MapBoard';
 import { NopiBubble } from '../../components/ui/NopiBubble';
 import { PlaceVisual } from '../../components/ui/PlaceVisual';
+import { CrowdingStatus } from '../../components/ui/CrowdingStatus';
 import { usePlanner } from '../planner/PlannerContext';
 import type { CoursePlace } from '../../types/noplan';
 import { trackPlaceInteraction } from '../../api/plannerApi';
@@ -121,6 +122,7 @@ export function CourseMapScreen() {
               <span>{index + 1}번째 장소</span>
               <strong>{place.title}</strong>
               <p>{place.summary}</p>
+              <CrowdingStatus compact snapshot={place.crowding} />
             </div>
             <button type="button" onClick={() => navigate(`/course/place/${index}`)}>
               보기
@@ -189,6 +191,7 @@ export function PlaceDetailScreen() {
       </div>
 
       <NopiBubble title="여기를 고른 이유" body={place.reason} compact />
+      <CrowdingStatus snapshot={place.crowding} />
 
       <section className="fit-grid">
         <article>
@@ -296,6 +299,7 @@ export function ReplacementCandidates() {
               <strong>{candidate.title}</strong>
               <p>{candidate.summary}</p>
               <small>{candidate.reason}</small>
+              <CrowdingStatus compact snapshot={candidate.crowding} />
             </div>
             <button
               type="button"

@@ -51,6 +51,22 @@ export interface CourseMenuItem {
   isSignature?: boolean;
 }
 
+export type CrowdingLevel = 'relaxed' | 'normal' | 'busy' | 'very_busy' | 'unknown';
+
+export interface CrowdingSnapshot {
+  scope: 'area' | 'place';
+  source: 'seoul' | 'skt' | 'merchant' | 'unknown';
+  areaCode?: string;
+  areaName?: string;
+  providerPlaceId?: string;
+  level: CrowdingLevel;
+  label: '여유' | '보통' | '약간 붐빔' | '붐빔' | '정보 없음';
+  message: string;
+  observedAt?: string;
+  fetchedAt: string;
+  stale: boolean;
+}
+
 export interface CoursePlace {
   id: string;
   time?: string;
@@ -91,6 +107,7 @@ export interface CoursePlace {
   lng?: number | string;
   searchKeyword?: string;
   tags: string[];
+  crowding?: CrowdingSnapshot;
 }
 
 export interface CoursePlan {
