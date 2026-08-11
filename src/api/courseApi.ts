@@ -28,7 +28,7 @@ export async function saveCourse(title: string, location: string, courseData: Co
     throw new Error('로그인이 필요해요.');
   }
 
-  return apiJson<{ success?: boolean; courseId?: number }>('/api/course/explore/save-course', {
+  return apiJson<{ success?: boolean; courseId?: number; alreadySaved?: boolean; message?: string }>('/api/course/explore/save-course', {
     method: 'POST',
     body: JSON.stringify({
       userId: user.userId,

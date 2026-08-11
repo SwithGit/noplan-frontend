@@ -4622,6 +4622,9 @@ button {
 .result-place-list button { grid-template-columns: 58px minmax(0, 1fr); border-color: var(--nopi-border); border-radius: 14px; }
 .result-place-list .place-visual { width: 58px; height: 58px; }
 .result-actions { position: sticky; bottom: 0; z-index: 5; padding: 12px 0 2px; background: linear-gradient(180deg, rgba(248,247,251,0), var(--nopi-bg) 25%); }
+.result-actions button:disabled { cursor: default; opacity: .72; }
+.result-save-message { grid-column: 1 / -1; margin: 0; border: 1px solid #b8e4d4; border-radius: 12px; background: #e8f8f2; color: #087353; padding: 10px 12px; font-size: 12px; font-weight: 850; text-align: center; }
+.result-save-message.error { border-color: #f0c8c8; background: #fff0f0; color: #a33636; }
 
 /* Active course */
 .course-empty-screen { min-height: 520px; }

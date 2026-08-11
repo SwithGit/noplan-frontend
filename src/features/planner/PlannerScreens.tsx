@@ -1767,10 +1767,12 @@ export function ResultScreen() {
   const { condition, plan, runSearch, selectCurrentPlan, setCondition } = usePlanner();
   const feedbackStorageKey = `noplanMvpFeedback:${plan.searchCourseId || plan.algorithmVersion || 'current'}`;
   const [saveMessage, setSaveMessage] = useState('');
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [feedbackScore, setFeedbackScore] = useState(0);
   const [feedbackConcern, setFeedbackConcern] = useState('');
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(() => sessionStorage.getItem(feedbackStorageKey) === 'submitted');
   const didTrackResult = useRef(false);
+  const saveInFlight = useRef(false);
   const locationText = displayLocationLabel(condition);
   const hasCourse = plan.source !== 'fallback' && plan.courseData.length > 0;
   const crowding = plan.courseData.find((place) => place.crowding)?.crowding;
@@ -1817,11 +1819,21 @@ export function ResultScreen() {
   }, [condition, plan]);
 
   const handleSave = async () => {
+    if (saveInFlight.current || saveStatus === 'saved') return;
+    saveInFlight.current = true;
+    setSaveStatus('saving');
+    setSaveMessage('코스를 저장하고 있어요.');
+
     try {
       const result = await saveCourse(plan.title, plan.location, plan.courseData);
-      setSaveMessage(result.success ? '코스를 저장했어요.' : '저장 결과를 확인해줘.');
+      if (!result.success) throw new Error(result.message || '저장 결과를 확인해 주세요.');
+      setSaveStatus('saved');
+      setSaveMessage(result.alreadySaved ? '이미 저장된 코스예요.' : '코스를 저장했어요. 마이에서 확인할 수 있어요.');
     } catch (error) {
+      setSaveStatus('error');
       setSaveMessage(error instanceof Error ? error.message : '저장하지 못했어요.');
+    } finally {
+      saveInFlight.current = false;
     }
   };
 
@@ -1892,8 +1904,6 @@ export function ResultScreen() {
         </section>
       )}
 
-      {saveMessage && <p className="inline-message">{saveMessage}</p>}
-
       {hasCourse && (
         <section className="mvp-feedback-panel">
           <div><span>MVP 피드백</span><h2>이 코스로 실제 나가볼 의향이 있나요?</h2></div>
@@ -1921,12 +1931,19 @@ export function ResultScreen() {
       )}
 
       <div className="sticky-actions result-actions">
+        {saveMessage && (
+          <p className={`result-save-message ${saveStatus === 'error' ? 'error' : ''}`} role={saveStatus === 'error' ? 'alert' : 'status'}>
+            {saveMessage}
+          </p>
+        )}
         {hasCourse ? (
           <>
             {plan.partial ? (
               <button type="button" onClick={() => void retrySearch(true)}>범위를 넓혀 다시 찾기</button>
             ) : (
-              <button type="button" onClick={handleSave}>저장</button>
+              <button disabled={saveStatus === 'saving' || saveStatus === 'saved'} type="button" onClick={() => void handleSave()}>
+                {saveStatus === 'saving' ? '저장 중' : saveStatus === 'saved' ? '저장됨' : '저장'}
+              </button>
             )}
             <button className="primary" type="button" onClick={() => {
               if (selectCurrentPlan()) navigate('/course/map');
