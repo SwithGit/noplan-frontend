@@ -1887,7 +1887,9 @@ export function ResultScreen() {
           <h2>추천된 장소</h2>
           <div className="result-place-list">
             {plan.courseData.map((place, index) => (
-              <button key={place.id} type="button" onClick={() => navigate(`/course/place/${index}`)}>
+              <button key={place.id} type="button" onClick={() => {
+                if (selectCurrentPlan()) navigate(`/course/place/${index}`);
+              }}>
                 <PlaceVisual alt={place.name} color={place.color} imageUrl={place.imageUrl} label={String(index + 1)} type={place.type} detailType={place.detailType} />
                 <div className="result-place-copy">
                   <strong>{place.searchKeyword || place.title}</strong>
