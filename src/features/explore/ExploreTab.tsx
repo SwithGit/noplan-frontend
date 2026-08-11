@@ -38,6 +38,7 @@ export function ExploreTab() {
 
   const applyDong = useCallback((nextDong: string) => {
     setDong(nextDong);
+    setQuery('');
     setManualDong('');
     setLocationEditorOpen(false);
     setLocationError('');
@@ -166,10 +167,13 @@ export function ExploreTab() {
         </section>
       )}
 
-      <label className="explore-search">
-        <span aria-hidden="true" className="line-icon-search" />
-        <input aria-label="코스 검색" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="지역, 장소, 태그로 검색" />
-      </label>
+      <section className="explore-course-search" aria-label="현재 동네 코스 검색">
+        <span>코스 검색</span>
+        <label className="explore-search">
+          <span aria-hidden="true" className="line-icon-search" />
+          <input aria-label="코스 제목 또는 장소 검색" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="코스 제목이나 장소 이름 검색" />
+        </label>
+      </section>
 
       <div className="chip-row explore-sort" aria-label="정렬">
         <Chip active={sort === 'likes'} onClick={() => setSort('likes')}>인기순</Chip>

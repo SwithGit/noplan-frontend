@@ -112,7 +112,6 @@ export function exploreCourseToPlan(course: ExploreCourse, label = '저장된 �
 export function courseSearchText(course: ExploreCourse, places = parseExploreCoursePlaces(course)) {
   return [
     course.title,
-    course.location,
     course.user_nick,
     ...places.flatMap((place) => [place.title, place.name, place.category, place.detailType, ...place.tags]),
   ]
