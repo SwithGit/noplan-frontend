@@ -27,6 +27,7 @@ export function ExploreTab() {
   const [query, setQuery] = useState('');
   const [dong, setDong] = useState(readSavedDong);
   const [manualDong, setManualDong] = useState('');
+  const [locationEditorOpen, setLocationEditorOpen] = useState(false);
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState('');
   const [message, setMessage] = useState('');
@@ -38,6 +39,7 @@ export function ExploreTab() {
   const applyDong = useCallback((nextDong: string) => {
     setDong(nextDong);
     setManualDong('');
+    setLocationEditorOpen(false);
     setLocationError('');
     try {
       localStorage.setItem(EXPLORE_DONG_STORAGE_KEY, nextDong);
@@ -104,6 +106,12 @@ export function ExploreTab() {
     applyDong(nextDong);
   };
 
+  const toggleLocationEditor = () => {
+    setLocationError('');
+    setManualDong(dong);
+    setLocationEditorOpen((open) => !open);
+  };
+
   const visibleCourses = useMemo(() => {
     const keyword = query.trim().toLocaleLowerCase('ko-KR');
     if (!keyword) return courses;
@@ -140,14 +148,19 @@ export function ExploreTab() {
 
       <section className="explore-neighborhood" aria-label="탐색 동네">
         <div><span>내 동네</span><strong>{dong ? `${dong} 주변` : locating ? '현재 동네 찾는 중' : '동네를 설정해 주세요'}</strong></div>
-        <button disabled={locating} type="button" onClick={() => void locateNeighborhood()}>{locating ? '확인 중' : '현 위치로 설정'}</button>
+        <div className="explore-neighborhood-actions">
+          <button aria-expanded={locationEditorOpen || !dong || Boolean(locationError)} type="button" onClick={toggleLocationEditor}>동네 변경</button>
+          <button disabled={locating} type="button" onClick={() => void locateNeighborhood()}>{locating ? '확인 중' : '현 위치'}</button>
+        </div>
       </section>
 
-      {(!dong || locationError) && (
-        <section className="explore-location-fallback">
+      {(locationEditorOpen || !dong || locationError) && (
+        <section className={`explore-location-fallback ${locationError ? 'has-error' : ''}`}>
           {locationError && <p role="alert">{locationError}</p>}
           <div>
-            <input aria-label="탐색할 동네" placeholder="예: 연남동" value={manualDong} onChange={(event) => setManualDong(event.target.value)} />
+            <input aria-label="탐색할 동네" placeholder="예: 연남동" value={manualDong} onChange={(event) => setManualDong(event.target.value)} onKeyDown={(event) => {
+              if (event.key === 'Enter') applyManualDong();
+            }} />
             <button type="button" onClick={applyManualDong}>동네 적용</button>
           </div>
         </section>
