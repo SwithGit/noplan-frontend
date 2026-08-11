@@ -430,19 +430,21 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
   };
 
   const replacePlace = (index: number, place: CoursePlace) => {
-    setActivePlan((prev) => {
-      if (!prev) return prev;
-      const courseData = [...prev.courseData];
-      const duplicatesExistingPlace = courseData.some((item, itemIndex) => (
-        itemIndex !== index
-        && ((place.catalogPlaceId && item.catalogPlaceId === place.catalogPlaceId)
-          || (place.brandName && item.brandName === place.brandName))
-      ));
-      if (duplicatesExistingPlace) return prev;
-      courseData[index] = { ...place, time: courseData[index]?.time || String(index + 1) };
+    if (!activePlan || index < 0 || index >= activePlan.courseData.length) return;
 
-      return { ...prev, courseData };
-    });
+    const courseData = [...activePlan.courseData];
+    const duplicatesExistingPlace = courseData.some((item, itemIndex) => (
+      itemIndex !== index
+      && ((place.catalogPlaceId && item.catalogPlaceId === place.catalogPlaceId)
+        || (place.brandName && item.brandName === place.brandName))
+    ));
+    if (duplicatesExistingPlace) return;
+
+    courseData[index] = { ...place, time: courseData[index]?.time || String(index + 1) };
+    const replacedPlan = { ...activePlan, courseData };
+
+    setActivePlan(replacedPlan);
+    setPlan((currentPlan) => (currentPlan === activePlan ? replacedPlan : currentPlan));
   };
 
   const resetPlanner = () => {
