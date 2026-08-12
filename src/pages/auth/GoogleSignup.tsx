@@ -1,6 +1,7 @@
 // GoogleSignup.tsx
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { ROUTES } from '../../routes';
 
 function GoogleSignup() {
   const location = useLocation();
@@ -8,7 +9,7 @@ function GoogleSignup() {
 
   const googleInfo = location.state?.googleInfo;
 
-  const [nickname, setNickname] = useState('');
+  const [nickname, setNickname] = useState(() => googleInfo?.nickname || '');
   const [phone, setPhone] = useState('');
   const [travelStyle, setTravelStyle] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
@@ -16,10 +17,9 @@ function GoogleSignup() {
   useEffect(() => {
     if (!googleInfo) {
       alert('잘못된 접근입니다. 다시 로그인해주세요.');
-      navigate('/login');
+      navigate(ROUTES.login);
       return;
     }
-    if (googleInfo.nickname) setNickname(googleInfo.nickname);
   }, [googleInfo, navigate]);
 
   const handleSignup = async () => {
@@ -60,7 +60,7 @@ function GoogleSignup() {
         };
         localStorage.setItem('loggedInUser', JSON.stringify(userToSave));
         
-        window.location.href = '/';
+        window.location.href = ROUTES.appHome;
       } else {
         alert(result.message || '회원가입에 실패했습니다.');
       }

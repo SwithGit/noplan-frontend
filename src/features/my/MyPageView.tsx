@@ -9,6 +9,7 @@ import type { CoursePlan, ExploreCourse, MyPageSummary, UserSession } from '../.
 import { exploreCourseToPlan, parseExploreCoursePlaces } from '../../utils/coursePlan';
 import { extractDongFromText, normalizeDongInput } from '../../utils/location';
 import { usePlanner } from '../planner/PlannerContext';
+import { ROUTES } from '../../routes';
 
 interface MyPageViewProps {
   onLogout: () => void;
@@ -92,7 +93,7 @@ export function MyPageView({ onLogout, user }: MyPageViewProps) {
 
       if (!plan) throw new Error('코스 상세 데이터가 없어요.');
       loadPlan(plan);
-      navigate('/course/map');
+      navigate(ROUTES.courseMap);
     } catch (error) {
       setCourseErrors((previous) => ({
         ...previous,
@@ -156,7 +157,7 @@ export function MyPageView({ onLogout, user }: MyPageViewProps) {
           <span className="eyebrow">내 코스 보관함</span>
           <h1>마음에 든 코스를 다시 만나세요</h1>
           <p>로그인하면 추천 기록과 저장한 코스를 한곳에서 이어볼 수 있어요.</p>
-          <button className="primary-bottom-button static" type="button" onClick={() => navigate('/login')}>로그인하기</button>
+          <button className="primary-bottom-button static" type="button" onClick={() => navigate(ROUTES.login)}>로그인하기</button>
         </section>
         <section className="login-benefits" aria-label="로그인 혜택">
           <article><strong>저장</strong><span>마음에 든 코스를 보관해요</span></article>
@@ -206,7 +207,7 @@ export function MyPageView({ onLogout, user }: MyPageViewProps) {
         ) : activeCourses.length === 0 ? (
           <div className="my-empty-state">
             <p>{activeTab === 'saved' ? '아직 저장한 코스가 없어요. 탐색에서 마음에 드는 홍대 코스를 찾아보세요.' : '최근 본 코스가 아직 없어요.'}</p>
-            {activeTab === 'saved' && <button type="button" onClick={() => navigate('/explore')}>탐색으로 이동</button>}
+            {activeTab === 'saved' && <button type="button" onClick={() => navigate(ROUTES.explore)}>탐색으로 이동</button>}
           </div>
         ) : (
           <div className="my-course-list">

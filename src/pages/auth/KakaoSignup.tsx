@@ -1,6 +1,7 @@
 // KakaoSignup.tsx
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { ROUTES } from '../../routes';
 
 function KakaoSignup() {
   const location = useLocation();
@@ -9,7 +10,7 @@ function KakaoSignup() {
   // KakaoCallback에서 챙겨온 카카오 기본 정보 보따리 풀기
   const kakaoInfo = location.state?.kakaoInfo;
 
-  const [nickname, setNickname] = useState('');
+  const [nickname, setNickname] = useState(() => kakaoInfo?.nickname || '');
   const [phone, setPhone] = useState('');
   const [travelStyle, setTravelStyle] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
@@ -18,12 +19,8 @@ function KakaoSignup() {
     // 정보가 없으면 비정상적인 접근이므로 로그인 화면으로 돌려보냅니다.
     if (!kakaoInfo) {
       alert('잘못된 접근입니다. 다시 로그인해주세요.');
-      navigate('/login');
+      navigate(ROUTES.login);
       return;
-    }
-    // 카카오에서 받아온 닉네임이 있다면 편하게 쓰시라고 기본값으로 세팅!
-    if (kakaoInfo.nickname) {
-      setNickname(kakaoInfo.nickname);
     }
   }, [kakaoInfo, navigate]);
 
@@ -69,7 +66,7 @@ function KakaoSignup() {
         localStorage.setItem('loggedInUser', JSON.stringify(userToSave));
         
         // 홈 화면으로 이동
-        window.location.href = '/';
+        window.location.href = ROUTES.appHome;
       } else {
         alert(result.message || '회원가입에 실패했습니다.');
       }

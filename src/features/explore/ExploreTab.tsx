@@ -8,6 +8,7 @@ import type { ExploreCourse } from '../../types/noplan';
 import { courseSearchText, exploreCourseToPlan, parseExploreCoursePlaces } from '../../utils/coursePlan';
 import { extractDongFromText, normalizeDongInput } from '../../utils/location';
 import { usePlanner } from '../planner/PlannerContext';
+import { ROUTES } from '../../routes';
 
 const EXPLORE_DONG_STORAGE_KEY = 'noplanExploreDong';
 
@@ -126,7 +127,7 @@ export function ExploreTab() {
       return;
     }
     loadPlan(plan);
-    navigate('/course/map');
+    navigate(ROUTES.courseMap);
   };
 
   const likeCourse = async (course: ExploreCourse) => {

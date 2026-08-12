@@ -9,6 +9,7 @@ import { CrowdingStatus } from '../../components/ui/CrowdingStatus';
 import { usePlanner } from '../planner/PlannerContext';
 import type { CoursePlace } from '../../types/noplan';
 import { trackPlaceInteraction } from '../../api/plannerApi';
+import { ROUTES, coursePlaceRoute, courseReplaceRoute } from '../../routes';
 
 function placeAt(places: CoursePlace[], indexValue: string | undefined) {
   const index = Number(indexValue || 0);
@@ -98,18 +99,23 @@ export function CourseMapScreen() {
   const navigate = useNavigate();
   const routeLocation = useLocation();
   const { activePlan: plan, condition, hasActivePlan } = usePlanner();
-  const replacementMessage = (routeLocation.state as { replacementMessage?: string } | null)?.replacementMessage;
+  const routeState = routeLocation.state as { replacementMessage?: string; sharedCourseError?: boolean } | null;
+  const replacementMessage = routeState?.replacementMessage;
+  const sharedCourseError = routeState?.sharedCourseError;
 
   if (!hasActivePlan || !plan || plan.courseData.length === 0) {
     return (
       <div className="course-screen course-empty-screen">
-        <AppTopBar title="내 코스" subtitle="아직 출발할 코스가 없어요" />
+        <AppTopBar title="내 코스" subtitle={sharedCourseError ? '공유 코스를 확인하지 못했어요' : '아직 출발할 코스가 없어요'} />
         <section className="course-empty-state">
           <span aria-hidden="true">⌁</span>
-          <h1>아직 선택한 코스가 없어요</h1>
-          <p>검색 결과에서 ‘이 코스로 출발’을 누르거나 탐색에서 마음에 드는 코스를 골라보세요.</p>
-          <button className="primary" type="button" onClick={() => navigate('/')}>코스 추천받기</button>
-          <button type="button" onClick={() => navigate('/explore')}>탐색에서 둘러보기</button>
+          <h1>{sharedCourseError ? '공유 코스를 불러오지 못했어요' : '아직 선택한 코스가 없어요'}</h1>
+          <p>{sharedCourseError
+            ? '코스가 삭제되었거나 잠시 연결이 원활하지 않을 수 있어요. 다시 시도하거나 새 코스를 추천받아보세요.'
+            : '검색 결과에서 ‘이 코스로 출발’을 누르거나 탐색에서 마음에 드는 코스를 골라보세요.'}</p>
+          {sharedCourseError && <button type="button" onClick={() => navigate(0)}>다시 시도</button>}
+          <button className="primary" type="button" onClick={() => navigate(ROUTES.appHome)}>코스 추천받기</button>
+          <button type="button" onClick={() => navigate(ROUTES.explore)}>탐색에서 둘러보기</button>
         </section>
       </div>
     );
@@ -144,7 +150,7 @@ export function CourseMapScreen() {
               <p>{place.summary}</p>
               <CrowdingStatus compact snapshot={place.crowding} />
             </div>
-            <button type="button" onClick={() => navigate(`/course/place/${index}`)}>
+            <button type="button" onClick={() => navigate(coursePlaceRoute(index))}>
               보기
             </button>
           </article>
@@ -152,7 +158,7 @@ export function CourseMapScreen() {
       </section>
 
       <div className="sticky-actions">
-        <button type="button" onClick={() => navigate('/planner/result')}>
+        <button type="button" onClick={() => navigate(ROUTES.plannerResult)}>
           추천 결과
         </button>
         <button className="primary" type="button" onClick={() => {
@@ -189,7 +195,7 @@ export function PlaceDetailScreen() {
         <section className="course-empty-state">
           <h1>열 수 있는 장소가 없어요</h1>
           <p>먼저 코스를 선택해 주세요.</p>
-          <button className="primary" type="button" onClick={() => navigate('/explore')}>코스 둘러보기</button>
+          <button className="primary" type="button" onClick={() => navigate(ROUTES.explore)}>코스 둘러보기</button>
         </section>
       </div>
     );
@@ -293,7 +299,7 @@ export function PlaceDetailScreen() {
       )}
 
       <div className="sticky-actions">
-        <button type="button" onClick={() => navigate(`/course/replace/${placeIndex}`)}>
+        <button type="button" onClick={() => navigate(courseReplaceRoute(placeIndex))}>
           바꾸기
         </button>
         <button className="primary" type="button" onClick={() => openKakaoDestination(place)}>
@@ -323,7 +329,7 @@ export function ReplacementCandidates() {
         <section className="course-empty-state">
           <h1>바꿀 장소가 없어요</h1>
           <p>먼저 코스를 선택해 주세요.</p>
-          <button className="primary" type="button" onClick={() => navigate('/explore')}>코스 둘러보기</button>
+          <button className="primary" type="button" onClick={() => navigate(ROUTES.explore)}>코스 둘러보기</button>
         </section>
       </div>
     );
@@ -342,8 +348,8 @@ export function ReplacementCandidates() {
         {candidates.length === 0 && (
           <section className="replacement-empty">
             <p className="inline-message warning">현재 코스와 비슷한 교체 후보가 아직 없어요.</p>
-            <button type="button" onClick={() => navigate('/planner/condition')}>조건 수정하기</button>
-            <button className="primary" type="button" onClick={() => navigate('/course/map')}>현재 장소 유지</button>
+            <button type="button" onClick={() => navigate(ROUTES.plannerCondition)}>조건 수정하기</button>
+            <button className="primary" type="button" onClick={() => navigate(ROUTES.courseMap)}>현재 장소 유지</button>
           </section>
         )}
         {candidates.map((candidate) => (
@@ -362,7 +368,7 @@ export function ReplacementCandidates() {
               onClick={() => {
                 trackPlaceInteraction('place_replace', candidate, placeIndex + 1).catch(() => undefined);
                 replacePlace(placeIndex, candidate);
-                navigate('/course/map', { state: { replacementMessage: `${current.title}을(를) ${candidate.title}(으)로 바꿨어요.` } });
+                navigate(ROUTES.courseMap, { state: { replacementMessage: `${current.title}을(를) ${candidate.title}(으)로 바꿨어요.` } });
               }}
             >
               교체

@@ -1,6 +1,7 @@
 // NaverSignup.tsx
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { ROUTES } from '../../routes';
 
 function NaverSignup() {
   const location = useLocation();
@@ -8,19 +9,17 @@ function NaverSignup() {
 
   const naverInfo = location.state?.naverInfo;
 
-  const [nickname, setNickname] = useState('');
-  const [phone, setPhone] = useState('');
+  const [nickname, setNickname] = useState(() => naverInfo?.nickname || '');
+  const [phone, setPhone] = useState(() => naverInfo?.phone || '');
   const [travelStyle, setTravelStyle] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
 
   useEffect(() => {
     if (!naverInfo) {
       alert('잘못된 접근입니다. 다시 로그인해주세요.');
-      navigate('/login');
+      navigate(ROUTES.login);
       return;
     }
-    if (naverInfo.nickname) setNickname(naverInfo.nickname);
-    if (naverInfo.phone) setPhone(naverInfo.phone); 
   }, [naverInfo, navigate]);
 
   const handleSignup = async () => {
@@ -61,7 +60,7 @@ function NaverSignup() {
         };
         localStorage.setItem('loggedInUser', JSON.stringify(userToSave));
         
-        window.location.href = '/';
+        window.location.href = ROUTES.appHome;
       } else {
         alert(result.message || '회원가입에 실패했습니다.');
       }

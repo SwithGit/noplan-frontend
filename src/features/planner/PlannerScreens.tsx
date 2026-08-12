@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+﻿import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Chip } from '../../components/ui/Chip';
 import { AppTopBar } from '../../components/ui/AppTopBar';
@@ -14,6 +14,7 @@ import nopiIconImage from '../../assets/nopi/nopi-icon.png';
 import { saveCourse } from '../../api/courseApi';
 import { trackMvpFeedback, trackPlannerEvent } from '../../api/plannerApi';
 import type { PlannerCondition } from '../../types/noplan';
+import { ROUTES, coursePlaceRoute } from '../../routes';
 import { usePlanner } from './PlannerContext';
 import {
   PLANNER_CATEGORIES,
@@ -166,7 +167,6 @@ function compactLocationLabel(location: string) {
 function displayLocationLabel(condition: { location: string; locationLabel?: string }) {
   return condition.locationLabel || compactLocationLabel(condition.location);
 }
-
 function isSupportedPlannerLocation(location: string) {
   return /홍대|연남|동교|서교|합정|상수|성미산|와우산|창전/u.test(location);
 }
@@ -301,7 +301,7 @@ export function PlannerHome() {
     }
 
     await startFromText(text);
-    navigate('/planner/condition');
+    navigate(ROUTES.plannerCondition);
   };
 
   const handleCurrentLocation = async () => {
@@ -390,7 +390,7 @@ export function PlannerHome() {
             rawText: '',
             time: '',
           });
-          navigate('/planner/chat');
+          navigate(ROUTES.plannerChat);
         }}
       >
         <span>입력 없이 고르기</span>
@@ -408,7 +408,7 @@ export function PlannerHome() {
         </article>
       </section>
 
-      <button className="course-preview" type="button" onClick={() => navigate('/course/map')}>
+      <button className="course-preview" type="button" onClick={() => navigate(ROUTES.courseMap)}>
         <PlaceVisual color="#E6F7F0" />
         <div>
           <strong>{plan.title}</strong>
@@ -591,12 +591,12 @@ export function ChatStart() {
       return;
     }
     setCondition({ rawText: buildHomePrompt(condition) });
-    navigate('/planner/condition');
+    navigate(ROUTES.plannerCondition);
   };
 
   const goBack = () => {
     if (activeStep === 0) {
-      navigate('/');
+      navigate(ROUTES.appHome);
       return;
     }
     setActiveStep((step) => step - 1);
@@ -1442,14 +1442,14 @@ export function ConditionConfirm() {
       setEditSection(firstMissingSection);
       return;
     }
-    navigate('/planner/searching');
+    navigate(ROUTES.plannerSearching);
     const [searchSucceeded] = await Promise.all([
       runSearch(),
       new Promise((resolve) => {
         window.setTimeout(resolve, 1200);
       }),
     ]);
-    if (searchSucceeded) navigate('/planner/result', { replace: true });
+    if (searchSucceeded) navigate(ROUTES.plannerResult, { replace: true });
   };
 
   const retryCurrentLocation = async () => {
@@ -1662,7 +1662,7 @@ export function SearchingScreen() {
   const retrySearch = async () => {
     setSearchTakingLong(false);
     const succeeded = await runSearch();
-    if (succeeded) navigate('/planner/result', { replace: true });
+    if (succeeded) navigate(ROUTES.plannerResult, { replace: true });
   };
 
   const searchFailed = Boolean(searchError && !isSearching);
@@ -1733,7 +1733,7 @@ export function SearchingScreen() {
           <h2>이번 조건으로 코스를 완성하지 못했어요</h2>
           <p>{searchError}</p>
           <div>
-            <button type="button" onClick={() => navigate('/planner/condition', { replace: true })}>조건 수정</button>
+            <button type="button" onClick={() => navigate(ROUTES.plannerCondition, { replace: true })}>조건 수정</button>
             <button className="primary" type="button" onClick={() => void retrySearch()}>같은 조건으로 다시 찾기</button>
           </div>
         </section>
@@ -1846,9 +1846,9 @@ export function ResultScreen() {
 
   const retrySearch = async (widen = false) => {
     if (widen) setCondition({ extras: [] });
-    navigate('/planner/searching');
+    navigate(ROUTES.plannerSearching);
     const succeeded = await runSearch();
-    if (succeeded) navigate('/planner/result', { replace: true });
+    if (succeeded) navigate(ROUTES.plannerResult, { replace: true });
   };
 
   return (
@@ -1888,7 +1888,7 @@ export function ResultScreen() {
           <div className="result-place-list">
             {plan.courseData.map((place, index) => (
               <button key={place.id} type="button" onClick={() => {
-                if (selectCurrentPlan()) navigate(`/course/place/${index}`);
+                if (selectCurrentPlan()) navigate(coursePlaceRoute(index));
               }}>
                 <PlaceVisual alt={place.name} color={place.color} imageUrl={place.imageUrl} label={String(index + 1)} type={place.type} detailType={place.detailType} />
                 <div className="result-place-copy">
@@ -1948,14 +1948,14 @@ export function ResultScreen() {
               </button>
             )}
             <button className="primary" type="button" onClick={() => {
-              if (selectCurrentPlan()) navigate('/course/map');
+              if (selectCurrentPlan()) navigate(ROUTES.courseMap);
             }}>
               이 코스로 출발
             </button>
           </>
         ) : (
           <>
-            <button type="button" onClick={() => navigate('/planner/condition')}>조건 수정</button>
+            <button type="button" onClick={() => navigate(ROUTES.plannerCondition)}>조건 수정</button>
             <button className="primary" type="button" onClick={() => void retrySearch()}>
               같은 조건으로 다시 찾기
             </button>

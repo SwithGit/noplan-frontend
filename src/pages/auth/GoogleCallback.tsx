@@ -1,20 +1,12 @@
 // GoogleCallback.tsx
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '../../routes';
 
 function GoogleCallback() {
   const navigate = useNavigate();
 
-  useEffect(() => {
-    // 주소창에서 구글이 준 '통과 팔찌(code)'를 쏙 빼냅니다.
-    const code = new URL(window.location.href).searchParams.get('code');
-    
-    if (code) {
-      sendCodeToBackend(code);
-    }
-  }, []);
-
-  const sendCodeToBackend = async (code: string) => {
+  const sendCodeToBackend = useCallback(async (code: string) => {
     const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/google/google`, {
@@ -28,7 +20,7 @@ function GoogleCallback() {
       if (response.ok && result.success) {
         if (result.isNewUser) {
           alert(result.message);
-          navigate('/google-signup', { state: { googleInfo: result.googleInfo } });
+          navigate(ROUTES.googleSignup, { state: { googleInfo: result.googleInfo } });
         } else {
           const userToSave = { 
             userId: result.user.id, 
@@ -37,18 +29,23 @@ function GoogleCallback() {
           };
           localStorage.setItem('loggedInUser', JSON.stringify(userToSave));
           
-          window.location.href = '/'; 
+          window.location.href = ROUTES.appHome;
         }
       } else {
         alert('구글 로그인에 실패했습니다: ' + result.message);
-        navigate('/login');
+        navigate(ROUTES.login);
       }
     } catch (error) {
       console.error('서버 통신 오류:', error);
       alert('서버와 연결할 수 없습니다. 잠시 후 다시 시도해주세요.');
-      navigate('/login');
+      navigate(ROUTES.login);
     }
-  };
+  }, [navigate]);
+
+  useEffect(() => {
+    const code = new URL(window.location.href).searchParams.get('code');
+    if (code) void sendCodeToBackend(code);
+  }, [sendCodeToBackend]);
 
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column' }}>
