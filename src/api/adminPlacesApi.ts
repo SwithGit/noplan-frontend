@@ -24,6 +24,32 @@ export interface PlaceMenuInput {
   isSignature?: boolean | number;
   isAvailable?: boolean | number;
   source?: string | null;
+  sourcePlaceId?: string | null;
+  sourceMenuId?: string | null;
+  matchConfidence?: number | null;
+  lastVerifiedAt?: string | null;
+}
+
+export interface ExternalDataStatus {
+  configured: { redtable: boolean; sbiz: boolean; generalRestaurant: boolean };
+  sync: Array<{
+    provider: string; resourceType: string; status: string; lastPage: number;
+    totalCount: number; processedCount: number; errorCount: number;
+    startedAt?: string | null; finishedAt?: string | null; lastError?: string | null;
+  }>;
+}
+
+export interface CandidateExternalMatch {
+  provider: string;
+  providerPlaceId: string;
+  status: 'matched' | 'review_required' | 'not_found' | 'rejected' | 'error';
+  method?: string | null;
+  confidence?: number | null;
+  distanceM?: number | null;
+  metadata?: {
+    businessStatus?: string | null;
+    externalPlace?: { name?: string; address?: string; roadAddress?: string; phone?: string; businessStatus?: string } | null;
+  };
 }
 
 export interface PlaceEditorial {
@@ -84,6 +110,7 @@ export interface PlaceCandidate {
   menuCount?: number;
   images?: PlaceImageInput[];
   menus?: PlaceMenuInput[];
+  externalMatches?: CandidateExternalMatch[];
   editorial?: PlaceEditorial;
 }
 
@@ -166,7 +193,7 @@ export interface ApifyCollectionResult extends ApiEnvelope {
 export function collectApifyCandidates(
   key: string,
   adminId: string,
-  input: { regionKey: RegionKey; query: string; targetCount: number; minRating: number; minReviewCount: number },
+  input: { regionKey: RegionKey; query: string; targetCount: number; minRating: number; minReviewCount: number; radius: number },
 ) {
   return adminJson<ApifyCollectionResult>(
     '/api/admin/places/collect-apify', key, adminId,
@@ -192,6 +219,31 @@ export function listPlaceCandidates(
     `/api/admin/places/candidates?regionKey=${regionKey}&status=${status}&page=${page}&pageSize=${pageSize}`,
     key,
     adminId,
+  );
+}
+
+export function getExternalDataStatus(key: string, adminId: string, regionKey: RegionKey) {
+  return adminJson<ApiEnvelope & ExternalDataStatus>(
+    `/api/admin/places/external-data/status?regionKey=${regionKey}`, key, adminId,
+  );
+}
+
+export function enrichCandidatePublicData(key: string, adminId: string, candidateId: number) {
+  return adminJson<ApiEnvelope & {
+    matches: Record<string, { status: string; confidence?: number; businessStatus?: string; menuCount?: number }>;
+    importedMenuCount: number; reviewRequired: boolean;
+  }>(`/api/admin/places/candidates/${candidateId}/enrich-public-data`, key, adminId, { method: 'POST' });
+}
+
+export function reviewCandidateExternalMatch(
+  key: string,
+  adminId: string,
+  candidateId: number,
+  input: { provider: string; providerPlaceId: string; action: 'confirm' | 'reject' },
+) {
+  return adminJson<ApiEnvelope & { status: string; importedMenuCount: number }>(
+    `/api/admin/places/candidates/${candidateId}/external-match`, key, adminId,
+    { method: 'POST', body: JSON.stringify(input) },
   );
 }
 

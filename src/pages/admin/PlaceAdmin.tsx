@@ -4,10 +4,13 @@ import {
   checkAdminAccess,
   collectApifyCandidates,
   createPlaceCandidate,
+  enrichCandidatePublicData,
+  getExternalDataStatus,
   getPlaceCandidate,
   getPlaceCoverage,
   listPlaceCandidates,
   rejectPlaceCandidate,
+  reviewCandidateExternalMatch,
   updatePlaceCandidate,
   uploadPlaceImage,
   type CandidateStatus,
@@ -18,6 +21,7 @@ import {
   type PlaceMenuInput,
   type PlaceType,
   type RegionKey,
+  type ExternalDataStatus,
 } from '../../api/adminPlacesApi';
 import { PlaceVisual } from '../../components/ui/PlaceVisual';
 import {
@@ -31,7 +35,10 @@ import {
 
 const REGION_OPTIONS: Array<{ key: RegionKey; label: string }> = [
   { key: 'hongdae', label: '홍대입구역' },
+  { key: 'seongsu', label: '성수역' },
 ];
+
+const RADIUS_OPTIONS = [1000, 1500, 1800, 2500] as const;
 
 const DETAIL_OPTIONS: Record<PlannerCategoryKey, string[]> = {
   food: ['해산물', '고기', '한식', '일식', '중식', '양식', '분식', '기타 음식'],
@@ -129,7 +136,7 @@ function emptyCandidate(regionKey: RegionKey): PlaceCandidate {
     providerPlaceId: '',
     name: '',
     regionKey,
-    nearestStation: '홍대입구역',
+    nearestStation: regionKey === 'seongsu' ? '성수역' : '홍대입구역',
     entityType: 'venue',
     primaryType: 'activity',
     detailType: '보드게임',
@@ -210,11 +217,13 @@ export default function PlaceAdmin() {
   const [targetCount, setTargetCount] = useState(30);
   const [minRating, setMinRating] = useState(3.5);
   const [minReviewCount, setMinReviewCount] = useState(30);
+  const [radius, setRadius] = useState(2500);
   const [candidates, setCandidates] = useState<PlaceCandidate[]>([]);
   const [candidatePage, setCandidatePage] = useState(1);
   const [candidateTotal, setCandidateTotal] = useState(0);
   const [candidateTotalPages, setCandidateTotalPages] = useState(1);
   const [coverage, setCoverage] = useState<PlaceCoverage[]>([]);
+  const [externalDataStatus, setExternalDataStatus] = useState<ExternalDataStatus | null>(null);
   const [selected, setSelected] = useState<PlaceCandidate | null>(null);
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState('');
@@ -246,15 +255,17 @@ export default function PlaceAdmin() {
   }, []);
 
   const loadWorkspace = useCallback(async () => {
-    const [queue, coverageResult] = await Promise.all([
+    const [queue, coverageResult, externalStatus] = await Promise.all([
       listPlaceCandidates(adminKey, adminId || 'team', regionKey, status, candidatePage, CANDIDATE_PAGE_SIZE),
       getPlaceCoverage(adminKey, adminId || 'team', regionKey),
+      getExternalDataStatus(adminKey, adminId || 'team', regionKey),
     ]);
     setCandidates(queue.candidates);
     setCandidatePage(queue.page);
     setCandidateTotal(queue.totalCount);
     setCandidateTotalPages(queue.totalPages);
     setCoverage(coverageResult.coverage);
+    setExternalDataStatus(externalStatus);
   }, [adminId, adminKey, candidatePage, regionKey, status]);
 
   useEffect(() => {
@@ -284,6 +295,7 @@ export default function PlaceAdmin() {
         targetCount,
         minRating,
         minReviewCount,
+        radius,
       });
       const [queue, coverageResult] = await Promise.all([
         listPlaceCandidates(adminKey, adminId, regionKey, 'pending', 1, CANDIDATE_PAGE_SIZE),
@@ -301,6 +313,39 @@ export default function PlaceAdmin() {
         `Apify 수집 완료: 원본 ${result.rawCount}개 중 신규 ${result.inserted}개가 검수함에 들어갔습니다. `
         + `네이버 확인 ${result.naverChecks}건 · 기준 미달·미확인·중복 등 제외 ${skippedCount}개.`,
       );
+    }).catch(() => undefined);
+  };
+
+  const changeRegion = (nextRegion: RegionKey) => {
+    setRegionKey(nextRegion);
+    setRadius(nextRegion === 'seongsu' ? 1800 : 2500);
+    setMinReviewCount(nextRegion === 'seongsu' ? 10 : 30);
+    setCandidatePage(1);
+    setSelected(null);
+    setNotice('');
+    setError('');
+  };
+
+  const reviewExternalMatch = async (provider: string, providerPlaceId: string, action: 'confirm' | 'reject') => {
+    if (!selected?.id) return;
+    await run(async () => {
+      const result = await reviewCandidateExternalMatch(adminKey, adminId, selected.id!, { provider, providerPlaceId, action });
+      const refreshed = await getPlaceCandidate(adminKey, adminId, selected.id!);
+      setSelected(refreshed.candidate);
+      setNotice(action === 'confirm'
+        ? `외부 장소 매칭을 확정했습니다. 메뉴 ${result.importedMenuCount}개를 반영했습니다.`
+        : '외부 장소 매칭을 거절했습니다.');
+    }).catch(() => undefined);
+  };
+
+  const enrichPublicData = async () => {
+    if (!selected?.id) return;
+    await run(async () => {
+      const result = await enrichCandidatePublicData(adminKey, adminId, selected.id!);
+      const refreshed = await getPlaceCandidate(adminKey, adminId, selected.id!);
+      setSelected(refreshed.candidate);
+      const matched = Object.values(result.matches).filter((item) => item.status === 'matched').length;
+      setNotice(`공공데이터 보강 완료: 자동 매칭 ${matched}건 · 메뉴 ${result.importedMenuCount}개 반영${result.reviewRequired ? ' · 검수 필요 항목 있음' : ''}`);
     }).catch(() => undefined);
   };
 
@@ -363,6 +408,8 @@ export default function PlaceAdmin() {
       setError('승인 전에 이 장소의 핵심 목적을 하나 이상 선택해 주세요.');
       return;
     }
+    const closedMatch = selected.externalMatches?.find((match) => /폐업|영업종료|closed/i.test(match.metadata?.businessStatus || ''));
+    if (closedMatch && !window.confirm('공공데이터에서 폐업 또는 영업종료 상태가 확인되었습니다. 그래도 승인할까요?')) return;
     await run(async () => {
       await updatePlaceCandidate(adminKey, adminId, { ...selected, intentTags: validSelectedIntentTags });
       await approvePlaceCandidate(adminKey, adminId, selected.id!, {
@@ -442,7 +489,7 @@ export default function PlaceAdmin() {
         <div><p className="admin-eyebrow">NoPlan place catalog</p><h1>장소 등록·검수</h1></div>
         <div className="admin-header-actions">
           <div className="admin-segmented" aria-label="관리 지역">
-            {REGION_OPTIONS.map((region) => <button className={regionKey === region.key ? 'active' : ''} key={region.key} type="button" onClick={() => { setRegionKey(region.key); setCandidatePage(1); setSelected(null); }}>{region.label}</button>)}
+            {REGION_OPTIONS.map((region) => <button className={regionKey === region.key ? 'active' : ''} key={region.key} type="button" onClick={() => changeRegion(region.key)}>{region.label}</button>)}
           </div>
           <span className="admin-user-chip">{adminId}</span>
           <button className="admin-quiet-button" type="button" onClick={() => { sessionStorage.removeItem('noplanAdminKey'); setUnlocked(false); }}>잠금</button>
@@ -452,7 +499,7 @@ export default function PlaceAdmin() {
       {(notice || error) && <div className={`admin-alert ${error ? 'error' : 'success'}`}>{error || notice}</div>}
 
       <section className="admin-coverage-strip" aria-label="승인 장소 커버리지">
-        <div><strong>홍대 승인 장소 현황</strong><span>상세 분류별 최소 3곳 권장</span></div>
+        <div><strong>{regionKey === 'seongsu' ? '성수' : '홍대'} 승인 장소 현황</strong><span>상세 분류별 최소 3곳 권장</span></div>
         <div className="admin-coverage-list">
           {coverage.length ? coverage.map((item) => (
             <span className={item.shortage ? 'shortage' : ''} key={`${item.primaryType}-${item.detailType}`}>
@@ -475,10 +522,20 @@ export default function PlaceAdmin() {
               <button className="admin-primary-button" type="button" disabled={loading} onClick={search}>{loading ? 'Apify 수집 중' : 'Apify 후보 수집'}</button>
             </div>
             <div className="admin-collection-filters">
+              <label>수집 반경<select value={radius} onChange={(event) => setRadius(Number(event.target.value))}>{RADIUS_OPTIONS.map((meters) => <option key={meters} value={meters}>{(meters / 1000).toFixed(1)} km</option>)}</select></label>
               <label>목표 후보<input min="1" max="100" type="number" value={targetCount} onChange={(event) => setTargetCount(Number(event.target.value) || 1)} /></label>
               <label>최소 별점<input min="0" max="5" step="0.1" type="number" value={minRating} onChange={(event) => setMinRating(Number(event.target.value) || 0)} /></label>
               <label>최소 리뷰<input min="0" type="number" value={minReviewCount} onChange={(event) => setMinReviewCount(Number(event.target.value) || 0)} /></label>
             </div>
+            {regionKey === 'seongsu' && (
+              <div className="admin-external-data-status">
+                <strong>성수 공공데이터</strong>
+                <span>레드테이블 {externalDataStatus?.configured.redtable ? '연결됨' : '미설정'}</span>
+                <span>상가업소 {externalDataStatus?.configured.sbiz ? '연결됨' : '미설정'}</span>
+                <span>일반음식점 {externalDataStatus?.configured.generalRestaurant ? '연결됨' : '미설정'}</span>
+                {externalDataStatus?.sync.slice(0, 3).map((item) => <small key={`${item.provider}-${item.resourceType}`}>{item.provider}/{item.resourceType}: {item.status} · {item.processedCount}건</small>)}
+              </div>
+            )}
           </section>
 
           <section className="admin-panel-block queue-block">
@@ -514,6 +571,7 @@ export default function PlaceAdmin() {
                 <div><span className={`admin-entity-badge ${selected.entityType !== 'venue' ? 'warning' : ''}`}>{selected.entityType}</span><h2>{selected.name || '새 장소'}</h2><p>{displayAddress(selected)}</p></div>
                 <div>
                   {selectedKakaoMapUrl && <a className="admin-secondary-button admin-kakao-map-button" href={selectedKakaoMapUrl} target="_blank" rel="noopener noreferrer">카카오맵에서 보기</a>}
+                  {selected.id && selected.regionKey === 'seongsu' && <button className="admin-secondary-button" type="button" disabled={loading} onClick={enrichPublicData}>공공데이터 보강</button>}
                   {selected.id && <button className="admin-secondary-button" type="button" disabled={loading} onClick={saveCandidate}>저장</button>}
                 </div>
               </div>
@@ -570,6 +628,24 @@ export default function PlaceAdmin() {
                   />
                   <p className="admin-form-note">이미지나 메뉴가 없어도 이 세 항목과 좌표가 있으면 승인할 수 있습니다.</p>
                 </fieldset>
+
+                {!!selected.externalMatches?.length && (
+                  <fieldset className="admin-form-section admin-external-match-section">
+                    <legend>공공데이터 매칭</legend>
+                    <div className="admin-external-match-list">
+                      {selected.externalMatches.map((match) => {
+                        const place = match.metadata?.externalPlace;
+                        const closed = /폐업|영업종료|closed/i.test(match.metadata?.businessStatus || place?.businessStatus || '');
+                        return <article className={closed ? 'is-closed' : ''} key={match.provider}>
+                          <div><strong>{match.provider}</strong><span>{match.status === 'matched' ? `일치 ${Math.round(Number(match.confidence || 0) * 100)}%` : match.status === 'review_required' ? '확인 필요' : match.status}</span></div>
+                          {place && <p>{place.name}<br />{place.roadAddress || place.address || '주소 없음'}{place.phone ? ` · ${place.phone}` : ''}{match.distanceM != null ? ` · ${match.distanceM}m` : ''}</p>}
+                          {closed && <p className="admin-closed-warning">폐업 또는 영업종료 정보가 있습니다. 승인 전 반드시 확인하세요.</p>}
+                          {match.status === 'review_required' && <div className="admin-external-match-actions"><button type="button" onClick={() => reviewExternalMatch(match.provider, match.providerPlaceId, 'confirm')}>이 가게가 맞음</button><button type="button" onClick={() => reviewExternalMatch(match.provider, match.providerPlaceId, 'reject')}>아님</button></div>}
+                        </article>;
+                      })}
+                    </div>
+                  </fieldset>
+                )}
 
                 <fieldset className="admin-form-section">
                   <legend>기본 정보</legend>
@@ -630,9 +706,9 @@ export default function PlaceAdmin() {
                 </fieldset>
 
                 <fieldset className="admin-form-section">
-                  <div className="admin-section-heading"><legend>메뉴 <small>선택사항 · 직접 확인한 정보만</small></legend><button type="button" onClick={addMenu}>메뉴 추가</button></div>
+                  <div className="admin-section-heading"><legend>메뉴 <small>직접 확인 또는 공공데이터 출처</small></legend><button type="button" onClick={addMenu}>메뉴 추가</button></div>
                   <div className="admin-menu-list">
-                    {(selected.menus || []).map((menu, index) => <article className="admin-menu-editor compact" key={`${menu.id || 'new'}-${index}`}><input value={menu.name} onChange={(event) => updateSelected('menus', selected.menus!.map((item, itemIndex) => itemIndex === index ? { ...item, name: event.target.value } : item))} placeholder="메뉴명" /><input value={menu.priceText ?? menu.price ?? ''} onChange={(event) => { const value = event.target.value; const digits = value.replace(/[\s,원]/g, ''); const numericPrice = /^\d+$/.test(digits) ? Number(digits) : null; updateSelected('menus', selected.menus!.map((item, itemIndex) => itemIndex === index ? { ...item, price: numericPrice, priceText: numericPrice === null ? value || null : null } : item)); }} placeholder="가격 또는 가격 문의·변동" /><button type="button" onClick={() => updateSelected('menus', selected.menus!.filter((_, itemIndex) => itemIndex !== index))}>삭제</button></article>)}
+                    {(selected.menus || []).map((menu, index) => { const external = menu.source === 'redtable_seoul'; const updateMenu = (changes: Partial<PlaceMenuInput>) => updateSelected('menus', selected.menus!.map((item, itemIndex) => itemIndex === index ? { ...item, ...changes, ...(external ? { source: 'manual' } : {}) } : item)); return <article className="admin-menu-editor compact" key={`${menu.id || 'new'}-${index}`}><input value={menu.name} onChange={(event) => updateMenu({ name: event.target.value })} placeholder="메뉴명" /><input value={menu.priceText ?? menu.price ?? ''} onChange={(event) => { const value = event.target.value; const digits = value.replace(/[\s,원]/g, ''); const numericPrice = /^\d+$/.test(digits) ? Number(digits) : null; updateMenu({ price: numericPrice, priceText: numericPrice === null ? value || null : null }); }} placeholder="가격 또는 가격 문의·변동" />{external ? <span className="admin-menu-source">서울관광재단 · 신뢰도 {menu.matchConfidence?.toFixed(2) || '-'}<small>수정하면 수동 메뉴로 전환 · {menu.lastVerifiedAt ? new Date(menu.lastVerifiedAt).toLocaleDateString('ko-KR') : ''}</small></span> : null}<button type="button" onClick={() => updateSelected('menus', selected.menus!.filter((_, itemIndex) => itemIndex !== index))}>삭제</button></article>; })}
                     {!selected.menus?.length && <p className="admin-empty-copy">지금 등록하지 않아도 승인할 수 있습니다.</p>}
                   </div>
                 </fieldset>
