@@ -6,13 +6,10 @@ import {
   createPlaceCandidate,
   enrichCandidateNaverMenu,
   enrichCandidateNaverMenus,
-  enrichCandidatePublicData,
-  getExternalDataStatus,
   getPlaceCandidate,
   getPlaceCoverage,
   listPlaceCandidates,
   rejectPlaceCandidate,
-  reviewCandidateExternalMatch,
   updatePlaceCandidate,
   uploadPlaceImage,
   type CandidateStatus,
@@ -23,7 +20,6 @@ import {
   type PlaceMenuInput,
   type PlaceType,
   type RegionKey,
-  type ExternalDataStatus,
 } from '../../api/adminPlacesApi';
 import { PlaceVisual } from '../../components/ui/PlaceVisual';
 import {
@@ -34,22 +30,14 @@ import {
   normalizeCoreIntent,
   type PlannerCategoryKey,
 } from '../../features/planner/plannerIntents';
+import { PLACE_DETAIL_OPTIONS, SEONGSU_HUB_OPTIONS, type SeongsuHubKey } from '../../features/planner/placeCatalog';
 
 const REGION_OPTIONS: Array<{ key: RegionKey; label: string }> = [
   { key: 'hongdae', label: '홍대입구역' },
-  { key: 'seongsu', label: '성수역' },
+  { key: 'seongsu', label: '성수권' },
 ];
 
 const RADIUS_OPTIONS = [1000, 1500, 1800, 2500] as const;
-
-const DETAIL_OPTIONS: Record<PlannerCategoryKey, string[]> = {
-  food: ['해산물', '고기', '한식', '일식', '중식', '양식', '분식', '기타 음식'],
-  cafe: ['커피', '디저트', '베이커리', '브런치', '기타 카페'],
-  activity: ['공방/체험', '방탈출', '보드게임', '볼링', '노래방', '오락실', '스포츠', '서브컬쳐'],
-  culture: ['전시', '영화', '공연', '팝업', '미술관/박물관', '독립서점', '복합문화공간'],
-  drink: ['펍', '포차', '와인/칵테일', '이자카야', '기타 술집'],
-  walk: ['산책', '공원', '야경', '쇼핑몰', '시장/상권', '기타 명소'],
-};
 
 const CATEGORY_PLACE_TYPE: Record<PlannerCategoryKey, PlaceType> = {
   food: 'food',
@@ -182,9 +170,7 @@ function displayAddress(candidate: PlaceCandidate) {
 
 function externalProviderLabel(provider: string) {
   return ({
-    redtable_seoul: '서울관광재단',
-    sbiz: '소상공인 상가정보',
-    general_restaurant: '식품·관광식당 정보',
+    apify_naver_place: '네이버 플레이스 존재 확인',
     apify_naver_menu: '네이버 플레이스 메뉴',
   } as Record<string, string>)[provider] || '외부 데이터';
 }
@@ -201,7 +187,7 @@ function mainCategoryKeyForCandidate(candidate: PlaceCandidate): PlannerCategory
   if (candidate.primaryType === 'cafe') return 'cafe';
   if (candidate.primaryType === 'drink') return 'drink';
   if (candidate.primaryType === 'hotplace') return 'walk';
-  return DETAIL_OPTIONS.culture.includes(candidate.detailType || '') ? 'culture' : 'activity';
+  return PLACE_DETAIL_OPTIONS.culture.includes(candidate.detailType || '') ? 'culture' : 'activity';
 }
 
 function kakaoMapUrl(candidate: PlaceCandidate) {
@@ -229,6 +215,7 @@ export default function PlaceAdmin() {
   const [unlocked, setUnlocked] = useState(false);
   const [regionKey, setRegionKey] = useState<RegionKey>('hongdae');
   const [status, setStatus] = useState<CandidateStatus>('pending');
+  const [hubKey, setHubKey] = useState<SeongsuHubKey>('all');
   const [query, setQuery] = useState('');
   const [targetCount, setTargetCount] = useState(30);
   const [minRating, setMinRating] = useState(3.5);
@@ -240,7 +227,6 @@ export default function PlaceAdmin() {
   const [candidateTotal, setCandidateTotal] = useState(0);
   const [candidateTotalPages, setCandidateTotalPages] = useState(1);
   const [coverage, setCoverage] = useState<PlaceCoverage[]>([]);
-  const [externalDataStatus, setExternalDataStatus] = useState<ExternalDataStatus | null>(null);
   const [selected, setSelected] = useState<PlaceCandidate | null>(null);
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState('');
@@ -272,18 +258,16 @@ export default function PlaceAdmin() {
   }, []);
 
   const loadWorkspace = useCallback(async () => {
-    const [queue, coverageResult, externalStatus] = await Promise.all([
-      listPlaceCandidates(adminKey, adminId || 'team', regionKey, status, candidatePage, CANDIDATE_PAGE_SIZE),
-      getPlaceCoverage(adminKey, adminId || 'team', regionKey),
-      getExternalDataStatus(adminKey, adminId || 'team', regionKey),
+    const [queue, coverageResult] = await Promise.all([
+      listPlaceCandidates(adminKey, adminId || 'team', regionKey, status, candidatePage, CANDIDATE_PAGE_SIZE, hubKey),
+      getPlaceCoverage(adminKey, adminId || 'team', regionKey, hubKey),
     ]);
     setCandidates(queue.candidates);
     setCandidatePage(queue.page);
     setCandidateTotal(queue.totalCount);
     setCandidateTotalPages(queue.totalPages);
     setCoverage(coverageResult.coverage);
-    setExternalDataStatus(externalStatus);
-  }, [adminId, adminKey, candidatePage, regionKey, status]);
+  }, [adminId, adminKey, candidatePage, hubKey, regionKey, status]);
 
   useEffect(() => {
     if (!unlocked) return;
@@ -315,8 +299,8 @@ export default function PlaceAdmin() {
         radius,
       });
       const [queue, coverageResult] = await Promise.all([
-        listPlaceCandidates(adminKey, adminId, regionKey, 'pending', 1, CANDIDATE_PAGE_SIZE),
-        getPlaceCoverage(adminKey, adminId, regionKey),
+        listPlaceCandidates(adminKey, adminId, regionKey, 'pending', 1, CANDIDATE_PAGE_SIZE, hubKey),
+        getPlaceCoverage(adminKey, adminId, regionKey, hubKey),
       ]);
       setStatus('pending');
       setCandidatePage(queue.page);
@@ -335,6 +319,7 @@ export default function PlaceAdmin() {
 
   const changeRegion = (nextRegion: RegionKey) => {
     setRegionKey(nextRegion);
+    setHubKey('all');
     setRadius(nextRegion === 'seongsu' ? 1800 : 2500);
     setMinReviewCount(nextRegion === 'seongsu' ? 10 : 30);
     setCandidatePage(1);
@@ -342,29 +327,6 @@ export default function PlaceAdmin() {
     setSelected(null);
     setNotice('');
     setError('');
-  };
-
-  const reviewExternalMatch = async (provider: string, providerPlaceId: string, action: 'confirm' | 'reject') => {
-    if (!selected?.id) return;
-    await run(async () => {
-      const result = await reviewCandidateExternalMatch(adminKey, adminId, selected.id!, { provider, providerPlaceId, action });
-      const refreshed = await getPlaceCandidate(adminKey, adminId, selected.id!);
-      setSelected(refreshed.candidate);
-      setNotice(action === 'confirm'
-        ? `외부 장소 매칭을 확정했습니다. 메뉴 ${result.importedMenuCount}개를 반영했습니다.`
-        : '외부 장소 매칭을 거절했습니다.');
-    }).catch(() => undefined);
-  };
-
-  const enrichPublicData = async () => {
-    if (!selected?.id) return;
-    await run(async () => {
-      const result = await enrichCandidatePublicData(adminKey, adminId, selected.id!);
-      const refreshed = await getPlaceCandidate(adminKey, adminId, selected.id!);
-      setSelected(refreshed.candidate);
-      const matched = Object.values(result.matches).filter((item) => item.status === 'matched').length;
-      setNotice(`공공데이터 보강 완료: 자동 매칭 ${matched}건 · 메뉴 ${result.importedMenuCount}개 반영${result.reviewRequired ? ' · 검수 필요 항목 있음' : ''}`);
-    }).catch(() => undefined);
   };
 
   const enrichNaverMenu = async () => {
@@ -442,8 +404,8 @@ export default function PlaceAdmin() {
         const result = await createPlaceCandidate(adminKey, adminId, candidateToSave);
         const detail = await getPlaceCandidate(adminKey, adminId, result.candidateId);
         const [queue, coverageResult] = await Promise.all([
-          listPlaceCandidates(adminKey, adminId, regionKey, 'pending', 1, CANDIDATE_PAGE_SIZE),
-          getPlaceCoverage(adminKey, adminId, regionKey),
+          listPlaceCandidates(adminKey, adminId, regionKey, 'pending', 1, CANDIDATE_PAGE_SIZE, hubKey),
+          getPlaceCoverage(adminKey, adminId, regionKey, hubKey),
         ]);
         setSelected(detail.candidate);
         setStatus('pending');
@@ -462,8 +424,6 @@ export default function PlaceAdmin() {
       setError('승인 전에 이 장소의 핵심 목적을 하나 이상 선택해 주세요.');
       return;
     }
-    const closedMatch = selected.externalMatches?.find((match) => /폐업|영업종료|closed/i.test(match.metadata?.businessStatus || ''));
-    if (closedMatch && !window.confirm('공공데이터에서 폐업 또는 영업종료 상태가 확인되었습니다. 그래도 승인할까요?')) return;
     await run(async () => {
       await updatePlaceCandidate(adminKey, adminId, { ...selected, intentTags: validSelectedIntentTags });
       await approvePlaceCandidate(adminKey, adminId, selected.id!, {
@@ -471,8 +431,8 @@ export default function PlaceAdmin() {
         bestTimeTags: editorial.bestTimeTags,
       });
       const [queue, coverageResult] = await Promise.all([
-        listPlaceCandidates(adminKey, adminId, regionKey, 'approved', 1, CANDIDATE_PAGE_SIZE),
-        getPlaceCoverage(adminKey, adminId, regionKey),
+        listPlaceCandidates(adminKey, adminId, regionKey, 'approved', 1, CANDIDATE_PAGE_SIZE, hubKey),
+        getPlaceCoverage(adminKey, adminId, regionKey, hubKey),
       ]);
       setCandidatePage(queue.page);
       setCandidates(queue.candidates);
@@ -519,7 +479,7 @@ export default function PlaceAdmin() {
     }, '팀 소유 사진을 업로드했습니다.').catch(() => undefined);
   };
 
-  const detailOptions = useMemo(() => selected ? DETAIL_OPTIONS[selectedMainCategory] : [], [selected, selectedMainCategory]);
+  const detailOptions = useMemo(() => selected ? PLACE_DETAIL_OPTIONS[selectedMainCategory] : [], [selected, selectedMainCategory]);
   const selectedKakaoMapUrl = useMemo(() => selected ? kakaoMapUrl(selected) : null, [selected]);
 
   if (!unlocked) {
@@ -553,11 +513,14 @@ export default function PlaceAdmin() {
       {(notice || error) && <div className={`admin-alert ${error ? 'error' : 'success'}`}>{error || notice}</div>}
 
       <section className="admin-coverage-strip" aria-label="승인 장소 커버리지">
-        <div><strong>{regionKey === 'seongsu' ? '성수' : '홍대'} 승인 장소 현황</strong><span>상세 분류별 최소 3곳 권장</span></div>
+        <div><strong>{regionKey === 'seongsu' ? '성수권' : '홍대'} 승인 장소 현황</strong><span>거점·소분류별 목표 30곳</span></div>
+        {regionKey === 'seongsu' && <div className="admin-segmented" aria-label="성수권 거점">
+          {SEONGSU_HUB_OPTIONS.map((hub) => <button className={hubKey === hub.key ? 'active' : ''} key={hub.key} type="button" onClick={() => { setHubKey(hub.key); setCandidatePage(1); setSelected(null); }}>{hub.label}</button>)}
+        </div>}
         <div className="admin-coverage-list">
           {coverage.length ? coverage.map((item) => (
-            <span className={item.shortage ? 'shortage' : ''} key={`${item.primaryType}-${item.detailType}`}>
-              {item.detailType} {item.count}곳{item.shortage ? ' · 후보 부족' : ''}
+            <span className={item.shortage ? 'shortage' : ''} key={`${item.hubKey || 'region'}-${item.primaryType}-${item.detailType}`}>
+              {item.hubLabel ? `${item.hubLabel} · ` : ''}{item.detailType} A {item.tierA || 0} / B {item.tierB || 0} / C {item.tierC || 0} · 승인 {item.active ?? item.count}곳{item.shortage ? ` · ${item.shortageCount || 0}곳 부족` : ''}{item.exhausted ? ' · 검색 소진' : ''}
             </span>
           )) : <span className="shortage">승인된 장소가 아직 없습니다.</span>}
         </div>
@@ -581,15 +544,6 @@ export default function PlaceAdmin() {
               <label>최소 별점<input min="0" max="5" step="0.1" type="number" value={minRating} onChange={(event) => setMinRating(Number(event.target.value) || 0)} /></label>
               <label>최소 리뷰<input min="0" type="number" value={minReviewCount} onChange={(event) => setMinReviewCount(Number(event.target.value) || 0)} /></label>
             </div>
-            {regionKey === 'seongsu' && (
-              <div className="admin-external-data-status">
-                <strong>성수 공공데이터</strong>
-                <span>레드테이블 {externalDataStatus?.configured.redtable ? '연결됨' : '미설정'}</span>
-                <span>상가업소 {externalDataStatus?.configured.sbiz ? '연결됨' : '미설정'}</span>
-                <span>일반음식점 {externalDataStatus?.configured.generalRestaurant ? '연결됨' : '미설정'}</span>
-                {externalDataStatus?.sync.slice(0, 3).map((item) => <small key={`${item.provider}-${item.resourceType}`}>{item.provider}/{item.resourceType}: {item.status} · {item.processedCount}건</small>)}
-              </div>
-            )}
           </section>
 
           <section className="admin-panel-block queue-block">
@@ -609,7 +563,7 @@ export default function PlaceAdmin() {
                   {regionKey === 'seongsu' && <input aria-label={`${candidate.name} 선택`} type="checkbox" checked={Boolean(candidate.id && selectedCandidateIds.includes(candidate.id))} onChange={(event) => setSelectedCandidateIds((ids) => event.target.checked ? [...new Set([...ids, candidate.id!])] : ids.filter((id) => id !== candidate.id))} />}
                   <button className="admin-candidate-row" type="button" onClick={() => openCandidate(candidate.id)}>
                     <PlaceVisual alt={candidate.name} imageUrl={candidate.primaryImageUrl || undefined} type={candidate.primaryType} detailType={candidate.detailType || undefined} />
-                    <span><strong>{candidate.name}</strong><small>{candidate.detailType || candidate.primaryType} · 별점 {candidate.rating ?? '-'} · 리뷰 {candidate.reviewCount ?? 0} · 사진 {candidate.imageCount || 0} · 메뉴 {candidate.menuCount || 0}</small></span>
+                    <span><strong>{candidate.qualityTier ? `[${candidate.qualityTier}] ` : ''}{candidate.name}</strong><small>{candidate.detailType || candidate.primaryType} · {candidate.nearestStation || '거점 미확인'} · 별점 {candidate.rating ?? '-'} · 리뷰 {candidate.reviewCount ?? 0} · 메뉴 {candidate.menuCount || 0}{candidate.qualityExceptionReason ? ` · ${candidate.qualityExceptionReason}` : ''}</small></span>
                   </button>
                 </div>
               ))}
@@ -634,7 +588,6 @@ export default function PlaceAdmin() {
                 <div><span className={`admin-entity-badge ${selected.entityType !== 'venue' ? 'warning' : ''}`}>{selected.entityType}</span><h2>{selected.name || '새 장소'}</h2><p>{displayAddress(selected)}</p></div>
                 <div>
                   {selectedKakaoMapUrl && <a className="admin-secondary-button admin-kakao-map-button" href={selectedKakaoMapUrl} target="_blank" rel="noopener noreferrer">카카오맵에서 보기</a>}
-                  {selected.id && selected.regionKey === 'seongsu' && <button className="admin-secondary-button" type="button" disabled={loading} onClick={enrichPublicData}>공공데이터 보강</button>}
                   {selected.id && selected.regionKey === 'seongsu' && <button className="admin-secondary-button" type="button" disabled={loading} onClick={enrichNaverMenu}>{selected.externalMatches?.some((match) => match.provider === 'apify_naver_menu') ? '네이버 메뉴 다시 확인' : '네이버 메뉴 불러오기'}</button>}
                   {selected.id && <button className="admin-secondary-button" type="button" disabled={loading} onClick={saveCandidate}>저장</button>}
                 </div>
@@ -651,7 +604,7 @@ export default function PlaceAdmin() {
                         onChange={(event) => {
                           const categoryKey = event.target.value as PlannerCategoryKey;
                           const category = PLANNER_CATEGORIES.find((item) => item.key === categoryKey)!;
-                          const detailType = DETAIL_OPTIONS[categoryKey][0];
+                          const detailType = PLACE_DETAIL_OPTIONS[categoryKey][0];
                           setSelected({
                             ...selected,
                             primaryType: CATEGORY_PLACE_TYPE[categoryKey],
@@ -695,16 +648,15 @@ export default function PlaceAdmin() {
 
                 {!!selected.externalMatches?.length && (
                   <fieldset className="admin-form-section admin-external-match-section">
-                    <legend>공공데이터 매칭</legend>
+                    <legend>네이버 장소·메뉴 확인</legend>
                     <div className="admin-external-match-list">
-                      {selected.externalMatches.map((match) => {
+                      {selected.externalMatches.filter((match) => match.provider === 'apify_naver_menu' || match.provider === 'apify_naver_place').map((match) => {
                         const place = match.metadata?.externalPlace;
                         const closed = /폐업|영업종료|closed/i.test(match.metadata?.businessStatus || place?.businessStatus || '');
                         return <article className={closed ? 'is-closed' : ''} key={match.provider}>
                           <div><strong>{externalProviderLabel(match.provider)}</strong><span>{match.status === 'matched' ? `일치 ${Math.round(Number(match.confidence || 0) * 100)}%` : match.status === 'review_required' ? '확인 필요' : match.status === 'no_menu' ? '공개 메뉴 없음' : match.status === 'not_found' ? '일치 장소 없음' : match.status}</span></div>
                           {place && <p>{place.name}<br />{place.roadAddress || place.address || '주소 없음'}{place.phone ? ` · ${place.phone}` : ''}{match.distanceM != null ? ` · ${match.distanceM}m` : ''}</p>}
                           {closed && <p className="admin-closed-warning">폐업 또는 영업종료 정보가 있습니다. 승인 전 반드시 확인하세요.</p>}
-                          {match.status === 'review_required' && match.provider !== 'apify_naver_menu' && <div className="admin-external-match-actions"><button type="button" onClick={() => reviewExternalMatch(match.provider, match.providerPlaceId, 'confirm')}>이 가게가 맞음</button><button type="button" onClick={() => reviewExternalMatch(match.provider, match.providerPlaceId, 'reject')}>아님</button></div>}
                           {match.status === 'review_required' && match.provider === 'apify_naver_menu' && <p>동명이거나 지점이 불명확해 메뉴를 저장하지 않았습니다.</p>}
                         </article>;
                       })}
@@ -771,9 +723,9 @@ export default function PlaceAdmin() {
                 </fieldset>
 
                 <fieldset className="admin-form-section">
-                  <div className="admin-section-heading"><legend>메뉴 <small>직접 확인 또는 공공데이터 출처</small></legend><button type="button" onClick={addMenu}>메뉴 추가</button></div>
+                  <div className="admin-section-heading"><legend>메뉴 <small>직접 확인 또는 네이버 출처</small></legend><button type="button" onClick={addMenu}>메뉴 추가</button></div>
                   <div className="admin-menu-list">
-                    {(selected.menus || []).map((menu, index) => { const external = menu.source === 'redtable_seoul' || menu.source === 'apify_naver_menu'; const sourceLabel = menu.source === 'apify_naver_menu' ? '네이버 플레이스' : '서울관광재단'; const updateMenu = (changes: Partial<PlaceMenuInput>) => updateSelected('menus', selected.menus!.map((item, itemIndex) => itemIndex === index ? { ...item, ...changes, ...(external ? { source: 'manual' } : {}) } : item)); const removeMenu = () => setSelected((current) => current ? { ...current, menus: current.menus!.filter((_, itemIndex) => itemIndex !== index), removedMenuIds: menu.id ? [...new Set([...(current.removedMenuIds || []), menu.id])] : current.removedMenuIds } : current); return <article className="admin-menu-editor compact" key={`${menu.id || 'new'}-${index}`}><input value={menu.name} onChange={(event) => updateMenu({ name: event.target.value })} placeholder="메뉴명" /><input value={menu.priceText ?? menu.price ?? ''} onChange={(event) => { const value = event.target.value; const digits = value.replace(/[\s,원]/g, ''); const numericPrice = /^\d+$/.test(digits) ? Number(digits) : null; updateMenu({ price: numericPrice, priceText: numericPrice === null ? value || null : null }); }} placeholder="가격 또는 가격 문의·변동" />{external ? <span className="admin-menu-source">{sourceLabel} · 신뢰도 {formatConfidence(menu.matchConfidence)}<small>수정하면 수동 메뉴로 전환 · 최근 확인 {menu.lastVerifiedAt ? new Date(menu.lastVerifiedAt).toLocaleDateString('ko-KR') : '-'}</small></span> : null}<button type="button" onClick={removeMenu}>삭제</button></article>; })}
+                    {(selected.menus || []).map((menu, index) => { const external = menu.source === 'apify_naver_menu'; const updateMenu = (changes: Partial<PlaceMenuInput>) => updateSelected('menus', selected.menus!.map((item, itemIndex) => itemIndex === index ? { ...item, ...changes, ...(external ? { source: 'manual' } : {}) } : item)); const removeMenu = () => setSelected((current) => current ? { ...current, menus: current.menus!.filter((_, itemIndex) => itemIndex !== index), removedMenuIds: menu.id ? [...new Set([...(current.removedMenuIds || []), menu.id])] : current.removedMenuIds } : current); return <article className="admin-menu-editor compact" key={`${menu.id || 'new'}-${index}`}><input value={menu.name} onChange={(event) => updateMenu({ name: event.target.value })} placeholder="메뉴명" /><input value={menu.priceText ?? menu.price ?? ''} onChange={(event) => { const value = event.target.value; const digits = value.replace(/[\s,원]/g, ''); const numericPrice = /^\d+$/.test(digits) ? Number(digits) : null; updateMenu({ price: numericPrice, priceText: numericPrice === null ? value || null : null }); }} placeholder="가격 또는 가격 문의·변동" />{external ? <span className="admin-menu-source">네이버 플레이스 · 신뢰도 {formatConfidence(menu.matchConfidence)}<small>수정하면 수동 메뉴로 전환 · 최근 확인 {menu.lastVerifiedAt ? new Date(menu.lastVerifiedAt).toLocaleDateString('ko-KR') : '-'}</small></span> : null}<button type="button" onClick={removeMenu}>삭제</button></article>; })}
                     {!selected.menus?.length && <p className="admin-empty-copy">지금 등록하지 않아도 승인할 수 있습니다.</p>}
                   </div>
                 </fieldset>

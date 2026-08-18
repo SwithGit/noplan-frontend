@@ -30,15 +30,6 @@ export interface PlaceMenuInput {
   lastVerifiedAt?: string | null;
 }
 
-export interface ExternalDataStatus {
-  configured: { redtable: boolean; sbiz: boolean; generalRestaurant: boolean };
-  sync: Array<{
-    provider: string; resourceType: string; status: string; lastPage: number;
-    totalCount: number; processedCount: number; errorCount: number;
-    startedAt?: string | null; finishedAt?: string | null; lastError?: string | null;
-  }>;
-}
-
 export interface CandidateExternalMatch {
   provider: string;
   providerPlaceId: string;
@@ -104,6 +95,9 @@ export interface PlaceCandidate {
   recommendedPaxMax?: number | null;
   averageStayMinutes?: number | null;
   classificationConfidence?: number | null;
+  qualityTier?: 'A' | 'B' | 'C' | null;
+  qualityExceptionReason?: string | null;
+  approvalBatchId?: string | null;
   status?: CandidateStatus;
   primaryImageUrl?: string | null;
   imageCount?: number;
@@ -136,8 +130,19 @@ export interface NaverMenuBatchResult extends ApiEnvelope {
 }
 
 export interface PlaceCoverage {
+  hubKey?: string;
+  hubLabel?: string;
+  categoryKey?: string;
   primaryType: PlaceType;
   detailType: string;
+  target?: number;
+  tierA?: number;
+  tierB?: number;
+  tierC?: number;
+  pending?: number;
+  active?: number;
+  shortageCount?: number;
+  exhausted?: boolean;
   count: number;
   shortage: boolean;
 }
@@ -229,6 +234,7 @@ export function listPlaceCandidates(
   status: CandidateStatus,
   page = 1,
   pageSize = 50,
+  hubKey = 'all',
 ) {
   return adminJson<ApiEnvelope & {
     candidates: PlaceCandidate[];
@@ -237,23 +243,10 @@ export function listPlaceCandidates(
     pageSize: number;
     totalPages: number;
   }>(
-    `/api/admin/places/candidates?regionKey=${regionKey}&status=${status}&page=${page}&pageSize=${pageSize}`,
+    `/api/admin/places/candidates?regionKey=${regionKey}&status=${status}&page=${page}&pageSize=${pageSize}&hubKey=${encodeURIComponent(hubKey)}`,
     key,
     adminId,
   );
-}
-
-export function getExternalDataStatus(key: string, adminId: string, regionKey: RegionKey) {
-  return adminJson<ApiEnvelope & ExternalDataStatus>(
-    `/api/admin/places/external-data/status?regionKey=${regionKey}`, key, adminId,
-  );
-}
-
-export function enrichCandidatePublicData(key: string, adminId: string, candidateId: number) {
-  return adminJson<ApiEnvelope & {
-    matches: Record<string, { status: string; confidence?: number; businessStatus?: string; menuCount?: number }>;
-    importedMenuCount: number; reviewRequired: boolean;
-  }>(`/api/admin/places/candidates/${candidateId}/enrich-public-data`, key, adminId, { method: 'POST' });
 }
 
 export function enrichCandidateNaverMenu(
@@ -274,21 +267,9 @@ export function enrichCandidateNaverMenus(
   );
 }
 
-export function reviewCandidateExternalMatch(
-  key: string,
-  adminId: string,
-  candidateId: number,
-  input: { provider: string; providerPlaceId: string; action: 'confirm' | 'reject' },
-) {
-  return adminJson<ApiEnvelope & { status: string; importedMenuCount: number }>(
-    `/api/admin/places/candidates/${candidateId}/external-match`, key, adminId,
-    { method: 'POST', body: JSON.stringify(input) },
-  );
-}
-
-export function getPlaceCoverage(key: string, adminId: string, regionKey: RegionKey) {
+export function getPlaceCoverage(key: string, adminId: string, regionKey: RegionKey, hubKey = 'all') {
   return adminJson<ApiEnvelope & { coverage: PlaceCoverage[] }>(
-    `/api/admin/places/coverage?regionKey=${regionKey}`, key, adminId,
+    `/api/admin/places/coverage?regionKey=${regionKey}&hubKey=${encodeURIComponent(hubKey)}`, key, adminId,
   );
 }
 
