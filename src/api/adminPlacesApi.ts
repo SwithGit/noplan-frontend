@@ -42,7 +42,7 @@ export interface ExternalDataStatus {
 export interface CandidateExternalMatch {
   provider: string;
   providerPlaceId: string;
-  status: 'matched' | 'review_required' | 'not_found' | 'rejected' | 'error';
+  status: 'matched' | 'no_menu' | 'review_required' | 'not_found' | 'rejected' | 'error';
   method?: string | null;
   confidence?: number | null;
   distanceM?: number | null;
@@ -110,8 +110,29 @@ export interface PlaceCandidate {
   menuCount?: number;
   images?: PlaceImageInput[];
   menus?: PlaceMenuInput[];
+  removedMenuIds?: number[];
   externalMatches?: CandidateExternalMatch[];
   editorial?: PlaceEditorial;
+}
+
+export interface NaverMenuEnrichmentResult extends ApiEnvelope {
+  candidateId: number;
+  status: 'matched' | 'no_menu' | 'not_found' | 'review_required' | 'error';
+  importedMenuCount?: number;
+  skippedMenuCount?: number;
+  rawMenuCount?: number;
+  cached?: boolean;
+  naverPlaceUrl?: string | null;
+  warningCount?: number;
+  warnings?: string[];
+}
+
+export interface NaverMenuBatchResult extends ApiEnvelope {
+  results: Array<NaverMenuEnrichmentResult & { success: boolean; message?: string }>;
+  summary: {
+    total: number; matched: number; noMenu: number; notFound: number;
+    reviewRequired: number; error: number; importedMenuCount: number; skippedMenuCount: number;
+  };
 }
 
 export interface PlaceCoverage {
@@ -233,6 +254,24 @@ export function enrichCandidatePublicData(key: string, adminId: string, candidat
     matches: Record<string, { status: string; confidence?: number; businessStatus?: string; menuCount?: number }>;
     importedMenuCount: number; reviewRequired: boolean;
   }>(`/api/admin/places/candidates/${candidateId}/enrich-public-data`, key, adminId, { method: 'POST' });
+}
+
+export function enrichCandidateNaverMenu(
+  key: string, adminId: string, candidateId: number, force = false,
+) {
+  return adminJson<NaverMenuEnrichmentResult>(
+    `/api/admin/places/candidates/${candidateId}/enrich-naver-menu`, key, adminId,
+    { method: 'POST', body: JSON.stringify({ force }) },
+  );
+}
+
+export function enrichCandidateNaverMenus(
+  key: string, adminId: string, candidateIds: number[], force = false,
+) {
+  return adminJson<NaverMenuBatchResult>(
+    '/api/admin/places/candidates/enrich-naver-menus', key, adminId,
+    { method: 'POST', body: JSON.stringify({ candidateIds, force }) },
+  );
 }
 
 export function reviewCandidateExternalMatch(
