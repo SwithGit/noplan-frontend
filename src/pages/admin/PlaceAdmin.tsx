@@ -189,6 +189,11 @@ function externalProviderLabel(provider: string) {
   } as Record<string, string>)[provider] || '외부 데이터';
 }
 
+function formatConfidence(value: number | string | null | undefined) {
+  const confidence = Number(value);
+  return Number.isFinite(confidence) ? confidence.toFixed(2) : '-';
+}
+
 function mainCategoryKeyForCandidate(candidate: PlaceCandidate): PlannerCategoryKey {
   const explicit = getPlannerCategory(candidate.categoryRaw)?.key;
   if (explicit) return explicit;
@@ -768,7 +773,7 @@ export default function PlaceAdmin() {
                 <fieldset className="admin-form-section">
                   <div className="admin-section-heading"><legend>메뉴 <small>직접 확인 또는 공공데이터 출처</small></legend><button type="button" onClick={addMenu}>메뉴 추가</button></div>
                   <div className="admin-menu-list">
-                    {(selected.menus || []).map((menu, index) => { const external = menu.source === 'redtable_seoul' || menu.source === 'apify_naver_menu'; const sourceLabel = menu.source === 'apify_naver_menu' ? '네이버 플레이스' : '서울관광재단'; const updateMenu = (changes: Partial<PlaceMenuInput>) => updateSelected('menus', selected.menus!.map((item, itemIndex) => itemIndex === index ? { ...item, ...changes, ...(external ? { source: 'manual' } : {}) } : item)); const removeMenu = () => setSelected((current) => current ? { ...current, menus: current.menus!.filter((_, itemIndex) => itemIndex !== index), removedMenuIds: menu.id ? [...new Set([...(current.removedMenuIds || []), menu.id])] : current.removedMenuIds } : current); return <article className="admin-menu-editor compact" key={`${menu.id || 'new'}-${index}`}><input value={menu.name} onChange={(event) => updateMenu({ name: event.target.value })} placeholder="메뉴명" /><input value={menu.priceText ?? menu.price ?? ''} onChange={(event) => { const value = event.target.value; const digits = value.replace(/[\s,원]/g, ''); const numericPrice = /^\d+$/.test(digits) ? Number(digits) : null; updateMenu({ price: numericPrice, priceText: numericPrice === null ? value || null : null }); }} placeholder="가격 또는 가격 문의·변동" />{external ? <span className="admin-menu-source">{sourceLabel} · 신뢰도 {menu.matchConfidence?.toFixed(2) || '-'}<small>수정하면 수동 메뉴로 전환 · 최근 확인 {menu.lastVerifiedAt ? new Date(menu.lastVerifiedAt).toLocaleDateString('ko-KR') : '-'}</small></span> : null}<button type="button" onClick={removeMenu}>삭제</button></article>; })}
+                    {(selected.menus || []).map((menu, index) => { const external = menu.source === 'redtable_seoul' || menu.source === 'apify_naver_menu'; const sourceLabel = menu.source === 'apify_naver_menu' ? '네이버 플레이스' : '서울관광재단'; const updateMenu = (changes: Partial<PlaceMenuInput>) => updateSelected('menus', selected.menus!.map((item, itemIndex) => itemIndex === index ? { ...item, ...changes, ...(external ? { source: 'manual' } : {}) } : item)); const removeMenu = () => setSelected((current) => current ? { ...current, menus: current.menus!.filter((_, itemIndex) => itemIndex !== index), removedMenuIds: menu.id ? [...new Set([...(current.removedMenuIds || []), menu.id])] : current.removedMenuIds } : current); return <article className="admin-menu-editor compact" key={`${menu.id || 'new'}-${index}`}><input value={menu.name} onChange={(event) => updateMenu({ name: event.target.value })} placeholder="메뉴명" /><input value={menu.priceText ?? menu.price ?? ''} onChange={(event) => { const value = event.target.value; const digits = value.replace(/[\s,원]/g, ''); const numericPrice = /^\d+$/.test(digits) ? Number(digits) : null; updateMenu({ price: numericPrice, priceText: numericPrice === null ? value || null : null }); }} placeholder="가격 또는 가격 문의·변동" />{external ? <span className="admin-menu-source">{sourceLabel} · 신뢰도 {formatConfidence(menu.matchConfidence)}<small>수정하면 수동 메뉴로 전환 · 최근 확인 {menu.lastVerifiedAt ? new Date(menu.lastVerifiedAt).toLocaleDateString('ko-KR') : '-'}</small></span> : null}<button type="button" onClick={removeMenu}>삭제</button></article>; })}
                     {!selected.menus?.length && <p className="admin-empty-copy">지금 등록하지 않아도 승인할 수 있습니다.</p>}
                   </div>
                 </fieldset>

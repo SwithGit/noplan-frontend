@@ -26,7 +26,7 @@ export interface PlaceMenuInput {
   source?: string | null;
   sourcePlaceId?: string | null;
   sourceMenuId?: string | null;
-  matchConfidence?: number | null;
+  matchConfidence?: number | string | null;
   lastVerifiedAt?: string | null;
 }
 
