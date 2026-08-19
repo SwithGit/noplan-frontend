@@ -167,8 +167,8 @@ function compactLocationLabel(location: string) {
 function displayLocationLabel(condition: { location: string; locationLabel?: string }) {
   return condition.locationLabel || compactLocationLabel(condition.location);
 }
-function isSupportedPlannerLocation(location: string) {
-  return /홍대|연남|동교|서교|합정|상수|성미산|와우산|창전/u.test(location);
+function isSeoulPlannerLocation(location: string) {
+  return /서울(?:특별시|시)?|종로구|중구|용산구|성동구|광진구|동대문구|중랑구|성북구|강북구|도봉구|노원구|은평구|서대문구|마포구|양천구|강서구|구로구|금천구|영등포구|동작구|관악구|서초구|강남구|송파구|강동구/u.test(location);
 }
 
 function displayConditionValue(value: unknown) {
@@ -354,7 +354,7 @@ export function PlannerHome() {
         <div>
           <input
             id="home-prompt"
-            placeholder="예: 연남동에서 친구랑 조용한 카페"
+            placeholder="예: 건대입구역에서 친구랑 조용한 카페"
             value={text}
             onChange={(event) => setText(event.target.value)}
             onKeyDown={(event) => {
@@ -369,7 +369,7 @@ export function PlannerHome() {
 
       <p className="home-service-area-note">
         <span aria-hidden="true">i</span>
-        현재 서비스는 홍대입구·연남동 주변 지역에서 이용할 수 있어요.
+        현재 서비스는 서울 전 지역에서 이용할 수 있어요.
       </p>
 
       {locationMessage && <p className="home-location-note">{locationMessage}</p>}
@@ -462,10 +462,10 @@ export function ChatStart() {
   const applyCurrentLocation = async () => {
     try {
       const location = await detectCurrentLocation();
-      if (!isSupportedPlannerLocation(`${location.address} ${location.label}`)) {
+      if (!isSeoulPlannerLocation(`${location.address} ${location.label}`)) {
         setCondition({ location: '', locationLabel: '' });
         setLocationSelectionSource(null);
-        setStatusMessage('현재 위치는 아직 서비스 범위 밖이에요. 홍대입구 주변 지역을 선택해 주세요.');
+        setStatusMessage('현재 위치는 서울 서비스 범위 밖이에요. 서울 지역을 입력해 주세요.');
         return;
       }
       const nextCondition = { ...condition, location: location.address, locationLabel: location.label };
@@ -504,12 +504,6 @@ export function ChatStart() {
     const nextAddress = manualAddress.trim();
 
     if (!nextAddress) return;
-    if (!isSupportedPlannerLocation(nextAddress)) {
-      setAddressSheetOpen(false);
-      setStatusMessage('아직 홍대입구·연남동 주변만 추천할 수 있어요. 지원 지역을 다시 선택해 주세요.');
-      return;
-    }
-
     const nextCondition = {
       ...condition,
       location: nextAddress,
@@ -648,8 +642,8 @@ export function ChatStart() {
           </button>
           {(locationStatus === 'error' || statusMessage) && (
             <div className="location-fallback-options">
-              <p>{statusMessage || '현재 위치를 못 찾았어요. 가까운 지역을 바로 골라도 돼요.'}</p>
-              <div>{['홍대입구', '연남동', '상수', '합정'].map((area) => (
+              <p>{statusMessage || '현재 위치를 못 찾았어요. 서울 지역을 직접 입력해 주세요.'}</p>
+              <div>{['건대입구역', '강남역', '잠실역', '종로'].map((area) => (
                 <button aria-pressed={condition.location === area} key={area} onClick={() => chooseFallbackArea(area)} type="button">{area}</button>
               ))}</div>
             </div>
@@ -903,10 +897,10 @@ function ConditionEditSheet({
       setLocationBusy(true);
       const location = await onDetectCurrentLocation();
 
-      if (!isSupportedPlannerLocation(`${location.address} ${location.label}`)) {
+      if (!isSeoulPlannerLocation(`${location.address} ${location.label}`)) {
         setDraftLocation('');
         setDraftLocationLabel('');
-        setLocationError('현재 위치는 아직 서비스 범위 밖이에요. 홍대입구 주변 주소를 입력해 주세요.');
+        setLocationError('현재 위치는 서울 서비스 범위 밖이에요. 서울 지역을 입력해 주세요.');
         return;
       }
 
@@ -923,11 +917,6 @@ function ConditionEditSheet({
     if (section === 'location') {
       const nextLocation = draftLocation.trim();
       if (!nextLocation) return;
-      if (!isSupportedPlannerLocation(nextLocation)) {
-        setLocationError('현재는 홍대입구·연남동 주변 주소만 선택할 수 있어요.');
-        return;
-      }
-
       onApply({
         location: nextLocation,
         locationLabel: draftLocationLabel || compactLocationLabel(nextLocation),
@@ -1325,13 +1314,13 @@ function AddressInputSheet({ onChange, onClose, onConfirm, value }: AddressInput
           onConfirm();
         }}
       >
-        <h2>출발 주소를 입력해주세요</h2>
+        <h2>서울 출발지를 입력해주세요</h2>
         <label className="address-field">
-          <span>주소</span>
+          <span>주소 또는 장소</span>
           <input
             autoFocus
             onChange={(event) => onChange(event.target.value)}
-            placeholder="예: 서울시 중랑구 면목로92가길 15-11"
+            placeholder="예: 건대입구역 또는 서울 광진구 군자동"
             type="text"
             value={value}
           />
@@ -1455,9 +1444,9 @@ export function ConditionConfirm() {
   const retryCurrentLocation = async () => {
     try {
       const location = await detectCurrentLocation();
-      if (!isSupportedPlannerLocation(`${location.address} ${location.label}`)) {
+      if (!isSeoulPlannerLocation(`${location.address} ${location.label}`)) {
         setCondition({ location: '', locationLabel: '' });
-        setLocationMessage('현재 위치는 서비스 범위 밖이에요. 출발지를 직접 수정해 주세요.');
+        setLocationMessage('현재 위치는 서울 서비스 범위 밖이에요. 서울 출발지를 직접 수정해 주세요.');
         return;
       }
       setLocationMessage('현재 위치를 새로 반영했어요.');
