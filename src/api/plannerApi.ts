@@ -390,6 +390,7 @@ export async function generateCourse(
         vibe: condition.extras.filter(Boolean).join(', '),
         preferences: {
           avoidCrowds: condition.extras.includes('대기 적게'),
+          shortWalking: condition.extras.includes('도보 짧게'),
         },
         sourceText: condition.rawText,
         companionContext: inferCompanionContext(condition),
