@@ -71,7 +71,7 @@ const defaultCondition: PlannerCondition = {
   coreIntentSkipped: false,
   atmosphereTags: [],
   duration: '',
-  extras: [],
+  extras: ['도보 짧게'],
 };
 
 const PlannerContext = createContext<PlannerContextValue | null>(null);
@@ -278,7 +278,10 @@ function inferConditionFromText(text: string): Partial<PlannerCondition> {
   }
   patch.atmosphereTags = inferAtmosphereTags(text);
 
-  if (/실내|비\s*(?:안|피)|추워|더워/.test(text)) patch.extras = ['실내 중심'];
+  const inferredExtras = [];
+  if (/도보\s*(?:짧게|적게)|가까운\s*곳|멀리\s*걷지/.test(text)) inferredExtras.push('도보 짧게');
+  if (/실내|비\s*(?:안|피)|추워|더워/.test(text)) inferredExtras.push('실내 중심');
+  if (inferredExtras.length > 0) patch.extras = inferredExtras;
 
   if (/2\s*시간/.test(text)) patch.duration = '2시간';
   else if (/4\s*시간/.test(text)) patch.duration = '4시간';
@@ -355,7 +358,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       coreIntentSkipped: false,
       atmosphereTags: resolvedCondition.atmosphereTags || fallbackCondition.atmosphereTags || [],
       duration: resolvedCondition.duration || '',
-      extras: fallbackCondition.extras || [],
+      extras: [...new Set([...prev.extras, ...(fallbackCondition.extras || [])])],
       rawText,
     }));
   };

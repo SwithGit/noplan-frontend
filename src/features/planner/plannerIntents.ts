@@ -34,7 +34,7 @@ export const PLANNER_CATEGORIES: PlannerCategoryDefinition[] = [
     key: 'cafe', label: '카페/디저트', aliases: ['카페', '디저트'], patterns: [/카페|커피|디저트|케이크|베이커리|브런치/],
     intents: [
       intent('coffee', '커피', /커피|원두|로스터리|핸드드립|에스프레소/),
-      intent('dessert', '디저트', /디저트|케이크|베이커리|빵|구움과자|아이스크림/),
+      intent('dessert', '디저트', /디저트|케이크|구움과자|아이스크림/),
       intent('conversation', '대화', /대화|이야기|얘기|수다|담소/),
       intent('work', '작업', /작업|노트북|업무|공부/),
       intent('rest', '휴식', /휴식|쉬고|쉬기|편하게\s*쉬/),
