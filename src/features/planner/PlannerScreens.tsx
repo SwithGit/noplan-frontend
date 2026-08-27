@@ -21,7 +21,6 @@ import {
   categoryKeyFromLabel,
   categoryLabelFromKey,
   getCoreIntentOptions,
-  inferCoreIntentFromText,
   needsCoreIntentQuestion,
   normalizeCoreIntent,
 } from './plannerIntents';
@@ -239,22 +238,22 @@ function composeMoods(selections: MoodSelection[]) {
 
 function makeCategoryPreferencePatch(
   selections: MoodSelection[],
-  condition: Pick<PlannerCondition, 'mainCategory' | 'coreIntent' | 'coreIntentSkipped'>,
+  condition: Pick<PlannerCondition, 'mainCategory' | 'coreIntent' | 'coreIntentExplicit' | 'coreIntentSkipped'>,
 ) {
   const mainCategory = categoryKeyFromLabel(selections[0]?.category);
   const supportingCategories = selections.slice(1)
     .map((selection) => categoryKeyFromLabel(selection.category))
     .filter(Boolean);
   const mainChanged = mainCategory !== condition.mainCategory;
-  const inferredIntent = inferCoreIntentFromText(composeMoods(selections), mainCategory);
   const coreIntent = mainChanged
-    ? inferredIntent
-    : normalizeCoreIntent(mainCategory, condition.coreIntent) || inferredIntent;
+    ? ''
+    : normalizeCoreIntent(mainCategory, condition.coreIntent);
 
   return {
     mainCategory,
     supportingCategories,
     coreIntent,
+    coreIntentExplicit: mainChanged ? false : Boolean(condition.coreIntentExplicit),
     coreIntentSkipped: mainChanged || coreIntent ? false : condition.coreIntentSkipped,
   };
 }
@@ -385,6 +384,7 @@ export function PlannerHome() {
             mainCategory: '',
             supportingCategories: [],
             coreIntent: '',
+            coreIntentExplicit: false,
             coreIntentSkipped: false,
             atmosphereTags: [],
             rawText: '',
@@ -1382,7 +1382,7 @@ export function ConditionConfirm() {
       ? 'time'
       : !selectedPeople
         ? 'people'
-        : !selectedPlaces.length || shouldAskCoreIntent
+        : !selectedPlaces.length
           ? 'place'
           : null;
   const conditionRows = [
@@ -1431,9 +1431,24 @@ export function ConditionConfirm() {
       setEditSection(firstMissingSection);
       return;
     }
+    const searchCondition = shouldAskCoreIntent
+      ? {
+          ...condition,
+          coreIntent: '',
+          coreIntentExplicit: false,
+          coreIntentSkipped: true,
+        }
+      : condition;
+    if (shouldAskCoreIntent) {
+      setCondition({
+        coreIntent: '',
+        coreIntentExplicit: false,
+        coreIntentSkipped: true,
+      });
+    }
     navigate(ROUTES.plannerSearching);
     const [searchSucceeded] = await Promise.all([
-      runSearch(),
+      runSearch(searchCondition),
       new Promise((resolve) => {
         window.setTimeout(resolve, 1200);
       }),
@@ -1488,26 +1503,34 @@ export function ConditionConfirm() {
 
       {shouldAskCoreIntent && (
         <section className="screen-section core-intent-question" aria-labelledby="core-intent-title">
-          <span className="core-intent-eyebrow">한 가지만 더 알려주세요</span>
+          <span className="core-intent-eyebrow">선택하면 더 잘 맞춰드려요</span>
           <h2 id="core-intent-title">
             {mainCategoryLabel === '카페/디저트'
               ? '카페에서 가장 하고 싶은 것은 무엇인가요?'
               : `${mainCategoryLabel}에서 가장 중요한 것은 무엇인가요?`}
           </h2>
-          <p>메인 장소에만 반영하고, 추가 희망 장소에는 다시 묻지 않아요.</p>
+          <p>선택하지 않아도 바로 추천할 수 있고, 메인 장소에만 반영해요.</p>
           <div className="chip-row core-intent-options">
             {coreIntentOptions.map((option) => (
               <Chip
                 active={condition.coreIntent === option.key}
                 key={option.key}
-                onClick={() => setCondition({ coreIntent: option.key, coreIntentSkipped: false })}
+                onClick={() => setCondition({
+                  coreIntent: option.key,
+                  coreIntentExplicit: true,
+                  coreIntentSkipped: false,
+                })}
               >
                 {option.label}
               </Chip>
             ))}
             <Chip
               active={condition.coreIntentSkipped}
-              onClick={() => setCondition({ coreIntent: '', coreIntentSkipped: true })}
+              onClick={() => setCondition({
+                coreIntent: '',
+                coreIntentExplicit: false,
+                coreIntentSkipped: true,
+              })}
             >
               아무거나
             </Chip>

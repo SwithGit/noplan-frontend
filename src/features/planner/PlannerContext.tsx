@@ -51,7 +51,7 @@ interface PlannerContextValue {
   detectCurrentLocation: (options?: { updateCondition?: boolean; updateStatus?: boolean }) => Promise<{ address: string; label: string }>;
   setCondition: (patch: Partial<PlannerCondition>) => void;
   startFromText: (text: string) => Promise<void>;
-  runSearch: () => Promise<boolean>;
+  runSearch: (conditionOverride?: PlannerCondition) => Promise<boolean>;
   loadPlan: (nextPlan: CoursePlan) => void;
   selectCurrentPlan: () => boolean;
   replacePlace: (index: number, place: CoursePlace) => void;
@@ -68,6 +68,7 @@ const defaultCondition: PlannerCondition = {
   mainCategory: '',
   supportingCategories: [],
   coreIntent: '',
+  coreIntentExplicit: false,
   coreIntentSkipped: false,
   atmosphereTags: [],
   duration: '',
@@ -274,6 +275,7 @@ function inferConditionFromText(text: string): Partial<PlannerCondition> {
     patch.mainCategory = mainCategory;
     patch.supportingCategories = [];
     patch.coreIntent = inferCoreIntentFromText(text, mainCategory);
+    patch.coreIntentExplicit = false;
     patch.coreIntentSkipped = false;
   }
   patch.atmosphereTags = inferAtmosphereTags(text);
@@ -310,6 +312,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       if (patch.mainCategory !== undefined && patch.mainCategory !== prev.mainCategory) {
         const validIntent = normalizeCoreIntent(next.mainCategory, next.coreIntent);
         next.coreIntent = validIntent;
+        next.coreIntentExplicit = false;
         if (!validIntent) next.coreIntentSkipped = false;
       }
       return next;
@@ -355,6 +358,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       mainCategory: resolvedCondition.mainCategory || '',
       supportingCategories: resolvedCondition.supportingCategories || [],
       coreIntent: normalizeCoreIntent(resolvedCondition.mainCategory, resolvedCondition.coreIntent),
+      coreIntentExplicit: false,
       coreIntentSkipped: false,
       atmosphereTags: resolvedCondition.atmosphereTags || fallbackCondition.atmosphereTags || [],
       duration: resolvedCondition.duration || '',
@@ -363,27 +367,28 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     }));
   };
 
-  const runSearch = async () => {
+  const runSearch = async (conditionOverride?: PlannerCondition) => {
+    const searchCondition = conditionOverride || condition;
     setIsSearching(true);
     setSearchError('');
-    await trackPlannerEvent('course_generate_start', undefined, condition).catch(() => undefined);
-    const nextPlan = await generateCourse(condition, currentPosition);
+    await trackPlannerEvent('course_generate_start', undefined, searchCondition).catch(() => undefined);
+    const nextPlan = await generateCourse(searchCondition, currentPosition);
     if (nextPlan.source === 'fallback' && nextPlan.message) {
       setSearchError(nextPlan.message);
-      await trackPlannerEvent('course_generate_failure', { errorType: 'no_verified_course' }, condition).catch(() => undefined);
+      await trackPlannerEvent('course_generate_failure', { errorType: 'no_verified_course' }, searchCondition).catch(() => undefined);
     } else {
       await trackPlannerEvent('course_generate_success', {
         courseCount: nextPlan.courseData.length,
         generator: nextPlan.algorithmVersion || 'unknown',
         catalogOnly: Boolean(nextPlan.catalogOnly),
-      }, condition, {
+      }, searchCondition, {
         courseId: nextPlan.searchCourseId,
         algorithmVersion: nextPlan.algorithmVersion,
       }).catch(() => undefined);
     }
     setPlan(nextPlan);
     const searchSucceeded = nextPlan.source !== 'fallback' && nextPlan.courseData.length > 0;
-    trackRecommendationImpressions(nextPlan, condition).catch(() => undefined);
+    trackRecommendationImpressions(nextPlan, searchCondition).catch(() => undefined);
     window.setTimeout(() => setIsSearching(false), 550);
     return searchSucceeded;
   };

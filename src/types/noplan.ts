@@ -21,6 +21,7 @@ export interface PlannerCondition {
   mainCategory: string;
   supportingCategories: string[];
   coreIntent: string;
+  coreIntentExplicit?: boolean;
   coreIntentSkipped: boolean;
   atmosphereTags: string[];
   duration: string;

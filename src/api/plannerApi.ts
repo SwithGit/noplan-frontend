@@ -352,7 +352,7 @@ export async function generateCourse(
     : purposes.slice(1).map((purpose) => categoryKeyFromLabel(purpose.category)).filter(Boolean);
   const coreIntent = normalizeCoreIntent(
     mainCategory,
-    condition.coreIntent || inferCoreIntentFromText(condition.rawText || condition.mood, mainCategory),
+    condition.coreIntent || inferCoreIntentFromText(condition.rawText, mainCategory),
   );
   const atmosphereTags = [...new Set([
     ...condition.atmosphereTags,
@@ -385,6 +385,7 @@ export async function generateCourse(
         mainCategory: mainCategory || null,
         supportingCategories,
         coreIntent: coreIntent || null,
+        coreIntentExplicit: Boolean(condition.coreIntentExplicit),
         atmosphereTags,
         duration: condition.duration,
         vibe: condition.extras.filter(Boolean).join(', '),
