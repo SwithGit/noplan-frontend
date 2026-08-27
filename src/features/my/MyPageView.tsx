@@ -206,7 +206,7 @@ export function MyPageView({ onLogout, user }: MyPageViewProps) {
           <div className="list-state-card compact"><span className="loading-spinner" /><p>코스를 불러오는 중이에요</p></div>
         ) : activeCourses.length === 0 ? (
           <div className="my-empty-state">
-            <p>{activeTab === 'saved' ? '아직 저장한 코스가 없어요. 탐색에서 마음에 드는 홍대 코스를 찾아보세요.' : '최근 본 코스가 아직 없어요.'}</p>
+            <p>{activeTab === 'saved' ? '아직 저장한 코스가 없어요. 탐색에서 마음에 드는 서울 코스를 찾아보세요.' : '최근 본 코스가 아직 없어요.'}</p>
             {activeTab === 'saved' && <button type="button" onClick={() => navigate(ROUTES.explore)}>탐색으로 이동</button>}
           </div>
         ) : (
@@ -217,7 +217,7 @@ export function MyPageView({ onLogout, user }: MyPageViewProps) {
               return (
                 <article className="my-course-card" key={`${activeTab}-${course.id}`}>
                   <PlaceVisual alt={places[0]?.name || course.title} color={places[0]?.color || '#eeecff'} imageUrl={course.review_image || places[0]?.imageUrl} type={places[0]?.type} detailType={places[0]?.detailType} />
-                  <div><span>{course.location || '홍대입구 주변'}</span><strong>{course.title}</strong><p>{places.length ? `${places.length}곳 · ${places.slice(0, 2).map((place) => place.title).join(' → ')}` : '상세 정보 불러오기 필요'}</p>{error && <small role="alert">{error}</small>}</div>
+                  <div><span>{course.location || '서울'}</span><strong>{course.title}</strong><p>{places.length ? `${places.length}곳 · ${places.slice(0, 2).map((place) => place.title).join(' → ')}` : '상세 정보 불러오기 필요'}</p>{error && <small role="alert">{error}</small>}</div>
                   <div className="my-course-card-actions">
                     <button disabled={openingCourseId === course.id} type="button" onClick={() => void openCourse(course, activeTab)}>{openingCourseId === course.id ? '여는 중' : error ? '재시도' : '코스로 열기'}</button>
                     {activeTab === 'saved' && (

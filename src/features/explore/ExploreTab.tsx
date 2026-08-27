@@ -202,7 +202,7 @@ export function ExploreTab() {
               <button className="course-card-main" type="button" onClick={() => setSelectedCourse(course)}>
                 <PlaceVisual alt={places[0]?.name || course.title} color={places[0]?.color || '#eeecff'} imageUrl={course.review_image || places[0]?.imageUrl} type={places[0]?.type} detailType={places[0]?.detailType} />
                 <div>
-                  <span>{course.location || '홍대입구 주변'}</span>
+                  <span>{course.location || '서울'}</span>
                   <strong>{course.title}</strong>
                   <p>{places.length ? places.slice(0, 3).map((place) => place.title).join(' → ') : '장소 상세 정보 확인 필요'}</p>
                 </div>

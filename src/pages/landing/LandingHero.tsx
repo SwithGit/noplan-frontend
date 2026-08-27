@@ -7,16 +7,16 @@ export function LandingHero() {
     <section className="landing-hero landing-hero-content landing-container" aria-labelledby="landing-title">
       <div className="landing-hero-copy">
         <div className="landing-hero-enter landing-hero-enter-title">
-          <span className="landing-eyebrow">내 취향에 맞는 홍대 코스 추천</span>
+          <span className="landing-eyebrow">내 취향에 맞는 서울 코스 추천</span>
           <h1 id="landing-title">갈 만한 곳,<br /><em>노플랜이 다 찾아드릴게요.</em></h1>
         </div>
-        <p className="landing-hero-enter landing-hero-enter-description">무엇을 할지, 누구와 가는지 알려주세요.<br />홍대의 장소를 취향과 동선에 맞는 코스로 연결해드려요.</p>
+        <p className="landing-hero-enter landing-hero-enter-description">무엇을 할지, 누구와 가는지 알려주세요.<br />서울 전역의 장소를 취향과 동선에 맞는 코스로 연결해드려요.</p>
         <div className="landing-hero-enter landing-hero-enter-actions">
           <div className="landing-hero-actions">
             <a className="landing-button" href={ROUTES.appHome}>빠른 추천 받기 <span aria-hidden="true">→</span></a>
             <a className="landing-button landing-button-outline" href="#how-it-works">서비스 알아보기</a>
           </div>
-          <small>현재 서비스는 홍대 권역을 중심으로 제공하고 있어요.</small>
+          <small>현재 서비스는 서울 전역에서 제공 중이에요.</small>
         </div>
       </div>
 

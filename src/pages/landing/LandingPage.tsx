@@ -5,14 +5,14 @@ import { LandingHero } from './LandingHero';
 import { LandingSections } from './LandingSections';
 import './landing.css';
 
-const landingDescription = '상황과 취향에 맞는 홍대의 장소를 탐색하고 이동하기 좋은 코스로 연결하는 NoPlan 서비스입니다.';
+const landingDescription = '상황과 취향에 맞는 서울 전역의 장소를 탐색하고 이동하기 좋은 코스로 연결하는 NoPlan 서비스입니다.';
 
 export default function LandingPage() {
   const pageRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const previousTitle = document.title;
-    document.title = 'NoPlan | 내 취향에 맞는 홍대 코스 추천';
+    document.title = 'NoPlan | 내 취향에 맞는 서울 코스 추천';
 
     const description = document.querySelector<HTMLMetaElement>('meta[name="description"]');
     const previousDescription = description?.content;

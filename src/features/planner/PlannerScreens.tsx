@@ -368,7 +368,7 @@ export function PlannerHome() {
 
       <p className="home-service-area-note">
         <span aria-hidden="true">i</span>
-        현재 서비스는 성수·홍대 지역만 지원하고 있어요.
+        현재 서비스는 서울 전역에서 제공 중이에요.
       </p>
 
       {locationMessage && <p className="home-location-note">{locationMessage}</p>}
@@ -465,7 +465,7 @@ export function ChatStart() {
       if (!isSeoulPlannerLocation(`${location.address} ${location.label}`)) {
         setCondition({ location: '', locationLabel: '' });
         setLocationSelectionSource(null);
-        setStatusMessage('현재 서비스는 성수·홍대 지역만 지원하고 있어요. 출발지를 직접 입력해 주세요.');
+        setStatusMessage('현재 서비스는 서울 전역에서 제공 중이에요. 서울 내 출발지를 직접 입력해 주세요.');
         return;
       }
       const nextCondition = { ...condition, location: location.address, locationLabel: location.label };
@@ -900,7 +900,7 @@ function ConditionEditSheet({
       if (!isSeoulPlannerLocation(`${location.address} ${location.label}`)) {
         setDraftLocation('');
         setDraftLocationLabel('');
-        setLocationError('현재 서비스는 성수·홍대 지역만 지원하고 있어요. 출발지를 직접 입력해 주세요.');
+        setLocationError('현재 서비스는 서울 전역에서 제공 중이에요. 서울 내 출발지를 직접 입력해 주세요.');
         return;
       }
 
@@ -1461,7 +1461,7 @@ export function ConditionConfirm() {
       const location = await detectCurrentLocation();
       if (!isSeoulPlannerLocation(`${location.address} ${location.label}`)) {
         setCondition({ location: '', locationLabel: '' });
-        setLocationMessage('현재 서비스는 성수·홍대 지역만 지원하고 있어요. 출발지를 직접 수정해 주세요.');
+        setLocationMessage('현재 서비스는 서울 전역에서 제공 중이에요. 서울 내 출발지를 직접 수정해 주세요.');
         return;
       }
       setLocationMessage('현재 위치를 새로 반영했어요.');

@@ -101,7 +101,7 @@ export function exploreCourseToPlan(course: ExploreCourse, label = '저장된 �
   return {
     id: course.id,
     title: course.title,
-    location: course.location || '홍대입구 주변',
+    location: course.location || '서울',
     durationText: `${courseData.length}곳 · ${duration} · ${label}`,
     courseData,
     backupPlaces: [],

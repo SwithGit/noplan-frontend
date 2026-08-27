@@ -35,7 +35,7 @@ function Supporters() {
         <input 
           value={storeName} 
           onChange={(e) => setStoreName(e.target.value)}
-          placeholder="성수동 OO식당"
+          placeholder="서울 OO식당"
           style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #ddd', boxSizing: 'border-box' }}
         />
       </div>

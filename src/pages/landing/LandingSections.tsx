@@ -5,7 +5,7 @@ const problems = [
 ];
 
 const steps = [
-  { title: '발견', description: '홍대의 장소와 공개 코스를 탐색합니다.', icon: '⌕', image: serviceDetailImage, width: 424, height: 855, alt: '추천 장소의 사진과 정보를 확인하는 실제 NoPlan 장소 상세 화면' },
+  { title: '발견', description: '서울 전역의 장소와 공개 코스를 탐색합니다.', icon: '⌕', image: serviceDetailImage, width: 424, height: 855, alt: '추천 장소의 사진과 정보를 확인하는 실제 NoPlan 장소 상세 화면' },
   { title: '선택', description: '상황, 취향, 인원과 원하는 분위기를 반영합니다.', icon: '✓', image: heroHomeImage, width: 756, height: 1369, alt: '상황을 입력하거나 빠른 추천을 선택하는 실제 NoPlan 홈 화면' },
   { title: '연결', description: '선택한 장소를 실제로 이동할 수 있는 코스로 확인합니다.', icon: '↗', image: serviceResultImage, width: 423, height: 863, alt: '여러 장소가 하나의 코스로 연결된 실제 NoPlan 추천 결과 화면' },
 ];
@@ -117,7 +117,7 @@ export function LandingSections() {
             <article className="landing-compare-card landing-compare-noplan landing-reveal-delay-1" data-reveal>
               <span>NoPlan</span>
               <h3>지금의 조건을 하나의 코스로</h3>
-              <ul><li>상황과 취향을 함께 반영</li><li>홍대의 장소와 공개 코스를 탐색</li><li>여러 장소를 하나의 코스로 연결</li></ul>
+              <ul><li>상황과 취향을 함께 반영</li><li>서울 전역의 장소와 공개 코스를 탐색</li><li>여러 장소를 하나의 코스로 연결</li></ul>
             </article>
           </div>
         </div>
@@ -128,9 +128,9 @@ export function LandingSections() {
           <div className="landing-section-heading" data-reveal>
             <span className="landing-kicker">LOCAL CONTENT</span>
             <h2>추천하기 전에,<br /><em>먼저 지역을 들여다봅니다.</em></h2>
-            <p>홍대에서 직접 확인하고 등록한 장소와 코스를 바탕으로 사용자의 상황에 맞는 선택지를 연결합니다.</p>
+            <p>서울 전역에서 확인하고 등록한 장소와 코스를 바탕으로 사용자의 상황에 맞는 선택지를 연결합니다.</p>
           </div>
-          <div className="landing-local-visual" aria-label="홍대 지역의 장소를 코스로 연결하는 과정" data-reveal>
+          <div className="landing-local-visual" aria-label="서울 전역의 장소를 코스로 연결하는 과정" data-reveal>
             <div className="landing-map-line" aria-hidden="true" />
             <article><span>1</span><strong>장소 탐색</strong><small>맛집 · 놀거리 · 카페</small></article>
             <article><span>2</span><strong>조건 확인</strong><small>동행 · 목적 · 분위기</small></article>

@@ -63,7 +63,7 @@ export default function ExploreDetailModal({ course, places, onClose, onLike, on
       <section aria-labelledby="explore-preview-title" aria-modal="true" className="explore-preview-dialog" ref={dialogRef} role="dialog">
         <header>
           <div>
-            <span>{course.location || '홍대입구 주변'}</span>
+            <span>{course.location || '서울'}</span>
             <h2 id="explore-preview-title">{course.title}</h2>
           </div>
           <button aria-label="코스 미리보기 닫기" ref={closeRef} type="button" onClick={onClose}>×</button>
