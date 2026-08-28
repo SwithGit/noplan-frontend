@@ -1868,12 +1868,15 @@ export function ResultScreen() {
       <AppTopBar title="추천 코스" subtitle={`${locationText} · ${condition.time} · ${condition.companion} · ${condition.mood}`} />
       {hasCourse && (
         <NopiBubble
-          title={plan.partial ? '확인된 장소까지만 골랐어.' : '이 코스가 조건에 가장 잘 맞아.'}
-          body={plan.partial ? '검증되지 않은 일정은 빼고, 바로 갈 수 있는 장소만 남겼어.' : '이동 거리와 영업시간, 선택한 목적을 함께 확인했어.'}
+          title={plan.adjustmentNotice
+            ? '코스를 이렇게 조정했어.'
+            : plan.partial ? '확인된 장소까지만 골랐어.' : '이 코스가 조건에 가장 잘 맞아.'}
+          body={plan.adjustmentNotice
+            || (plan.partial ? '검증되지 않은 일정은 빼고, 바로 갈 수 있는 장소만 남겼어.' : '이동 거리와 영업시간, 선택한 목적을 함께 확인했어.')}
           compact
         />
       )}
-      {hasCourse && plan.partial && <p className="inline-message warning">일부 조건을 통과한 장소가 부족해 확인된 일정만 보여드려요.</p>}
+      {hasCourse && plan.partial && !plan.adjustmentNotice && <p className="inline-message warning">일부 조건을 통과한 장소가 부족해 확인된 일정만 보여드려요.</p>}
 
       {hasCourse ? (
         <article className="result-card">

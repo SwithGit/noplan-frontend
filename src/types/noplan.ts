@@ -125,6 +125,7 @@ export interface CoursePlan {
   analyticsSessionId?: string;
   catalogOnly?: boolean;
   partial?: boolean;
+  adjustmentNotice?: string;
   failureReason?: 'no_candidates' | 'verification_failed' | 'unsupported_region' | 'server_error' | 'request_failed';
 }
 

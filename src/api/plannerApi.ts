@@ -10,6 +10,7 @@ import {
 interface GenerateCourseResponse {
   success?: boolean;
   partial?: boolean;
+  adjustmentNotice?: string;
   failureReason?: CoursePlan['failureReason'];
   course?: Array<Record<string, unknown>>;
   backupPlaces?: Array<Record<string, unknown>>;
@@ -430,6 +431,7 @@ export async function generateCourse(
       algorithmVersion: result.generator || 'unknown',
       catalogOnly: Boolean(result.catalogOnly),
       partial: Boolean(result.partial),
+      adjustmentNotice: result.adjustmentNotice || undefined,
       analyticsSessionId: sessionId,
     };
   } catch (error) {
