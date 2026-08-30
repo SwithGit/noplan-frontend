@@ -4,7 +4,7 @@ import type { ExploreCourse, MyPageSummary } from '../types/noplan';
 export async function fetchUserInfo(userId: string) {
   try {
     const result = await apiJson<{ success?: boolean; user?: MyPageSummary }>(
-      `/api/mypage/userinfo?id=${userId}`,
+      `/api/mypage/userinfo?id=${encodeURIComponent(userId)}`,
     );
 
     return result.success ? result.user || {} : {};
@@ -19,10 +19,10 @@ export async function fetchMyCourses(userId: string) {
   try {
     const [savedData, recentData] = await Promise.all([
       apiJson<{ success?: boolean; courses?: ExploreCourse[] }>(
-        `/api/mypage/saved-courses?userId=${userId}`,
+        `/api/mypage/saved-courses?userId=${encodeURIComponent(userId)}`,
       ),
       apiJson<{ success?: boolean; courses?: ExploreCourse[] }>(
-        `/api/mypage/recent-courses?userId=${userId}`,
+        `/api/mypage/recent-courses?userId=${encodeURIComponent(userId)}`,
       ),
     ]);
 

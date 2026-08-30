@@ -6,16 +6,17 @@ import { ROUTES } from '../../routes';
 function KakaoCallback() {
     const navigate = useNavigate();
 
-  const sendCodeToBackend = useCallback(async (code: string) => {
+  const sendCodeToBackend = useCallback(async (code: string, state: string) => {
     const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
     try {
       // 백엔드에 '카카오 로그인 처리해 줘!' 하고 택배를 보내요
       const response = await fetch(`${API_BASE_URL}/api/auth/kakao/kakao`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ code, state }),
       });
 
       const result = await response.json();
@@ -24,7 +25,7 @@ function KakaoCallback() {
        if (result.isNewUser) {
           // 처음 온 유저면, 카카오가 준 정보(kakaoInfo)를 보따리에 담아서 추가 정보 창으로 슝!
           alert(result.message);
-          navigate(ROUTES.kakaoSignup, { state: { kakaoInfo: result.kakaoInfo } });
+          navigate(ROUTES.kakaoSignup, { state: { kakaoInfo: result.kakaoInfo, registrationToken: result.registrationToken } });
         } else {
           // 원래 있던 유저면 평소처럼 서랍(localStorage)에 저장하고 홈으로!
           const userToSave = { 
@@ -47,8 +48,10 @@ function KakaoCallback() {
   }, [navigate]);
 
   useEffect(() => {
-    const code = new URL(window.location.href).searchParams.get('code');
-    if (code) void sendCodeToBackend(code);
+    const url = new URL(window.location.href);
+    const code = url.searchParams.get('code');
+    const state = url.searchParams.get('state');
+    if (code && state) void sendCodeToBackend(code, state);
   }, [sendCodeToBackend]);
 
   return (

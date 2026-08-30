@@ -39,7 +39,7 @@ const placeDetailOptions: Record<string, string[]> = {
 };
 const MAX_PLACE_SELECTIONS = 3;
 const durationOptions = ['2시간', '4시간', '저녁까지', '밤까지'];
-const tuningOptions = ['도보 짧게', '대기 적게', '사진 예쁜 곳', '조용한 곳', '비 안 맞게'];
+const tuningOptions = ['빈 시간 알아서 채우기', '도보 짧게', '대기 적게', '사진 예쁜 곳', '조용한 곳', '비 안 맞게'];
 const companionImages: Record<string, string> = {
   가족: companionFamilyImage,
   동료: companionCoworkerImage,
@@ -1907,6 +1907,7 @@ export function ResultScreen() {
               }}>
                 <PlaceVisual alt={place.name} color={place.color} imageUrl={place.imageUrl} label={String(index + 1)} type={place.type} detailType={place.detailType} />
                 <div className="result-place-copy">
+                  {place.autoAdded && <span className="auto-added-badge">코스 흐름상 추가</span>}
                   <strong>{place.searchKeyword || place.title}</strong>
                   <small>{place.category || place.detailType || place.type}{place.durationMinutes ? ` · 예상 ${place.durationMinutes}분` : ''}</small>
                   <small>{index === 0 ? '출발지에서 이동' : place.moveText} · {place.businessStatus || place.hours || '영업 정보 확인 필요'}</small>

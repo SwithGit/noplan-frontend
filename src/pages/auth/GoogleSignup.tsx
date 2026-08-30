@@ -8,6 +8,7 @@ function GoogleSignup() {
   const navigate = useNavigate();
 
   const googleInfo = location.state?.googleInfo;
+  const registrationToken = location.state?.registrationToken;
 
   const [nickname, setNickname] = useState(() => googleInfo?.nickname || '');
   const [phone, setPhone] = useState('');
@@ -15,12 +16,12 @@ function GoogleSignup() {
   const [agreeTerms, setAgreeTerms] = useState(false);
 
   useEffect(() => {
-    if (!googleInfo) {
+    if (!googleInfo || !registrationToken) {
       alert('잘못된 접근입니다. 다시 로그인해주세요.');
       navigate(ROUTES.login);
       return;
     }
-  }, [googleInfo, navigate]);
+  }, [googleInfo, navigate, registrationToken]);
 
   const handleSignup = async () => {
     if (!agreeTerms) {
@@ -38,9 +39,10 @@ function GoogleSignup() {
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/google/google-register`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id: googleInfo.id,
+          registrationToken,
           nickname,
           phone,
           travelStyle,

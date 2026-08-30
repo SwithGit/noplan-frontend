@@ -72,7 +72,7 @@ const defaultCondition: PlannerCondition = {
   coreIntentSkipped: false,
   atmosphereTags: [],
   duration: '',
-  extras: ['도보 짧게'],
+  extras: ['빈 시간 알아서 채우기', '도보 짧게'],
 };
 
 const PlannerContext = createContext<PlannerContextValue | null>(null);

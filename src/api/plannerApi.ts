@@ -232,6 +232,8 @@ function normalizePlace(item: Record<string, unknown>, index: number): CoursePla
     name: keyword,
     type,
     detailType: valueOf(item, ['detailType']),
+    autoAdded: Boolean(item.autoAdded),
+    flowRole: valueOf(item, ['flowRole']) === 'connector' ? 'connector' : 'requested',
     isFranchise: Boolean(item.isFranchise),
     brandName: valueOf(item, ['brandName']) || undefined,
     category,
@@ -393,6 +395,7 @@ export async function generateCourse(
         preferences: {
           avoidCrowds: condition.extras.includes('대기 적게'),
           shortWalking: condition.extras.includes('도보 짧게'),
+          autoFillCourse: condition.extras.includes('빈 시간 알아서 채우기'),
         },
         sourceText: condition.rawText,
         companionContext: inferCompanionContext(condition),

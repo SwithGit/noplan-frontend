@@ -6,13 +6,14 @@ import { ROUTES } from '../../routes';
 function GoogleCallback() {
   const navigate = useNavigate();
 
-  const sendCodeToBackend = useCallback(async (code: string) => {
+  const sendCodeToBackend = useCallback(async (code: string, state: string) => {
     const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/google/google`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ code, state }),
       });
 
       const result = await response.json();
@@ -20,7 +21,7 @@ function GoogleCallback() {
       if (response.ok && result.success) {
         if (result.isNewUser) {
           alert(result.message);
-          navigate(ROUTES.googleSignup, { state: { googleInfo: result.googleInfo } });
+          navigate(ROUTES.googleSignup, { state: { googleInfo: result.googleInfo, registrationToken: result.registrationToken } });
         } else {
           const userToSave = { 
             userId: result.user.id, 
@@ -43,8 +44,10 @@ function GoogleCallback() {
   }, [navigate]);
 
   useEffect(() => {
-    const code = new URL(window.location.href).searchParams.get('code');
-    if (code) void sendCodeToBackend(code);
+    const url = new URL(window.location.href);
+    const code = url.searchParams.get('code');
+    const state = url.searchParams.get('state');
+    if (code && state) void sendCodeToBackend(code, state);
   }, [sendCodeToBackend]);
 
   return (

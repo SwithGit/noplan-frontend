@@ -9,6 +9,7 @@ function KakaoSignup() {
 
   // KakaoCallback에서 챙겨온 카카오 기본 정보 보따리 풀기
   const kakaoInfo = location.state?.kakaoInfo;
+  const registrationToken = location.state?.registrationToken;
 
   const [nickname, setNickname] = useState(() => kakaoInfo?.nickname || '');
   const [phone, setPhone] = useState('');
@@ -17,12 +18,12 @@ function KakaoSignup() {
 
   useEffect(() => {
     // 정보가 없으면 비정상적인 접근이므로 로그인 화면으로 돌려보냅니다.
-    if (!kakaoInfo) {
+    if (!kakaoInfo || !registrationToken) {
       alert('잘못된 접근입니다. 다시 로그인해주세요.');
       navigate(ROUTES.login);
       return;
     }
-  }, [kakaoInfo, navigate]);
+  }, [kakaoInfo, navigate, registrationToken]);
 
   const handleSignup = async () => {
     if (!agreeTerms) {
@@ -40,11 +41,12 @@ function KakaoSignup() {
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/kakao/kakao-register`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          id: kakaoInfo.id,
+          registrationToken,
           nickname: nickname,
           phone: phone,
           travelStyle: travelStyle,

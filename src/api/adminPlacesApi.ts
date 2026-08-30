@@ -168,6 +168,7 @@ async function adminJson<T extends ApiEnvelope>(
 ): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
+    credentials: 'include',
     headers: { ...headers(key, adminId), ...(init?.headers || {}) },
   });
   const data = await response.json().catch(() => ({}));
@@ -325,6 +326,7 @@ export async function uploadPlaceImage(key: string, adminId: string, file: File)
   formData.append('image', file);
   const response = await fetch(`${API_BASE_URL}/api/admin/places/upload-image`, {
     method: 'POST',
+    credentials: 'include',
     headers: { 'x-admin-key': key, 'x-admin-id': encodeURIComponent(adminId) },
     body: formData,
   });

@@ -1,5 +1,6 @@
 // Login.tsx
 import { useState } from 'react'
+import { createOAuthState } from '../../api/authApi';
 
 interface LoginProps {
   // 🚀 리모컨 모양을 살짝 바꿨어용! 아이디랑 프사 주소를 같이 넘겨주도록!
@@ -12,9 +13,7 @@ function Login({ onLoginSuccess, onGoToSignup }: LoginProps) {
   const [pw, setPw] = useState('')
   
   const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
-  const KAKAO_AUTH_URL = `https://kauth.kakao.com/oauth/authorize?client_id=${import.meta.env.VITE_KAKAO_REST_API_KEY}&redirect_uri=${import.meta.env.VITE_KAKAO_REDIRECT_URI}&response_type=code`;
   //const NAVER_AUTH_URL = `https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=${import.meta.env.VITE_NAVER_CLIENT_ID}&redirect_uri=${import.meta.env.VITE_NAVER_REDIRECT_URI}&state=${import.meta.env.VITE_NAVER_STATE}`;
-  const GOOGLE_AUTH_URL = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${import.meta.env.VITE_GOOGLE_CLIENT_ID}&redirect_uri=${import.meta.env.VITE_GOOGLE_REDIRECT_URI}&response_type=code&scope=email profile`;
  
   const handleLogin = async () => {
     if (!id || !pw) {
@@ -25,6 +24,7 @@ function Login({ onLoginSuccess, onGoToSignup }: LoginProps) {
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -47,16 +47,39 @@ function Login({ onLoginSuccess, onGoToSignup }: LoginProps) {
     }
   }
 
-  const handleKakaoLogin = () => {
-    window.location.href = KAKAO_AUTH_URL; 
+  const handleKakaoLogin = async () => {
+    try {
+      const state = await createOAuthState('kakao');
+      const params = new URLSearchParams({
+        client_id: import.meta.env.VITE_KAKAO_REST_API_KEY,
+        redirect_uri: import.meta.env.VITE_KAKAO_REDIRECT_URI,
+        response_type: 'code',
+        state,
+      });
+      window.location.href = `https://kauth.kakao.com/oauth/authorize?${params.toString()}`;
+    } catch {
+      alert('카카오 로그인을 시작하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+    }
   }
 
   // const handleNaverLogin = () => {
   //   window.location.href = NAVER_AUTH_URL;
   // }
 
-  const handleGoogleLogin = () => {
-    window.location.href = GOOGLE_AUTH_URL;
+  const handleGoogleLogin = async () => {
+    try {
+      const state = await createOAuthState('google');
+      const params = new URLSearchParams({
+        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+        redirect_uri: import.meta.env.VITE_GOOGLE_REDIRECT_URI,
+        response_type: 'code',
+        scope: 'email profile',
+        state,
+      });
+      window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+    } catch {
+      alert('구글 로그인을 시작하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+    }
   }
 
   return (

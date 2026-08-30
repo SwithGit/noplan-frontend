@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { getSharedCourse } from './api/courseApi';
+import { fetchAuthSession, logoutSession } from './api/authApi';
 import { AppFrame } from './components/ui/AppFrame';
 import { CourseMapScreen, PlaceDetailScreen, ReplacementCandidates } from './features/course/CourseScreens';
 import { ExploreTab } from './features/explore/ExploreTab';
@@ -85,6 +86,19 @@ function AppRoutes() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    fetchAuthSession().then((session) => {
+      if (cancelled) return;
+      if (session === undefined) return;
+      if (!session) window.localStorage.removeItem('loggedInUser');
+      setUser(session);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (location.pathname !== ROUTES.courseMap) return;
 
     const params = new URLSearchParams(location.search);
@@ -150,9 +164,10 @@ function AppRoutes() {
       <Route path="/app/course/replace/:index" element={<ReplacementCandidates />} />
       <Route path={ROUTES.explore} element={<ExploreTab />} />
       <Route path={ROUTES.myPage} element={<MyPageView onLogout={() => {
-        window.localStorage.removeItem('loggedInUser');
-        setUser(null);
-        navigate(ROUTES.appHome);
+        void logoutSession().finally(() => {
+          setUser(null);
+          navigate(ROUTES.appHome);
+        });
       }} user={user} />} />
 
       <Route path={ROUTES.login} element={<Login onGoToSignup={() => navigate(ROUTES.signup)} onLoginSuccess={(id, profileURL, userNick) => {

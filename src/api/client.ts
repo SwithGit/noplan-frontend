@@ -17,6 +17,7 @@ export class ApiError extends Error {
 export async function apiJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       ...(init?.headers || {}),
@@ -32,6 +33,16 @@ export async function apiJson<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   return data as T;
+}
+
+export function storeLoggedInUser(user: { id: string; nickname?: string; profileURL?: string }) {
+  const session = {
+    userId: user.id,
+    userNick: user.nickname || user.id,
+    profileURL: user.profileURL || '',
+  };
+  localStorage.setItem('loggedInUser', JSON.stringify(session));
+  return session;
 }
 
 export function getLoggedInUser() {

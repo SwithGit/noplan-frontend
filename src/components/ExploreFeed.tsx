@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import type { ExploreCourse } from '../types/noplan';
+import { getLoggedInUser } from '../api/client';
 
 interface ExploreFeedProps {
   isDark:boolean;
@@ -6,8 +8,8 @@ interface ExploreFeedProps {
 }
 
 function ExploreFeed({ isDark, onOpenPopup }: ExploreFeedProps) {
-  const [hotCourses, setHotCourses] = useState<any[]>([]);
-  const [userId, setUserId] = useState<string | null>(null);
+  const [hotCourses, setHotCourses] = useState<ExploreCourse[]>([]);
+  const [userId] = useState<string | null>(() => getLoggedInUser()?.userId || null);
 
   const bgColor = isDark ? '#16213e' : '#e6f2ff'; // 히어로 박스 배경
   const cardBGColor = isDark ? '#000' : '#fff'; // 히어로 박스 배경
@@ -15,18 +17,13 @@ function ExploreFeed({ isDark, onOpenPopup }: ExploreFeedProps) {
   const nickColor = isDark ? '#ffffff' : '#444';  // 제목 글씨
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('loggedInUser');
-    if (savedUser) {
-      setUserId(JSON.parse(savedUser).userId);
-    }
-
     const fetchHotCourses = async () => {
       try {
         const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
-        const response = await fetch(`${API_BASE_URL}/api/course/explore/hot-courses`);        
-        const result = await response.json();
+        const response = await fetch(`${API_BASE_URL}/api/course/explore/hot-courses`, { credentials: 'include' });
+        const result = await response.json() as { success?: boolean; courses?: ExploreCourse[] };
         if (result.success) {
-          setHotCourses(result.courses);
+          setHotCourses(result.courses || []);
         }
       } catch (error) {
         console.error("핫플 가져오기 에러 ㅠㅠ:", error);
@@ -41,6 +38,7 @@ function ExploreFeed({ isDark, onOpenPopup }: ExploreFeedProps) {
       const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
       await fetch(`${API_BASE_URL}/api/course/explore/increase-view`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ courseId })
       });
@@ -65,6 +63,7 @@ function ExploreFeed({ isDark, onOpenPopup }: ExploreFeedProps) {
       const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
       const response = await fetch(`${API_BASE_URL}/api/course/explore/toggle-like`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, courseId })
       });

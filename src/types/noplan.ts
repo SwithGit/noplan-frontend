@@ -78,6 +78,8 @@ export interface CoursePlace {
   name: string;
   type: string;
   detailType?: string;
+  autoAdded?: boolean;
+  flowRole?: 'requested' | 'connector';
   isFranchise?: boolean;
   brandName?: string;
   category: string;

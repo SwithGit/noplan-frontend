@@ -8,6 +8,7 @@ function NaverSignup() {
   const navigate = useNavigate();
 
   const naverInfo = location.state?.naverInfo;
+  const registrationToken = location.state?.registrationToken;
 
   const [nickname, setNickname] = useState(() => naverInfo?.nickname || '');
   const [phone, setPhone] = useState(() => naverInfo?.phone || '');
@@ -15,12 +16,12 @@ function NaverSignup() {
   const [agreeTerms, setAgreeTerms] = useState(false);
 
   useEffect(() => {
-    if (!naverInfo) {
+    if (!naverInfo || !registrationToken) {
       alert('잘못된 접근입니다. 다시 로그인해주세요.');
       navigate(ROUTES.login);
       return;
     }
-  }, [naverInfo, navigate]);
+  }, [naverInfo, navigate, registrationToken]);
 
   const handleSignup = async () => {
     if (!agreeTerms) {
@@ -38,9 +39,10 @@ function NaverSignup() {
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/naver-register`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id: naverInfo.id,
+          registrationToken,
           nickname,
           phone,
           travelStyle,

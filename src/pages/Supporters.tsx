@@ -14,6 +14,7 @@ function Supporters() {
     try {
       const res = await fetch(`${API_BASE_URL}/api/update-status`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ storeName, status, congestion })
       });

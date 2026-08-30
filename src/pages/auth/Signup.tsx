@@ -38,6 +38,7 @@ function Signup({ onGoToLogin }: SignupProps) {
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -87,7 +88,7 @@ function Signup({ onGoToLogin }: SignupProps) {
         <input type="tel" placeholder="핸드폰 번호 (예: 010-1234-5678)" value={phone} onChange={(e) => setPhone(e.target.value)} style={inputStyle} />
         <input type="email" placeholder="이메일 주소" value={email} onChange={(e) => setEmail(e.target.value)} style={inputStyle} />
         <input type="text" placeholder="아이디" value={id} onChange={(e) => setId(e.target.value)} style={inputStyle} />
-        <input type="password" placeholder="비밀번호" value={pw} onChange={(e) => setPw(e.target.value)} style={inputStyle} />
+        <input type="password" minLength={8} maxLength={128} placeholder="비밀번호 (8자 이상)" value={pw} onChange={(e) => setPw(e.target.value)} style={inputStyle} />
         <input type="text" placeholder="노플랜에서 쓸 닉네임" value={nickname} onChange={(e) => setNickname(e.target.value)} style={inputStyle} />
 
         {/* 🎒 코아의 특별 추천! 여행 스타일 고르기 */}

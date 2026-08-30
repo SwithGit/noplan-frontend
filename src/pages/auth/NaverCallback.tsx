@@ -11,6 +11,7 @@ function NaverCallback() {
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/naver`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code, state }),
       });
@@ -21,7 +22,7 @@ function NaverCallback() {
         if (result.isNewUser) {
           // 처음 온 유저면 네이버 정보를 담아서 추가 정보 입력 창으로 안내합니다.
           alert(result.message);
-          navigate(ROUTES.naverSignup, { state: { naverInfo: result.naverInfo } });
+          navigate(ROUTES.naverSignup, { state: { naverInfo: result.naverInfo, registrationToken: result.registrationToken } });
         } else {
           // 기존 유저면 평소처럼 서랍에 저장하고 메인 화면으로 이동합니다.
           const userToSave = { 

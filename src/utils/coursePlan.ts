@@ -39,6 +39,8 @@ export function normalizeCoursePlace(value: unknown, index: number): CoursePlace
     name: textValue(record, ['name', 'title'], title),
     type: textValue(record, ['type'], 'activity'),
     detailType: textValue(record, ['detailType']) || undefined,
+    autoAdded: Boolean(record.autoAdded),
+    flowRole: textValue(record, ['flowRole']) === 'connector' ? 'connector' : 'requested',
     isFranchise: Boolean(record.isFranchise),
     brandName: textValue(record, ['brandName']) || undefined,
     category: textValue(record, ['category', 'detailType', 'type'], '장소'),
