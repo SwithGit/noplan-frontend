@@ -96,6 +96,8 @@ export interface CoursePlace {
   reviewCount?: number;
   businessStatus?: string;
   googleAttribution?: string;
+  walkingRouteSource?: string;
+  walkingRouteNotice?: string;
   provider?: string;
   providerPlaceId?: string;
   sourceUrl?: string;

@@ -3671,6 +3671,13 @@ button {
   font-size: 11px;
 }
 
+.walking-route-notice {
+  margin: 8px 2px 0;
+  color: #7c879c;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
 .mvp-feedback-panel {
   display: grid;
   gap: 12px;

@@ -253,6 +253,8 @@ function normalizePlace(item: Record<string, unknown>, index: number): CoursePla
     reviewCount: numberOf(item.reviewCount),
     businessStatus: valueOf(item, ['businessStatus']),
     googleAttribution: valueOf(item, ['googleAttribution']),
+    walkingRouteSource: valueOf(item, ['walkingRouteSource']),
+    walkingRouteNotice: valueOf(item, ['walkingRouteNotice']),
     provider: valueOf(item, ['provider']),
     providerPlaceId: valueOf(item, ['providerPlaceId']),
     sourceUrl: valueOf(item, ['sourceUrl']),

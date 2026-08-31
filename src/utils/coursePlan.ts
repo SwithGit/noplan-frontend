@@ -57,6 +57,8 @@ export function normalizeCoursePlace(value: unknown, index: number): CoursePlace
     reviewCount: numberValue(record.reviewCount),
     businessStatus: textValue(record, ['businessStatus']) || undefined,
     googleAttribution: textValue(record, ['googleAttribution']) || undefined,
+    walkingRouteSource: textValue(record, ['walkingRouteSource']) || undefined,
+    walkingRouteNotice: textValue(record, ['walkingRouteNotice']) || undefined,
     provider: textValue(record, ['provider']) || undefined,
     providerPlaceId: textValue(record, ['providerPlaceId']) || undefined,
     sourceUrl: textValue(record, ['sourceUrl']) || undefined,

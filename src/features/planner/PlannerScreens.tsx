@@ -1910,7 +1910,7 @@ export function ResultScreen() {
                   {place.autoAdded && <span className="auto-added-badge">코스 흐름상 추가</span>}
                   <strong>{place.searchKeyword || place.title}</strong>
                   <small>{place.category || place.detailType || place.type}{place.durationMinutes ? ` · 예상 ${place.durationMinutes}분` : ''}</small>
-                  <small>{index === 0 ? '출발지에서 이동' : place.moveText} · {place.businessStatus || place.hours || '영업 정보 확인 필요'}</small>
+                  <small>{place.moveText || (index === 0 ? '출발지에서 이동' : '이전 장소에서 이동')} · {place.businessStatus || place.hours || '영업 정보 확인 필요'}</small>
                   <CrowdingStatus compact snapshot={place.crowding} />
                   {place.rating != null && place.reviewCount != null && (
                     <small className="google-place-meta">Google 평점 {place.rating.toFixed(1)} · 리뷰 {place.reviewCount.toLocaleString('ko-KR')}개 · Google Maps 제공</small>
@@ -1919,6 +1919,9 @@ export function ResultScreen() {
               </button>
             ))}
           </div>
+          {plan.courseData.some((place) => place.walkingRouteSource === 'google_routes') && (
+            <p className="walking-route-notice">Google Maps 도보 경로 기준이며 실제 보행 환경과 다를 수 있어요.</p>
+          )}
         </section>
       )}
 
