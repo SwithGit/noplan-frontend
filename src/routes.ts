@@ -20,6 +20,7 @@ export const ROUTES = {
   privacy: '/privacy',
   supporters: '/supporters',
   placeAdmin: '/admin/places',
+  placeAdminMap: '/admin/places/map',
 } as const;
 
 export const coursePlaceRoute = (index: number | string) => `/app/course/place/${index}`;

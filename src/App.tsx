@@ -19,6 +19,7 @@ import Signup from './pages/auth/Signup';
 import Privacy from './pages/Privacy';
 import Supporters from './pages/Supporters';
 import PlaceAdmin from './pages/admin/PlaceAdmin';
+import PlaceMapAdmin from './pages/admin/PlaceMapAdmin';
 import LandingPage from './pages/landing/LandingPage';
 import { ROUTES, coursePlaceRoute, courseReplaceRoute } from './routes';
 import type { UserSession } from './types/noplan';
@@ -187,6 +188,7 @@ function AppRoutes() {
       <Route path={ROUTES.privacy} element={<Privacy />} />
       <Route path={ROUTES.supporters} element={<Supporters />} />
       <Route path={ROUTES.placeAdmin} element={<PlaceAdmin />} />
+      <Route path={ROUTES.placeAdminMap} element={<PlaceMapAdmin />} />
 
       <Route path="/planner/chat" element={<PreserveRedirect to={ROUTES.plannerChat} />} />
       <Route path="/planner/condition" element={<PreserveRedirect to={ROUTES.plannerCondition} />} />

@@ -2,7 +2,28 @@ import { API_BASE_URL } from './client';
 
 export type RegionKey = 'hongdae' | 'seongsu';
 export type CandidateStatus = 'pending' | 'approved' | 'rejected';
-export type PlaceType = 'food' | 'cafe' | 'activity' | 'drink' | 'hotplace';
+export type PlaceType = 'food' | 'cafe' | 'activity' | 'culture' | 'drink' | 'hotplace';
+
+export type AdminMapPlaceType = Exclude<PlaceType, 'food' | 'cafe'>;
+
+export interface AdminMapPlace {
+  id: number;
+  name: string;
+  primaryType: AdminMapPlaceType;
+  detailType?: string | null;
+  categoryLabel?: string | null;
+  address?: string | null;
+  roadAddress?: string | null;
+  latitude: number;
+  longitude: number;
+  rating?: number | null;
+  reviewCount?: number | null;
+  businessStatus?: string | null;
+  provider?: string | null;
+  providerPlaceId?: string | null;
+  regionKey?: string | null;
+  updatedAt?: string | null;
+}
 
 export interface PlaceImageInput {
   id?: number;
@@ -248,6 +269,20 @@ export function listPlaceCandidates(
     key,
     adminId,
   );
+}
+
+export function listAdminMapPlaces(
+  key: string,
+  adminId: string,
+  types: AdminMapPlaceType[] = ['activity', 'culture', 'drink', 'hotplace'],
+) {
+  const params = new URLSearchParams({ types: types.join(',') });
+  return adminJson<ApiEnvelope & {
+    places: AdminMapPlace[];
+    counts: Partial<Record<AdminMapPlaceType, number>>;
+    totalCount: number;
+    truncated: boolean;
+  }>(`/api/admin/places/map?${params}`, key, adminId);
 }
 
 export function enrichCandidateNaverMenu(
