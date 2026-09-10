@@ -285,6 +285,22 @@ export function listAdminMapPlaces(
   }>(`/api/admin/places/map?${params}`, key, adminId);
 }
 
+export function reviewAdminMapPlace(
+  key: string,
+  adminId: string,
+  placeId: number,
+  action: 'approve' | 'remove',
+) {
+  return adminJson<ApiEnvelope & {
+    placeId: number;
+    reviewStatus: 'approved' | 'removed';
+    isActive: boolean;
+  }>(
+    `/api/admin/places/map/${placeId}/review`, key, adminId,
+    { method: 'POST', body: JSON.stringify({ action }) },
+  );
+}
+
 export function enrichCandidateNaverMenu(
   key: string, adminId: string, candidateId: number, force = false,
 ) {

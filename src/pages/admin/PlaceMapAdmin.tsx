@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   checkAdminAccess,
   listAdminMapPlaces,
+  reviewAdminMapPlace,
   type AdminMapPlace,
   type AdminMapPlaceType,
 } from '../../api/adminPlacesApi';
@@ -75,7 +76,9 @@ export default function PlaceMapAdmin() {
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<AdminMapPlace | null>(null);
   const [loading, setLoading] = useState(false);
+  const [reviewing, setReviewing] = useState<'approve' | 'remove' | null>(null);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [truncated, setTruncated] = useState(false);
   const [sdkReady, setSdkReady] = useState(() => Boolean(getKakaoMaps()));
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -221,6 +224,27 @@ export default function PlaceMapAdmin() {
     setSelected(null);
   };
 
+  const reviewPlace = async (action: 'approve' | 'remove') => {
+    if (!selected || reviewing) return;
+    if (action === 'remove' && !window.confirm(`${selected.name}을(를) 추천 장소에서 제거할까요?\n제거 후 노플랜 코스에 추천되지 않습니다.`)) return;
+    setReviewing(action);
+    setError('');
+    setNotice('');
+    try {
+      await reviewAdminMapPlace(adminKey, adminId, selected.id, action);
+      const reviewedName = selected.name;
+      setPlaces((current) => current.filter((place) => place.id !== selected.id));
+      setSelected(null);
+      setNotice(action === 'approve'
+        ? `${reviewedName} 승인 완료 · 지도 검수 목록에서 제외했습니다.`
+        : `${reviewedName} 제거 완료 · 노플랜 추천에서도 제외했습니다.`);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : '장소 검수 처리에 실패했습니다.');
+    } finally {
+      setReviewing(null);
+    }
+  };
+
   if (!unlocked) {
     return (
       <main className="admin-login-page">
@@ -252,7 +276,7 @@ export default function PlaceMapAdmin() {
         </div>
       </header>
 
-      {error && <div className="admin-alert error">{error}</div>}
+      {(notice || error) && <div className={`admin-alert ${error ? 'error' : 'success'}`}>{error || notice}</div>}
       {truncated && <div className="admin-alert error">표시 한도 20,000곳에 도달했습니다. 분류 필터를 사용해 주세요.</div>}
 
       <section className="admin-map-toolbar">
@@ -302,6 +326,14 @@ export default function PlaceMapAdmin() {
                 <div><dt>DB 번호</dt><dd>{selected.id}</dd></div>
               </dl>
               <a className="admin-primary-button admin-map-external-link" href={kakaoMapUrl(selected)} target="_blank" rel="noopener noreferrer">카카오맵에서 보기</a>
+              <div className="admin-map-review-actions">
+                <button className="admin-secondary-button admin-map-approve-button" type="button" disabled={Boolean(reviewing)} onClick={() => void reviewPlace('approve')}>
+                  {reviewing === 'approve' ? '처리 중' : '승인'}
+                </button>
+                <button className="admin-danger-button" type="button" disabled={Boolean(reviewing)} onClick={() => void reviewPlace('remove')}>
+                  {reviewing === 'remove' ? '처리 중' : '제거'}
+                </button>
+              </div>
             </>
           ) : query.trim() ? (
             <>

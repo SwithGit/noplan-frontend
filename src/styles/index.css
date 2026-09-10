@@ -1122,6 +1122,22 @@
   text-decoration: none;
 }
 
+.admin-map-review-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.admin-map-review-actions button {
+  min-height: 42px;
+}
+
+.admin-map-approve-button {
+  border-color: #059669;
+  color: #047857;
+}
+
 .admin-map-search-results {
   display: grid;
   gap: 7px;
