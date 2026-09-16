@@ -229,11 +229,6 @@
   .app-shell:has(.trip-home, .trip-workspace) .screen { padding-top: 28px; }
   .app-shell:has(.trip-workspace) .app-frame { max-width: 1460px; }
   .app-shell:has(.trip-workspace) .screen { padding: 23px 40px 0; }
-  .app-shell:has(.trip-home, .trip-workspace) .desktop-header { height: 76px; }
-  .app-shell:has(.trip-home, .trip-workspace) .desktop-nav a { padding: 10px 14px; font-size: 12px; }
-  .app-shell:has(.trip-home, .trip-workspace) .desktop-nav a.active { background: transparent; color: #795099; }
-  .app-shell:has(.trip-home, .trip-workspace) .desktop-nav a.active::after { content: ''; width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
-  .app-shell:has(.trip-home, .trip-workspace) .desktop-nav .navigation-icon { display: none; }
 }
 @media (min-width: 1024px) and (max-width: 1180px) {
   .trip-editor-layout { grid-template-columns: 125px minmax(0, 1fr) 286px; }

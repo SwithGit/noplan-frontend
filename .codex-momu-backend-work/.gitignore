@@ -1,6 +1,0 @@
-node_modules/
-.env
-*.pem
-.tmp-*.cjs
-_CodexBackups/
-_migration-backups/
