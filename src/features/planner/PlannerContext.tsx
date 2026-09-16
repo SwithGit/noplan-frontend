@@ -1,4 +1,5 @@
 import { isCourseRecommendationPlace } from './recommendationPolicy';
+import { savedAccuracyPreferences } from './accuracyModel';
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import { generateCourse, makeFallbackPlan, parsePlannerCondition, trackPlannerEvent, trackRecommendationImpressions } from '../../api/plannerApi';
 import type { CoursePlace, CoursePlan, CurrentPosition, PlannerCondition } from '../../types/noplan';
@@ -73,7 +74,8 @@ const defaultCondition: PlannerCondition = {
   coreIntentSkipped: false,
   atmosphereTags: [],
   duration: '',
-  extras: ['빈 시간 알아서 채우기', '도보 짧게'],
+  extras: ['도보 짧게'],
+  accuracy: savedAccuracyPreferences(),
 };
 
 const PlannerContext = createContext<PlannerContextValue | null>(null);
@@ -294,7 +296,7 @@ function inferConditionFromText(text: string): Partial<PlannerCondition> {
 }
 
 export function PlannerProvider({ children }: { children: ReactNode }) {
-  const [condition, setConditionState] = useState(defaultCondition);
+  const [condition, setConditionState] = useState(() => ({ ...defaultCondition, accuracy: savedAccuracyPreferences() }));
   const [currentPosition, setCurrentPosition] = useState<CurrentPosition | null>(null);
   const [plan, setPlan] = useState(() => makeFallbackPlan(defaultCondition));
   const [activePlan, setActivePlan] = useState<CoursePlan | null>(null);
@@ -309,6 +311,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     }
     setConditionState((prev) => {
       const next = { ...prev, ...patch };
+      if (patch.companion !== undefined && patch.companion !== prev.companion && !patch.accuracy) next.accuracy = { ...prev.accuracy, groupSize: undefined };
       if (patch.mainCategory !== undefined && patch.mainCategory !== prev.mainCategory) {
         const validIntent = normalizeCoreIntent(next.mainCategory, next.coreIntent);
         next.coreIntent = validIntent;
@@ -364,6 +367,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       duration: resolvedCondition.duration || '',
       extras: [...new Set([...prev.extras, ...(fallbackCondition.extras || [])])],
       rawText,
+      accuracy: { ...prev.accuracy, groupSize: undefined },
     }));
   };
 
@@ -457,7 +461,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
   };
 
   const resetPlanner = () => {
-    setConditionState(defaultCondition);
+    setConditionState({ ...defaultCondition, accuracy: savedAccuracyPreferences() });
     setPlan(makeFallbackPlan(defaultCondition));
     setActivePlan(null);
     setSearchError('');

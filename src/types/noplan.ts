@@ -12,6 +12,7 @@ export interface UserSession {
 }
 
 export interface PlannerCondition {
+  accuracy?: PlannerAccuracy;
   rawText: string;
   location: string;
   locationLabel?: string;
@@ -52,6 +53,26 @@ export interface CourseMenuItem {
   isSignature?: boolean;
 }
 
+export interface PlannerAccuracy {
+  budgetPerPerson?: number;
+  groupSize?: number;
+  drinkServings?: number;
+  alcoholPreference?: 'any' | 'soju' | 'beer' | 'wine' | 'cocktail';
+  excludedDetails?: string[];
+  allowUnverifiedHours?: boolean;
+}
+
+export interface AccuracySummary {
+  requiredCount: number;
+  fulfilledCount: number;
+  costKnown: boolean;
+  estimatedMin: number | null;
+  estimatedMax: number | null;
+  budgetPerPerson: number;
+  endAt: string;
+  warnings: string[];
+}
+
 export type CrowdingLevel = 'relaxed' | 'normal' | 'busy' | 'very_busy' | 'unknown';
 
 export interface CrowdingSnapshot {
@@ -69,6 +90,7 @@ export interface CrowdingSnapshot {
 }
 
 export interface CoursePlace {
+  estimatedCost?: { status: 'estimated' | 'unknown'; min: number | null; max: number | null; basis: string };
   id: string;
   time?: string;
   durationMinutes?: number;
@@ -116,6 +138,7 @@ export interface CoursePlace {
 }
 
 export interface CoursePlan {
+  accuracySummary?: AccuracySummary;
   id?: number | string;
   title: string;
   location: string;
@@ -130,7 +153,7 @@ export interface CoursePlan {
   catalogOnly?: boolean;
   partial?: boolean;
   adjustmentNotice?: string;
-  failureReason?: 'no_candidates' | 'verification_failed' | 'unsupported_region' | 'server_error' | 'request_failed';
+  failureReason?: 'no_candidates' | 'verification_failed' | 'unsupported_region' | 'server_error' | 'request_failed' | 'constraints_unmet' | 'invalid_conditions';
 }
 
 export interface SharedCourse {

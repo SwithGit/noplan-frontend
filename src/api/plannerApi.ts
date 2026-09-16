@@ -8,6 +8,7 @@ import {
 } from '../features/planner/plannerIntents';
 
 interface GenerateCourseResponse {
+  accuracySummary?: CoursePlan['accuracySummary'];
   success?: boolean;
   partial?: boolean;
   adjustmentNotice?: string;
@@ -227,6 +228,7 @@ function normalizePlace(item: Record<string, unknown>, index: number): CoursePla
 
   return {
     id: valueOf(item, ['catalogPlaceId', 'id'], `place-${index}-${keyword}`),
+    estimatedCost: item.estimatedCost as CoursePlace['estimatedCost'],
     time,
     title,
     name: keyword,
@@ -372,7 +374,7 @@ export async function generateCourse(
       }
     : null;
   const controller = new AbortController();
-  const timeoutId = window.setTimeout(() => controller.abort(), 25000);
+  const timeoutId = window.setTimeout(() => controller.abort(), 55000);
 
   try {
     const result = await apiJson<GenerateCourseResponse>('/api/course/generate/generate-course', {
@@ -395,9 +397,10 @@ export async function generateCourse(
         duration: condition.duration,
         vibe: condition.extras.filter(Boolean).join(', '),
         preferences: {
+          ...condition.accuracy,
           avoidCrowds: condition.extras.includes('대기 적게'),
           shortWalking: condition.extras.includes('도보 짧게'),
-          autoFillCourse: condition.extras.includes('빈 시간 알아서 채우기'),
+          autoFillCourse: false,
         },
         sourceText: condition.rawText,
         companionContext: inferCompanionContext(condition),
@@ -434,6 +437,7 @@ export async function generateCourse(
       searchCourseId: result.searchCourseId || null,
       source: 'api',
       algorithmVersion: result.generator || 'unknown',
+      accuracySummary: result.accuracySummary,
       catalogOnly: Boolean(result.catalogOnly),
       partial: Boolean(result.partial),
       adjustmentNotice: result.adjustmentNotice || undefined,
@@ -452,7 +456,7 @@ export async function generateCourse(
     return {
       ...fallback,
       message: isTimeout
-        ? '추천 확인이 25초를 넘겨 중단했어요. 잠시 후 다시 시도해 주세요.'
+        ? '추천 확인이 55초를 넘겨 중단했어요. 잠시 후 다시 시도해 주세요.'
         : error instanceof Error ? `백엔드 연결 실패: ${error.message}` : fallback.message,
       failureReason: 'request_failed',
     };

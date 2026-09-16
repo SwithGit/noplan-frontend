@@ -1,0 +1,16 @@
+.accuracy-preferences { display: grid; gap: 14px; padding:18px; margin-top:18px; border:1px solid #e6ddf8; border-radius:20px; background:#fff; }
+.accuracy-preferences h2 { margin:0; font-size:17px; line-height:1.4; }
+.accuracy-preferences p,.accuracy-preferences small { color: #686780; line-height: 1.6; margin: 0; }
+.accuracy-fields { display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap:12px; }
+.accuracy-fields label { display:grid; gap:8px; min-width:0; font-size:13px; font-weight:700; color:#282447; }
+.accuracy-fields input,.accuracy-fields select { width:100%; min-width:0; box-sizing:border-box; border:1px solid #e4ddf4; border-radius:12px; background:#fff; padding:12px 9px; font:inherit; color:#292342; }
+.accuracy-preferences fieldset { border:0; padding:0; margin:0; min-width:0; }
+.accuracy-preferences legend { margin-bottom:10px; font-weight:700; font-size:13px; }
+.accuracy-preferences .chip-row { flex-wrap:wrap; }
+.accuracy-checkbox { display:flex; gap:9px; align-items:flex-start; font-size:13px; line-height:1.5; }
+.accuracy-checkbox input { margin-top:4px; accent-color:#7654d5; }
+.accuracy-checkbox small { display:block; }
+.accuracy-result { margin:16px 0; padding:16px; background:#f7f3ff; border:1px solid #e6ddf8; border-radius:16px; display:grid; gap:8px; }
+.accuracy-result p { margin:0; font-size:13px; line-height:1.6; color:#635c7b; }
+
+.trip-accuracy-wrapper { border:0; margin:16px 0; padding:0; min-width:0; }

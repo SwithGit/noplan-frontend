@@ -19,6 +19,8 @@ import { trackMvpFeedback, trackPlannerEvent } from '../../api/plannerApi';
 import type { PlannerCondition } from '../../types/noplan';
 import { ROUTES, coursePlaceRoute } from '../../routes';
 import { usePlanner } from './PlannerContext';
+import { AccuracyPreferences } from './AccuracyPreferences';
+import { accuracyMissing } from './accuracyModel';
 import {
   PLANNER_CATEGORIES,
   categoryKeyFromLabel,
@@ -41,7 +43,7 @@ const placeDetailOptions: Record<string, string[]> = {
 };
 const MAX_PLACE_SELECTIONS = 3;
 const durationOptions = ['2시간', '4시간', '저녁까지', '밤까지'];
-const tuningOptions = ['빈 시간 알아서 채우기', '도보 짧게', '대기 적게', '사진 예쁜 곳', '조용한 곳', '비 안 맞게'];
+const tuningOptions = ['도보 짧게', '대기 적게', '사진 예쁜 곳', '조용한 곳'];
 const companionImages: Record<string, string> = {
   가족: companionFamilyImage,
   동료: companionCoworkerImage,
@@ -456,7 +458,7 @@ export function ChatStart() {
     { label: '시간', value: condition.time || '미선택', complete: Boolean(condition.time) },
     { label: '동행', value: condition.companion || '미선택', complete: Boolean(selectedPeople) },
     { label: '목적', value: condition.mood || '미선택', complete: Boolean(condition.mood) },
-    { label: '이용 시간', value: condition.duration || '자동 추천', complete: true },
+    { label: '이용 시간', value: condition.duration || '미선택', complete: Boolean(condition.duration) },
   ];
   const stepComplete = stepSummaries[activeStep].complete;
 
@@ -738,9 +740,8 @@ export function ChatStart() {
           ))}
         </QuickQuestion>}
 
-        {activeStep === 4 && <QuickQuestion title="얼마나 놀까요?" subtitle="자동 추천은 시작 시간과 영업시간에 맞춰 코스를 정해요.">
+        {activeStep === 4 && <QuickQuestion title="언제까지 즐길까요?" subtitle="선택한 시간 안에 필수 활동과 이동이 모두 들어가는 코스를 찾아요.">
           <div className="option-grid duration-grid">
-            <button aria-pressed={!condition.duration} className={`chip-button ${!condition.duration ? 'selected' : ''}`} onClick={() => setCondition({ duration: '' })} type="button">자동 추천</button>
             {durationOptions.map((option) => (
               <button
                 aria-pressed={condition.duration === option}
@@ -1360,6 +1361,7 @@ export function ConditionConfirm() {
   const { condition, detectCurrentLocation, locationStatus, runSearch, searchError, setCondition } = usePlanner();
   const [editSection, setEditSection] = useState<ConditionEditSection | null>(null);
   const [locationMessage, setLocationMessage] = useState('');
+  const [accuracyError, setAccuracyError] = useState('');
   const didTrackView = useRef(false);
   const locationText = displayLocationLabel(condition);
   const locationValue = condition.location ? locationText : '';
@@ -1385,7 +1387,7 @@ export function ConditionConfirm() {
         ? 'people'
         : !selectedPlaces.length
           ? 'place'
-          : null;
+          : !condition.duration ? 'duration' : null;
   const conditionRows = [
     { id: 'location' as const, label: '출발지', value: locationValue },
     { id: 'time' as const, label: '시간', value: condition.time },
@@ -1432,6 +1434,13 @@ export function ConditionConfirm() {
       setEditSection(firstMissingSection);
       return;
     }
+    const missing = accuracyMissing(condition);
+    if (missing) {
+      setAccuracyError(missing);
+      document.querySelector('.accuracy-preferences')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    setAccuracyError('');
     const searchCondition = shouldAskCoreIntent
       ? {
           ...condition,
@@ -1540,6 +1549,8 @@ export function ConditionConfirm() {
         </section>
       )}
 
+      <AccuracyPreferences condition={condition} onChange={accuracy => { setCondition({ accuracy }); setAccuracyError(''); }} />
+      {accuracyError && <p className="inline-message warning" role="alert">{accuracyError}</p>}
       <section className="screen-section">
         <h2>더 맞춰볼까요?</h2>
         <div className="chip-row">
@@ -1637,7 +1648,7 @@ export function SearchingScreen() {
           value: condition.time || '시간 확인',
         },
         {
-          detail: `${condition.companion || '동행'}에게 맞는 좌석과 분위기 확인 중`,
+          detail: `${condition.companion || '동행'}의 선택 취향과 예상 예산을 비교 중`,
           label: '동행',
           nopi: `${condition.companion || '동행'}랑 가도 편한 분위기인지 보고 있어.`,
           value: condition.companion || '동행 확인',
@@ -1872,7 +1883,7 @@ export function ResultScreen() {
         <NopiBubble
           title={plan.adjustmentNotice
             ? '코스를 이렇게 조정했어.'
-            : plan.partial ? '확인된 장소까지만 골랐어.' : '이 코스가 조건에 가장 잘 맞아.'}
+            : plan.partial ? '확인된 장소까지만 골랐어.' : '선택한 활동을 모두 담았어.'}
           body={plan.adjustmentNotice
             || (plan.partial ? '검증되지 않은 일정은 빼고, 바로 갈 수 있는 장소만 남겼어.' : '이동 거리와 영업시간, 선택한 목적을 함께 확인했어.')}
           compact
@@ -1884,7 +1895,14 @@ export function ResultScreen() {
         <article className="result-card">
           <span className="rank-pill">{plan.partial ? '부분 추천' : '추천 완료'}</span>
           <h1>{plan.title}</h1>
-          <p>{plan.courseData.length}곳 · {plan.durationText}</p>
+          <p>{plan.durationText}</p>
+          {plan.accuracySummary && <div className="accuracy-result">
+            <strong>필수 활동 {plan.accuracySummary.fulfilledCount}/{plan.accuracySummary.requiredCount} 포함</strong>
+            <p>{plan.accuracySummary.costKnown
+              ? `1인 예상 ${plan.accuracySummary.estimatedMin?.toLocaleString()}~${plan.accuracySummary.estimatedMax?.toLocaleString()}원 · 저장 메뉴 기준 추정`
+              : '총 예상 비용 미확인 · 가격 정보가 부족한 장소 포함'}</p>
+            {plan.accuracySummary.warnings.map(warning => <p key={warning}>{warning}</p>)}
+          </div>}
           <div className="result-summary-grid">
             <div><span>이동</span><strong>{walkingSummary}</strong></div>
             <div><span>혼잡도</span><strong>{crowding ? `${crowding.areaName || '주변'} · ${crowding.label}` : '정보 확인 중'}</strong></div>
@@ -1912,7 +1930,10 @@ export function ResultScreen() {
                   {place.autoAdded && <span className="auto-added-badge">코스 흐름상 추가</span>}
                   <strong>{place.searchKeyword || place.title}</strong>
                   <small>{place.category || place.detailType || place.type}{place.durationMinutes ? ` · 예상 ${place.durationMinutes}분` : ''}</small>
-                  <small>{place.moveText || (index === 0 ? '출발지에서 이동' : '이전 장소에서 이동')} · {place.businessStatus || place.hours || '영업 정보 확인 필요'}</small>
+                  <small>{place.moveText || (index === 0 ? '출발지에서 이동' : '이전 장소에서 이동')} · {(place.businessStatus === 'open' ? '방문 시간 영업 확인' : place.businessStatus === 'closed' ? '영업 종료' : '영업시간 확인 필요')}</small>
+                  {place.estimatedCost && <small>{place.estimatedCost.status === 'estimated'
+                    ? `1인 예상 ${place.estimatedCost.min?.toLocaleString()}~${place.estimatedCost.max?.toLocaleString()}원`
+                    : '가격 확인 필요'}</small>}
                   <CrowdingStatus compact snapshot={place.crowding} />
                   {place.rating != null && place.reviewCount != null && (
                     <small className="google-place-meta">Google 평점 {place.rating.toFixed(1)} · 리뷰 {place.reviewCount.toLocaleString('ko-KR')}개 · Google Maps 제공</small>

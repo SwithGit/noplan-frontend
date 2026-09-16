@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { generateCourse } from '../../api/plannerApi';
+import { AccuracyPreferences } from '../planner/AccuracyPreferences';
+import { accuracyMissing, savedAccuracyPreferences } from '../planner/accuracyModel';
 import type { PlannerCondition } from '../../types/noplan';
 import { TripIcon } from './TripIcon';
 import { clock, endLimit, minutes, toTripPlace, usedMinutes, type TripBlock, type TripDay, type TripDocument, type TripPlace } from './tripModel';
 
 export function TripRecommendations({ trip, day, block, disabled = false, onApply }: { trip: TripDocument; day: TripDay; block: TripBlock; disabled?: boolean; onApply: (places: TripPlace[], fingerprint: string) => void }) {
+  const [accuracy, setAccuracy] = useState(savedAccuracyPreferences);
   const [purpose, setPurpose] = useState('카페/디저트');
   const [state, setState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [message, setMessage] = useState('');
@@ -20,11 +23,13 @@ export function TripRecommendations({ trip, day, block, disabled = false, onAppl
   const available = limit - start;
   const location = block.places.at(-1)?.address || block.places.at(-1)?.name || block.area || trip.destination;
   const supported = /서울|성수|연남|홍대|강남|종로|잠실|건대|한남|용산|여의도|망원/.test(`${trip.destination} ${block.area}`) && trip.transport === 'walk';
+  const hour = Math.floor(start / 60);
+  const condition: PlannerCondition = { rawText: '', location, locationLabel: location, time: `${day.date} ${hour >= 12 ? 'PM' : 'AM'} ${String(hour % 12 || 12).padStart(2, '0')} : ${String(start % 60).padStart(2, '0')}`, companion: trip.companion, mood: purpose, mainCategory: '', supportingCategories: [], coreIntent: '', coreIntentSkipped: true, atmosphereTags: [], duration: `종료 ${clock(limit)}`, extras: ['도보 짧게'], accuracy };
   const recommend = async () => {
+    const missing = accuracyMissing(condition);
+    if (missing) { setState('error'); setMessage(missing); return; }
     const token = ++requestId.current, original = fingerprint;
     setState('loading'); setMessage('영업시간과 도보 동선을 확인하고 있어요.'); setPreview([]);
-    const hour = Math.floor(start / 60);
-    const condition: PlannerCondition = { rawText: '', location, locationLabel: location, time: `${day.date} ${hour >= 12 ? 'PM' : 'AM'} ${String(hour % 12 || 12).padStart(2, '0')} : ${String(start % 60).padStart(2, '0')}`, companion: trip.companion, mood: purpose, mainCategory: '', supportingCategories: [], coreIntent: '', coreIntentSkipped: true, atmosphereTags: [], duration: `종료 ${clock(limit)}`, extras: ['도보 짧게'] };
     try {
       const anchor = block.places.at(-1);
       const result = await generateCourse(condition, anchor?.lat != null && anchor.lng != null ? { address: location, lat: anchor.lat, lng: anchor.lng } : null);
@@ -47,15 +52,18 @@ export function TripRecommendations({ trip, day, block, disabled = false, onAppl
         if (elapsed + cost > available || block.places.length + places.length >= 15) break;
         elapsed += cost; places.push(place); names.add(place.name.replace(/\s/g, ''));
       }
-      if (!places.length) throw new Error('남은 시간에 들어가는 새 장소가 없어요. 구간을 늘리거나 장소를 직접 담아보세요.');
+      if (places.length !== result.courseData.length) throw new Error('추천한 모든 활동을 이 구간에 담을 수 없어요. 중복 장소나 남은 시간을 확인하고 다시 추천받아 주세요.');
       setPreview(places); setSnapshot(original); setState('ready');
-      setMessage(result.adjustmentNotice || `기존 장소 ${block.places.length}곳을 유지하고 ${places.length}곳을 추가해요.`);
+      const cost = result.accuracySummary;
+      setMessage([`기존 장소 ${block.places.length}곳을 유지하고 ${places.length}곳을 추가해요.`, cost?.costKnown ? `추가 일정의 1인 예상 비용 ${cost.estimatedMin?.toLocaleString()}~${cost.estimatedMax?.toLocaleString()}원.` : '추가 일정의 비용 확인이 필요해요.', ...(cost?.warnings || [])].join(' '));
     } catch (cause) { if (token === requestId.current) { setState('error'); setMessage(cause instanceof Error ? cause.message : '추천을 불러오지 못했어요. 다시 시도해 주세요.'); } }
   };
   return <section className="trip-ai-panel" aria-label="이 구간 AI 추천">
     <div className="trip-ai-heading"><span><TripIcon name="spark" /></span><div><h3>빈 시간은 노피에게</h3><p>이 구간의 흐름에 맞춰 채워드려요.</p></div></div>
     <div className="trip-ai-context"><span><TripIcon name="pin" />{location}</span><span><TripIcon name="clock" />{available > 0 ? `${clock(start)}–${clock(limit)} · ${available}분 여유` : '구간에 남은 시간이 없어요'}</span></div>
-    <label className="trip-field">어떤 시간을 보내고 싶나요?<select value={purpose} onChange={event => { setPurpose(event.target.value); setPreview([]); setState('idle'); setMessage(''); }} disabled={disabled || state === 'loading'}><option>카페/디저트</option><option>맛집</option><option>산책/구경</option><option>놀거리</option><option>맛집 · 카페/디저트</option></select></label>
+    <label className="trip-field">어떤 시간을 보내고 싶나요?<select value={purpose} onChange={event => { setPurpose(event.target.value); setPreview([]); setState('idle'); setMessage(''); }} disabled={disabled || state === 'loading'}><option>카페/디저트</option><option>맛집</option><option>산책/구경</option><option>놀거리</option><option>맛집 · 카페/디저트</option><option>술/야간</option><option>맛집 · 술/야간</option></select></label>
+    <p className="trip-muted">아래 예산은 이번에 추가로 추천받는 일정만 기준으로 해요.</p>
+    <fieldset className="trip-accuracy-wrapper" disabled={disabled || state === 'loading'}><AccuracyPreferences condition={condition} onChange={value => { setAccuracy(value); setPreview([]); setState('idle'); setMessage(''); }} /></fieldset>
     {!supported && <p className="trip-muted">AI 주변 추천은 서울·도보 일정에서 사용할 수 있어요. 이 여행에는 장소를 직접 담아주세요.</p>}
     <button className="trip-button primary" disabled={disabled || !supported || available < 30 || state === 'loading'} onClick={() => void recommend()} type="button"><TripIcon name="spark" />{state === 'loading' ? '코스를 찾고 있어요…' : '이 구간 추천받기'}</button>
     {message && <p className={state === 'error' ? 'trip-alert' : 'trip-ai-message'} role={state === 'error' ? 'alert' : 'status'}>{message}</p>}
