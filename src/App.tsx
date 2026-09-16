@@ -22,6 +22,9 @@ import PlaceAdmin from './pages/admin/PlaceAdmin';
 import PlaceMapAdmin from './pages/admin/PlaceMapAdmin';
 import LandingPage from './pages/landing/LandingPage';
 import { ROUTES, coursePlaceRoute, courseReplaceRoute } from './routes';
+import { HomeEntry } from './features/trips/HomeEntry';
+import { TripHome } from './features/trips/TripHome';
+import { TripWorkspace } from './features/trips/TripWorkspace';
 import type { UserSession } from './types/noplan';
 
 const appFullPagePaths = [
@@ -72,6 +75,11 @@ function LandingEntry() {
 
   if (seq > 0) return <PreserveRedirect to={ROUTES.courseMap} />;
   return <LandingPage />;
+}
+
+function TripRouteEntry({ user }: { user: UserSession | null }) {
+  const { id } = useParams();
+  return <TripWorkspace key={`${user?.userId || 'guest'}:${id}`} user={user} />;
 }
 
 function AppRoutes() {
@@ -155,7 +163,10 @@ function AppRoutes() {
       <Route path={ROUTES.landing} element={<LandingEntry />} />
       {import.meta.env.DEV && <Route path={ROUTES.landingPreview} element={<LandingPage />} />}
 
-      <Route path={ROUTES.appHome} element={<PlannerHome />} />
+      <Route path={ROUTES.appHome} element={<HomeEntry user={user} />} />
+      <Route path={ROUTES.quickHome} element={<PlannerHome />} />
+      <Route path={ROUTES.trips} element={<TripHome key={user?.userId || 'guest'} user={user} />} />
+      <Route path="/app/trips/:id" element={<TripRouteEntry user={user} />} />
       <Route path={ROUTES.plannerChat} element={<ChatStart />} />
       <Route path={ROUTES.plannerCondition} element={<ConditionConfirm />} />
       <Route path={ROUTES.plannerSearching} element={<SearchingScreen />} />

@@ -286,7 +286,7 @@ function buildHomePrompt({
     .join(' ');
 }
 
-export function PlannerHome() {
+export function PlannerHome({ active = true }: { active?: boolean }) {
   const navigate = useNavigate();
   const { condition, detectCurrentLocation, locationStatus, plan, setCondition, startFromText } = usePlanner();
   const [text, setText] = useState(condition.rawText);
@@ -313,7 +313,7 @@ export function PlannerHome() {
   };
 
   useEffect(() => {
-    if (didRequestLocation.current || locationStatus !== 'idle') return;
+    if (!active || didRequestLocation.current || locationStatus !== 'idle') return;
 
     didRequestLocation.current = true;
     const timer = window.setTimeout(() => {
@@ -323,7 +323,7 @@ export function PlannerHome() {
     }, 0);
 
     return () => window.clearTimeout(timer);
-  }, [detectCurrentLocation, locationStatus]);
+  }, [active, detectCurrentLocation, locationStatus]);
 
   return (
     <div className="home-screen">

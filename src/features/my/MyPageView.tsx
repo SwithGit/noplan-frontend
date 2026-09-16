@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getSharedCourse } from '../../api/courseApi';
 import { publishExploreCourse } from '../../api/exploreApi';
 import { fetchMyCourses, fetchUserInfo } from '../../api/myPageApi';
@@ -190,6 +190,7 @@ export function MyPageView({ onLogout, user }: MyPageViewProps) {
         )}
       </header>
 
+      <Link className="trip-my-link" to={ROUTES.trips}><strong>내 여행 노트</strong><span>날짜별 일정을 이어서 계획해요 →</span></Link>
       <nav aria-label="내 코스 목록" className="my-course-tabs">
         <button aria-pressed={activeTab === 'saved'} className={activeTab === 'saved' ? 'active' : ''} type="button" onClick={() => selectTab('saved')}>
           저장한 코스{savedCourses.length > 0 ? ` ${savedCourses.length}` : ''}

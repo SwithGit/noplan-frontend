@@ -204,6 +204,24 @@ function MapBoard({ className, courseList, userLocation }: MapBoardProps) {
     } else {
       map.setCenter(centerLatLng);
     }
+
+    // The same map stays mounted when the responsive app shell changes width.
+    // Kakao Maps needs an explicit relayout after its container is resized.
+    let resizeFrame = 0;
+    const resizeObserver = new ResizeObserver(() => {
+      window.cancelAnimationFrame(resizeFrame);
+      resizeFrame = window.requestAnimationFrame(() => {
+        const previousCenter = map.getCenter();
+        map.relayout();
+        map.setCenter(previousCenter);
+      });
+    });
+    resizeObserver.observe(containerRef.current);
+
+    return () => {
+      window.cancelAnimationFrame(resizeFrame);
+      resizeObserver.disconnect();
+    };
   }, [markers, myLocation, sdkReady]);
 
   const fallbackMarkers = markers.length > 0 ? markers : coordinateMarkersFrom(courseList);

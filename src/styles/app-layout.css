@@ -1,0 +1,549 @@
+/* Shared app foundations. Scoped to /app; landing, authentication and admin
+   retain their independent layouts. Breakpoints change presentation only. */
+.app-shell {
+  --np-primary: #7154d8;
+  --np-primary-hover: #5d40bd;
+  --np-primary-soft: #eee8ff;
+  --np-background: #f8f7fc;
+  --np-surface: #ffffff;
+  --np-surface-soft: #f3f0fa;
+  --np-ink: #242038;
+  --np-muted: #726c82;
+  --np-border: #e6e1ef;
+  --np-radius-sm: 12px;
+  --np-radius-md: 18px;
+  --np-radius-lg: 24px;
+  --np-shadow: 0 8px 28px rgb(50 32 89 / 5%);
+  --np-space-1: 4px;
+  --np-space-2: 8px;
+  --np-space-3: 12px;
+  --np-space-4: 16px;
+  --np-space-5: 24px;
+  --np-space-6: 32px;
+  --np-font-sm: 13px;
+  --np-font-body: 15px;
+  --np-font-title: 28px;
+  --np-content-width: 1200px;
+  --np-nav-height: 76px;
+  /* Existing recommendation components consume the same brand palette. */
+  --nopi-bg: var(--np-background);
+  --nopi-surface: var(--np-surface);
+  --nopi-surface-soft: var(--np-primary-soft);
+  --nopi-primary: var(--np-primary);
+  --nopi-primary-pressed: var(--np-primary-hover);
+  --nopi-ink: var(--np-ink);
+  --nopi-text: var(--np-ink);
+  --nopi-muted: var(--np-muted);
+  --nopi-border: var(--np-border);
+
+  display: block;
+  min-width: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 0;
+  background: var(--np-background);
+  color: var(--np-ink);
+  font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: var(--np-font-body);
+  line-height: 1.5;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.app-shell *,
+.app-shell *::before,
+.app-shell *::after {
+  box-sizing: border-box;
+}
+
+.app-shell :is(button, input, select, textarea) {
+  font-family: inherit;
+}
+
+.app-shell :is(button, a, input, select, textarea):focus-visible {
+  outline: 3px solid var(--np-primary);
+  outline-offset: 3px;
+}
+
+.app-shell :is(input, textarea, select) {
+  accent-color: var(--np-primary);
+  font-size: 16px;
+}
+
+.app-shell button:not(:disabled) {
+  touch-action: manipulation;
+}
+
+.app-shell :is(.icon-button, .menu-button, .location-pill, .soft-action) {
+  min-height: 44px;
+}
+
+.app-shell :is(.icon-button, .menu-button) {
+  min-width: 44px;
+}
+
+.app-skip-link {
+  position: fixed;
+  top: 8px;
+  left: 16px;
+  z-index: 200;
+  padding: 12px 18px;
+  border-radius: var(--np-radius-sm);
+  background: var(--np-primary);
+  color: #fff;
+  transform: translateY(-160%);
+}
+
+.app-skip-link:focus {
+  transform: translateY(0);
+}
+
+.desktop-header {
+  display: none;
+}
+
+.app-frame {
+  width: 100%;
+  margin: 0 auto;
+}
+
+.app-shell .screen {
+  width: 100%;
+  height: auto;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: visible;
+  padding: var(--np-space-5) var(--np-space-4) calc(var(--np-nav-height) + 32px + env(safe-area-inset-bottom));
+}
+
+.app-shell .screen.without-nav {
+  padding-bottom: max(var(--np-space-5), env(safe-area-inset-bottom));
+}
+
+.app-shell .screen > * {
+  min-width: 0;
+}
+
+.app-shell .bottom-nav {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 40;
+  gap: var(--np-space-1);
+  min-height: var(--np-nav-height);
+  margin: 0;
+  padding: var(--np-space-2) max(var(--np-space-3), env(safe-area-inset-right)) calc(var(--np-space-2) + env(safe-area-inset-bottom)) max(var(--np-space-3), env(safe-area-inset-left));
+  border: 0;
+  border-top: 1px solid var(--np-border);
+  border-radius: 22px 22px 0 0;
+  background: var(--np-surface);
+  box-shadow: 0 -4px 24px rgb(50 32 89 / 4%);
+  backdrop-filter: none;
+}
+
+.app-shell .bottom-nav a {
+  height: 58px;
+  flex-direction: column;
+  gap: 4px;
+  border-radius: var(--np-radius-sm);
+  color: var(--np-muted);
+}
+
+.app-shell .bottom-nav a.active {
+  background: var(--np-primary-soft);
+  color: var(--np-primary);
+}
+
+.app-shell .bottom-nav b {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.navigation-icon {
+  display: block;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+}
+
+/* Shared controls and surfaces bridge the existing screens to the new tokens. */
+.app-shell :is(.prompt-card, .reading-card, .result-card, .route-map-panel, .explore-map-card, .profile-panel, .point-strip, .login-empty, .condition-card, .course-preview) {
+  border: 1px solid var(--np-border);
+  border-radius: var(--np-radius-md);
+  background: var(--np-surface);
+  box-shadow: var(--np-shadow);
+}
+
+.app-shell :is(.eyebrow, .soft-action, .quick-pick.active strong, .rank-pill) {
+  color: var(--np-primary);
+}
+
+.app-shell :is(.home-hero h1, .explore-header h1, .profile-panel h1, .login-empty h1) {
+  color: var(--np-ink);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.04em;
+}
+
+.app-shell :is(.home-hero p, .prompt-card label, .section-heading p, .top-title span) {
+  color: var(--np-muted);
+}
+
+.app-shell .home-hero p {
+  word-break: keep-all;
+}
+
+.app-shell :is(.prompt-card input, .soft-action) {
+  border-radius: var(--np-radius-sm);
+  background: var(--np-surface-soft);
+}
+
+.app-shell :is(.prompt-card button, .quick-start-button, .primary-bottom-button, .sticky-actions button.primary, .primary-result-button) {
+  border-radius: var(--np-radius-sm);
+  background: var(--np-primary);
+  color: #fff;
+  box-shadow: none;
+}
+
+.app-shell :is(.prompt-card button, .quick-start-button, .primary-bottom-button, .sticky-actions button.primary, .primary-result-button):hover:not(:disabled) {
+  background: var(--np-primary-hover);
+}
+
+.app-shell .location-pill {
+  border: 1px solid var(--np-border);
+  box-shadow: none;
+}
+
+.app-shell .location-pill span {
+  background: var(--np-primary);
+}
+
+.app-shell :is(.chip-button, .chip, .pill-button).selected,
+.app-shell .chip-button[aria-pressed="true"] {
+  border-color: var(--np-primary);
+  background: var(--np-primary-soft);
+  color: var(--np-primary-hover);
+}
+
+.app-shell .prompt-card {
+  padding: var(--np-space-4);
+}
+
+.app-shell .quick-start-button {
+  min-height: 80px;
+  padding: 18px 22px;
+}
+
+.app-shell :is(.home-screen, .course-screen, .explore-screen, .my-screen) {
+  gap: var(--np-space-5);
+}
+
+/* Use one document scroll area. The old guided screen was absolutely
+   positioned over the phone frame and would cover the desktop header. */
+.app-shell .quick-chat-screen {
+  position: relative;
+  inset: auto;
+  height: auto;
+  overflow: visible;
+  background: transparent;
+}
+
+.app-shell .quick-chat-content {
+  min-height: 0;
+  padding: 20px 0 16px;
+}
+
+.app-shell .quick-chat-screen .chat-header {
+  position: relative;
+  padding: 0 0 18px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.app-shell .date-time-overlay {
+  width: 100%;
+}
+
+.app-shell :is(.date-time-sheet, .address-sheet, .condition-edit-sheet) {
+  width: min(calc(100% - 24px), 520px);
+  max-height: calc(100dvh - 48px);
+  margin-bottom: max(12px, env(safe-area-inset-bottom));
+  border-radius: var(--np-radius-lg);
+}
+
+.app-shell :is(.sticky-actions, .result-actions) {
+  bottom: calc(var(--np-nav-height) + env(safe-area-inset-bottom));
+  background: var(--np-background);
+}
+
+.app-shell-focused :is(.sticky-actions, .result-actions, .chat-step-footer) {
+  bottom: 0;
+}
+
+/* Tablet: spacious content, touch navigation, no enlarged phone bezel. */
+@media (min-width: 768px) {
+  .app-frame {
+    max-width: 960px;
+  }
+
+  .app-shell .screen {
+    padding: 36px 40px calc(var(--np-nav-height) + 40px + env(safe-area-inset-bottom));
+  }
+
+  .app-shell .bottom-nav {
+    right: max(24px, calc((100vw - 700px) / 2));
+    bottom: 16px;
+    left: max(24px, calc((100vw - 700px) / 2));
+    border: 1px solid var(--np-border);
+    border-radius: 22px;
+  }
+
+  .app-shell :is(.quick-chat-screen, .condition-confirm-screen, .searching-screen, .place-detail-screen, .replacement-screen) {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .app-shell :is(.date-time-overlay, .explore-preview-overlay, .publish-course-overlay) {
+    place-items: center;
+    padding: 24px;
+  }
+
+  .app-shell :is(.explore-preview-dialog, .publish-course-dialog) {
+    width: min(100%, 580px);
+    max-height: calc(100dvh - 48px);
+    border-radius: var(--np-radius-lg);
+  }
+
+  .app-shell :is(.date-time-sheet, .address-sheet, .condition-edit-sheet) {
+    margin: 0;
+  }
+}
+
+/* Desktop: persistent top navigation, wide content and bounded reading forms. */
+@media (min-width: 1024px) {
+  .app-shell {
+    --np-nav-height: 84px;
+    background: radial-gradient(ellipse at 15% 0%, #f0ebfd 0, transparent 52%), var(--np-background);
+  }
+
+  .desktop-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: block;
+    height: var(--np-nav-height);
+    border-bottom: 1px solid var(--np-border);
+    background: var(--np-surface);
+  }
+
+  .desktop-header-inner {
+    display: flex;
+    width: min(100%, calc(var(--np-content-width) + 80px));
+    height: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    margin: 0 auto;
+    padding: 0 40px;
+  }
+
+  .app-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--np-primary);
+    font-size: 26px;
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -1px;
+    text-decoration: none;
+  }
+
+  .app-brand img {
+    object-fit: contain;
+  }
+
+  .app-brand-caption {
+    display: block;
+    margin-top: 5px;
+    color: var(--np-muted);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0;
+  }
+
+  .desktop-nav {
+    display: flex;
+    gap: 6px;
+  }
+
+  .desktop-nav a {
+    display: flex;
+    min-height: 44px;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 18px;
+    border-radius: var(--np-radius-sm);
+    color: var(--np-muted);
+    font-size: 14px;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .desktop-nav a:hover,
+  .desktop-nav a.active {
+    background: var(--np-primary-soft);
+    color: var(--np-primary);
+  }
+
+  .desktop-nav .navigation-icon {
+    width: 19px;
+    height: 19px;
+  }
+
+  .app-service-region {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--np-muted);
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .app-service-region > span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--np-primary);
+  }
+
+  .app-frame {
+    max-width: calc(var(--np-content-width) + 80px);
+  }
+
+  .app-shell .screen,
+  .app-shell .screen.without-nav {
+    min-height: calc(100vh - var(--np-nav-height));
+    min-height: calc(100dvh - var(--np-nav-height));
+    padding: 40px 40px 64px;
+  }
+
+  .app-shell .bottom-nav {
+    display: none;
+  }
+
+  .app-shell .home-screen {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 18px 48px;
+  }
+
+  .app-shell .home-header {
+    grid-column: 1 / -1;
+    margin-bottom: 16px;
+  }
+
+  .app-shell .home-header .menu-button {
+    display: none;
+  }
+
+  .app-shell .home-hero {
+    grid-column: 1;
+    grid-row: 2 / span 4;
+    min-height: 340px;
+    grid-template-columns: minmax(0, 1fr) 150px;
+    padding: 32px 0;
+  }
+
+  .app-shell .home-hero h1 {
+    margin: 14px 0 20px;
+    font-size: clamp(38px, 3.4vw, 54px);
+  }
+
+  .app-shell .home-hero p {
+    max-width: 320px;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.8;
+  }
+
+  .app-shell .home-hero img {
+    width: 150px;
+    height: 180px;
+    filter: drop-shadow(0 18px 24px rgb(113 84 216 / 12%));
+  }
+
+  .app-shell .home-screen > :is(.prompt-card, .home-service-area-note, .home-location-note, .quick-start-button) {
+    grid-column: 2;
+  }
+
+  .app-shell .home-screen .prompt-card {
+    align-self: end;
+    padding: var(--np-space-5);
+  }
+
+  .app-shell .home-screen .prompt-card input {
+    height: 54px;
+  }
+
+  .app-shell .home-screen .prompt-card > div {
+    grid-template-columns: minmax(0, 1fr) 54px;
+  }
+
+  .app-shell .home-screen .prompt-card button {
+    height: 54px;
+  }
+
+  .app-shell .home-screen > :is(.recommend-grid, .course-preview) {
+    grid-column: 1 / -1;
+  }
+
+  .app-shell .recommend-grid {
+    margin-top: 18px;
+    gap: 24px;
+  }
+
+  .app-shell .mini-card {
+    min-height: 150px;
+    padding: 26px;
+    border-radius: var(--np-radius-md);
+  }
+
+  .app-shell :is(.explore-course-list, .my-course-list) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+  }
+
+  .app-shell :is(.explore-screen, .my-screen, .result-screen, .course-screen) {
+    max-width: 1120px;
+    margin: 0 auto;
+  }
+
+  .app-shell .quick-chat-screen {
+    padding: 28px;
+    border: 1px solid var(--np-border);
+    border-radius: var(--np-radius-lg);
+    background: var(--np-surface);
+    box-shadow: var(--np-shadow);
+  }
+
+  .app-shell :is(.chat-step-footer, .sticky-actions, .result-actions) {
+    bottom: 0;
+  }
+
+  .app-shell .real-map-panel {
+    height: 420px;
+    min-height: 420px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell *,
+  .app-shell *::before,
+  .app-shell *::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
