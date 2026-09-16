@@ -18,6 +18,10 @@ export function AccuracyPreferences({ condition, onChange }: { condition: Planne
       <label>정확한 인원<input type="number" min="1" max="30" inputMode="numeric" placeholder="인원" value={groupSizeOf(condition) ?? ''} onChange={e => patch({ groupSize: e.target.value ? Number(e.target.value) : undefined })} /></label>
     </div>
     <small>식사·주류·활동비를 합친 예상 금액이에요. 예산을 정하면 가격을 계산할 수 없는 장소는 제외해요.</small>
+    <label>한 구간 최대 도보 거리<select value={value.maxWalkingDistanceMeters ?? ''} onChange={e=>patch({maxWalkingDistanceMeters:e.target.value?Number(e.target.value):undefined})}>
+      <option value="">제한 없음 · 이동 시간 보고 선택</option><option value="500">최대 500m</option><option value="800">최대 800m</option><option value="1000">최대 1km</option><option value="1500">최대 1.5km</option>
+    </select></label>
+    <small>‘도보 짧게’는 가까운 곳을 우선해요. 최대 거리를 지정하면 실제 경로로 확인한 구간만 추천해요.</small>
     {hasDrink && <div className="accuracy-fields">
       <label>원하는 술<select value={value.alcoholPreference || 'any'} onChange={e => patch({ alcoholPreference: e.target.value as PlannerAccuracy['alcoholPreference'] })}>
         <option value="any">상관없음</option><option value="soju">소주</option><option value="beer">맥주</option><option value="wine">와인</option><option value="cocktail">칵테일·하이볼</option>
@@ -28,7 +32,7 @@ export function AccuracyPreferences({ condition, onChange }: { condition: Planne
     </div>}
     <fieldset><legend>피하고 싶은 음식 업종</legend><div className="chip-row">
       {['고기', '해산물', '일식', '중식', '양식', '분식'].map(detail => <button type="button" key={detail} className={`chip-button ${value.excludedDetails?.includes(detail) ? 'selected' : ''}`} aria-pressed={Boolean(value.excludedDetails?.includes(detail))} onClick={() => patch({ excludedDetails: value.excludedDetails?.includes(detail) ? value.excludedDetails.filter(x => x !== detail) : [...(value.excludedDetails || []), detail] })}>{detail}</button>)}
-    </div><small>장소의 업종 기준으로 제외해요. 개별 메뉴의 재료 제외를 뜻하지는 않아요.</small></fieldset>
+    </div><small>해산물은 다른 식사·안주 메뉴가 있으면 장소를 유지하고 그 메뉴로 예산을 계산해요. 다른 선택은 업종 기준이에요.</small></fieldset>
     <label className="accuracy-checkbox"><input type="checkbox" checked={Boolean(value.allowUnverifiedHours)} onChange={e => patch({ allowUnverifiedHours: e.target.checked })} /><span>영업시간을 확인하지 못한 장소도 포함하기<small>포함 시 결과에 ‘영업시간 확인 필요’로 표시해요.</small></span></label>
     {preferenceKey() && <><button type="button" className="text-link" onClick={() => {
       const key = preferenceKey();

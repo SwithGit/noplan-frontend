@@ -11,6 +11,7 @@ interface GenerateCourseResponse {
   courseOptions?: Array<{id:string;course:Array<Record<string,unknown>>;summary:NonNullable<CoursePlan['accuracySummary']>;ranking:{score:number;walkingMinutes:number;basis:string}}>;
   comparison?: CoursePlan['comparison'];
   priceUnknownPlaces?: CoursePlan['priceUnknownPlaces'];
+  unverifiedPlaces?: CoursePlan['unverifiedPlaces'];
   constraintFailureCode?: string;
   requestedWindow?: CoursePlan['requestedWindow'];
   accuracySummary?: CoursePlan['accuracySummary'];
@@ -233,6 +234,8 @@ function normalizePlace(item: Record<string, unknown>, index: number): CoursePla
 
   return {
     id: valueOf(item, ['catalogPlaceId', 'id'], `place-${index}-${keyword}`),
+    hoursSource: typeof item.hoursSource==='string'?item.hoursSource:undefined,
+    hoursCheckedAt: typeof item.hoursCheckedAt==='string'?item.hoursCheckedAt:undefined,
     estimatedCost: item.estimatedCost as CoursePlace['estimatedCost'],
     time,
     title,
@@ -420,6 +423,7 @@ export async function generateCourse(
         failureReason: result.failureReason || 'request_failed',
         constraintFailureCode: result.constraintFailureCode,
         priceUnknownPlaces: result.priceUnknownPlaces,
+      unverifiedPlaces: result.unverifiedPlaces,
         requestedWindow: result.requestedWindow,
       };
     }
@@ -450,6 +454,7 @@ export async function generateCourse(
       selectedOptionId: result.courseOptions?.[0]?.id,
       comparison: result.comparison,
       priceUnknownPlaces: result.priceUnknownPlaces,
+      unverifiedPlaces: result.unverifiedPlaces,
       catalogOnly: Boolean(result.catalogOnly),
       partial: Boolean(result.partial),
       adjustmentNotice: result.adjustmentNotice || undefined,
@@ -464,6 +469,7 @@ export async function generateCourse(
         failureReason: response.failureReason || 'request_failed',
         constraintFailureCode: response.constraintFailureCode,
         priceUnknownPlaces: response.priceUnknownPlaces,
+        unverifiedPlaces: response.unverifiedPlaces,
         requestedWindow: response.requestedWindow,
       };
     }

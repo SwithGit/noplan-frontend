@@ -60,6 +60,7 @@ export interface PlannerAccuracy {
   alcoholPreference?: 'any' | 'soju' | 'beer' | 'wine' | 'cocktail';
   excludedDetails?: string[];
   allowUnverifiedHours?: boolean;
+  maxWalkingDistanceMeters?: number;
 }
 
 export interface AccuracySummary {
@@ -90,7 +91,9 @@ export interface CrowdingSnapshot {
 }
 
 export interface CoursePlace {
-  estimatedCost?: { status: 'estimated' | 'unknown'; min: number | null; max: number | null; basis: string; assumptions?: string[] };
+  estimatedCost?: { status: 'estimated' | 'unknown'; min: number | null; max: number | null; basis: string; assumptions?: string[]; menuExamples?: string[] };
+  hoursSource?: string;
+  hoursCheckedAt?: string;
   id: string;
   time?: string;
   durationMinutes?: number;
@@ -142,6 +145,7 @@ export interface CoursePlan {
   selectedOptionId?: string;
   comparison?: { examinedCourses: number; verifiedCourses: number; returnedCourses: number; hoursUnknown?: boolean; limited: boolean };
   priceUnknownPlaces?: Array<{ catalogPlaceId?: number; name: string; type: string; detailType?: string; basis: string }>;
+  unverifiedPlaces?: Array<{ catalogPlaceId?: number; name: string; type: string; basis: string; reason: 'hours_unknown' | 'route_unknown' }>;
   constraintFailureCode?: string;
   requestedWindow?: { startAt: string; endAt: string; availableMinutes: number };
   accuracySummary?: AccuracySummary;

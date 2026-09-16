@@ -1644,6 +1644,15 @@ function PriceUnknownCandidates({places}: {places: CoursePlan['priceUnknownPlace
   </section>;
 }
 
+function UnverifiedCandidates({places}: {places: CoursePlan['unverifiedPlaces']}) {
+  if(!places?.length)return null;
+  return <section className="screen-section price-unknown-places">
+    <h2>추가 확인이 필요한 후보</h2>
+    <p>아래 장소는 확인된 추천과 구분해 표시해요. 이 목록만으로 영업 중이거나 코스 전체 조건을 충족한다고 볼 수는 없어요.</p>
+    {places.map((p,i)=><p key={`${p.catalogPlaceId}-${i}`}><strong>{p.name}</strong> · {p.basis}</p>)}
+  </section>;
+}
+
 export function SearchingScreen() {
   const navigate = useNavigate();
   const { condition, plan, isSearching, runSearch, searchError, setCondition } = usePlanner();
@@ -1773,6 +1782,7 @@ export function SearchingScreen() {
           <h2>이번 조건으로 코스를 완성하지 못했어요</h2>
           <p>{searchError}</p>
           <PriceUnknownCandidates places={plan.priceUnknownPlaces}/>
+          <UnverifiedCandidates places={plan.unverifiedPlaces}/>
           {plan.requestedWindow && <p>계산한 일정: {new Date(plan.requestedWindow.startAt).toLocaleString('ko-KR', {timeZone:'Asia/Seoul',month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'})} → {new Date(plan.requestedWindow.endAt).toLocaleString('ko-KR', {timeZone:'Asia/Seoul',month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'})} · {plan.requestedWindow.availableMinutes}분</p>}
           {plan.constraintFailureCode === 'hours_unknown' && !condition.accuracy?.allowUnverifiedHours && <>
             <p>영업 정보가 없는 후보를 포함할 수 있어요. 포함하면 방문 전 직접 확인이 필요하고, 휴무·폐업으로 확인된 곳은 계속 제외해요.</p>
@@ -1977,6 +1987,7 @@ export function ResultScreen() {
                     ? `1인 예상 ${place.estimatedCost.min?.toLocaleString()}~${place.estimatedCost.max?.toLocaleString()}원`
                     : '가격 확인 필요'}</small>}
                   {place.estimatedCost?.assumptions?.map(text=><small key={text}>{text}</small>)}
+                  {Boolean(place.estimatedCost?.menuExamples?.length) && <small>예산 기준 메뉴: {place.estimatedCost?.menuExamples?.slice(0,3).join(' · ')}</small>}
                   <CrowdingStatus compact snapshot={place.crowding} />
                   {place.rating != null && place.reviewCount != null && (
                     <small className="google-place-meta">Google 평점 {place.rating.toFixed(1)} · 리뷰 {place.reviewCount.toLocaleString('ko-KR')}개 · Google Maps 제공</small>
@@ -1993,6 +2004,7 @@ export function ResultScreen() {
 
       {hasCourse && <CourseNearbyEvents places={plan.courseData}/>}
       <PriceUnknownCandidates places={plan.priceUnknownPlaces}/>
+      <UnverifiedCandidates places={plan.unverifiedPlaces}/>
       {hasCourse && (
         <section className="mvp-feedback-panel">
           <div><span>MVP 피드백</span><h2>이 코스로 실제 나가볼 의향이 있나요?</h2></div>
