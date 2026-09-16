@@ -27,6 +27,8 @@ import { ROUTES, coursePlaceRoute, courseReplaceRoute } from './routes';
 import { HomeEntry } from './features/trips/HomeEntry';
 import { TripHome } from './features/trips/TripHome';
 import { TripWorkspace } from './features/trips/TripWorkspace';
+import { EventsPage } from './features/events/EventsPage';
+import { EventDetail } from './features/events/EventDetail';
 import type { UserSession } from './types/noplan';
 
 const appFullPagePaths = [
@@ -167,7 +169,10 @@ function AppRoutes() {
 
       <Route path={ROUTES.appHome} element={<HomeEntry user={user} />} />
       <Route path={ROUTES.quickHome} element={<PlannerHome />} />
-      <Route path={ROUTES.trips} element={<TripHome key={user?.userId || 'guest'} user={user} />} />
+      <Route path={ROUTES.trips} element={<TripHome key={user?.userId || 'guest'} user={user} libraryOnly />} />
+      <Route path={ROUTES.newTrip} element={<TripHome key={user?.userId || 'guest'} user={user} />} />
+      <Route path={ROUTES.events} element={<EventsPage />} />
+      <Route path="/app/events/:id" element={<EventDetail user={user} />} />
       <Route path="/app/trips/:id" element={<TripRouteEntry user={user} />} />
       <Route path={ROUTES.plannerChat} element={<ChatStart />} />
       <Route path={ROUTES.plannerCondition} element={<ConditionConfirm />} />

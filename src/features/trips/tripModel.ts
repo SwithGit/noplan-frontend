@@ -11,6 +11,7 @@ export interface TripPlace {
   fixed: boolean;
   source: 'manual' | 'recommendation';
   sourceUrl: string;
+  event?: {id: string; startDate: string; endDate: string; hours: string};
 }
 export interface TripBlock { id: string; title: string; area: string; startTime: string; endTime: string; notes: string; places: TripPlace[] }
 export interface TripDay { id: string; date: string; blocks: TripBlock[] }

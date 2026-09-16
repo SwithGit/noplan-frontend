@@ -8,7 +8,7 @@ import { createTrip, dayCount, outboundLabels, readDrafts, shortDate, tomorrow, 
 import { TripIcon } from './TripIcon';
 import './trips.css';
 
-export function TripHome({ user }: { user: UserSession | null }) {
+export function TripHome({ user, libraryOnly=false }: { user: UserSession | null; libraryOnly?:boolean }) {
   const navigate = useNavigate();
   const [destination, setDestination] = useState('서울');
   const [startDate, setStartDate] = useState(tomorrow);
@@ -38,7 +38,7 @@ export function TripHome({ user }: { user: UserSession | null }) {
     } catch (cause) { setError(cause instanceof Error ? cause.message : '여행 조건을 확인해 주세요.'); }
   };
   const count = dayCount(startDate, endDate);
-  return <div className="trip-home">
+  return <div className={`trip-home ${libraryOnly?'library-only':''}`}>
     <section className="travel-hero">
       <img src={coast} alt="푸른 바다와 산책길이 있는 해안 여행 일러스트" fetchPriority="high" />
       <div className="travel-hero-copy"><span className="trip-eyebrow">YOUR NEXT LITTLE ESCAPE</span><h1>가고 싶은 곳에서,<br />우리다운 여행으로.</h1><p>큰 일정은 가볍게 정하고<br />그 사이의 좋은 순간은 노피와 채워보세요.</p><a href="#trip-create" className="travel-hero-link">새로운 여행을 시작해요 <TripIcon name="arrow" /></a></div>
@@ -59,13 +59,14 @@ export function TripHome({ user }: { user: UserSession | null }) {
       </div>
     </form>
     <div className="trip-home-caption"><span>계획은 어디든 자유롭게. AI 주변 코스 추천은 현재 서울·도보 기준이에요.</span><Link to={ROUTES.quickHome}>지금 주변 코스만 찾기 <TripIcon name="arrow" /></Link></div>
+    {!libraryOnly&&<div className="m-desktop-only"><Link className="pc-event-entry" to={ROUTES.events}><TripIcon name="calendar"/><div><strong>여행 날짜에 어떤 축제·전시가 열릴까요?</strong><small>가고 싶은 경험을 먼저 고르고, 내 여행에 담아보세요.</small></div><TripIcon name="arrow"/></Link></div>}
     {error && <div className="trip-alert" role="alert">{error}{user && <button onClick={() => { setLoading(true); setReload(value => value + 1); }} type="button">다시 불러오기</button>}</div>}
-    <section className="trip-library"><header><div><span className="trip-eyebrow">MY JOURNEYS</span><h2>다음 여행이 기다리고 있어요</h2></div><span className="trip-muted">{user ? `${user.userNick}님의 여행` : '나만의 여행 노트'}</span></header>
+    <section className="trip-library"><header><div><span className="trip-eyebrow">MY JOURNEYS</span><h2>다음 여행이 기다리고 있어요</h2></div>{libraryOnly?<><Link className="trip-button primary m-desktop-only" to={ROUTES.newTrip}>새 여행 만들기</Link><span className="trip-muted m-mobile-only">{user ? `${user.userNick}님의 여행` : '나만의 여행 노트'}</span></>:<span className="trip-muted">{user ? `${user.userNick}님의 여행` : '나만의 여행 노트'}</span>}</header>
       <div className="trip-library-grid">
         {drafts.map(draft => <button key={draft.id} className="trip-library-card draft" type="button" onClick={() => navigate(tripRoute(draft.id), { state: { initialTrip: draft } })}><span className="trip-card-art"><TripIcon name="map" /><span>{draft.version ? 'JOURNEY' : 'DRAFT'}</span></span><div><span className="trip-tag">{draft.version ? '계정에 저장한 여행 · 이 기기의 작업본' : '이 브라우저의 초안'}</span><h3>{draft.document.title}</h3><p>{shortDate(draft.document.startDate)} · {tripLength(draft.document)}</p><span className="trip-card-link">이어서 계획하기 <TripIcon name="arrow" /></span></div></button>)}
         {guestDrafts.filter(trip => !drafts.some(draft => draft.id === trip.id) && !trips.some(saved => saved.id === trip.id)).map(trip => <button key={trip.id} className="trip-library-card" type="button" onClick={() => navigate(tripRoute(trip.id), { state: { initialTrip: trip } })}><span className="trip-card-art"><TripIcon name="map" /></span><div><span className="trip-tag">로그인 전에 만든 초안</span><h3>{trip.document.title}</h3><span className="trip-card-link">이 계정으로 이어서 작성 <TripIcon name="arrow" /></span></div></button>)}
         {trips.filter(trip => !drafts.some(draft => draft.id === trip.id)).map(trip => <Link to={tripRoute(trip.id)} key={trip.id} className="trip-library-card"><span className="trip-card-art"><TripIcon name="pin" /><span>{trip.document.destination}</span></span><div><span className="trip-tag">저장한 여행</span><h3>{trip.document.title}</h3><p>{shortDate(trip.document.startDate)} · {tripLength(trip.document)}</p><span className="trip-card-link">일정 열기 <TripIcon name="arrow" /></span></div></Link>)}
-        {!drafts.length && !trips.length && !guestDrafts.length && <div className="trip-library-empty"><span className="trip-empty-icon"><TripIcon name="map" /></span><h3>{loading ? '여행 노트를 불러오고 있어요' : '아직 빈 여행 노트, 곧 특별해질 거예요.'}</h3><p>{user ? '위에서 목적지와 날짜를 고르면 첫 페이지가 시작돼요.' : '로그인 없이 초안을 만들 수 있어요. 계정에 저장하면 다른 기기에서도 이어볼 수 있어요.'}</p>{!user && <Link to={ROUTES.login} className="trip-text-link">로그인하기 <TripIcon name="arrow" /></Link>}</div>}
+        {!drafts.length && !trips.length && !guestDrafts.length && <div className="trip-library-empty"><span className="trip-empty-icon"><TripIcon name="map" /></span><h3>{loading ? '여행 노트를 불러오고 있어요' : '아직 빈 여행 노트, 곧 특별해질 거예요.'}</h3><p>{user ? (libraryOnly ? '새 여행 만들기에서 목적지와 날짜를 골라보세요.' : '위에서 목적지와 날짜를 고르면 첫 페이지가 시작돼요.') : '로그인 없이 초안을 만들 수 있어요. 계정에 저장하면 다른 기기에서도 이어볼 수 있어요.'}</p>{!user && <Link to={ROUTES.login} className="trip-text-link">로그인하기 <TripIcon name="arrow" /></Link>}</div>}
       </div>
     </section>
     <div className="trip-how"><div><span>01</span><h3>큰 일정부터 가볍게</h3><p>날짜와 오전·오후의 흐름을 정해요.</p></div><div><span>02</span><h3>꼭 갈 곳은 고정해두기</h3><p>놓치고 싶지 않은 장소를 담아두세요.</p></div><div><span>03</span><h3>빈 시간은 노피와 함께</h3><p>선택한 구간에 주변 코스를 더해요.</p></div></div>

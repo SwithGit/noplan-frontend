@@ -4,6 +4,8 @@ export const ROUTES = {
   appHome: '/app',
   quickHome: '/app/quick',
   trips: '/app/trips',
+  newTrip: '/app/trips/new',
+  events: '/app/events',
   plannerChat: '/app/planner/chat',
   plannerCondition: '/app/planner/condition',
   plannerSearching: '/app/planner/searching',
@@ -32,3 +34,4 @@ export const coursePlaceRoute = (index: number | string) => `/app/course/place/$
 export const courseReplaceRoute = (index: number | string) => `/app/course/replace/${index}`;
 
 export const tripRoute = (id: string) => `/app/trips/${encodeURIComponent(id)}`;
+export const eventRoute = (id: string) => `/app/events/${encodeURIComponent(id)}`;

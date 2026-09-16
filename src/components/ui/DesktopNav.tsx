@@ -3,8 +3,11 @@ import nopiIcon from '../../assets/nopi/nopi-icon.png';
 import { ROUTES } from '../../routes';
 import { desktopNavigationItems } from './appNavigation';
 import { NavigationIcon } from './NavigationIcon';
+import { useFavorites } from '../../features/mobile/favoritesContext';
+import '../../features/events/events.css';
 
 export function DesktopNav() {
+  const {user}=useFavorites();
   return (
     <header className="desktop-header">
       <div className="desktop-header-inner">
@@ -20,7 +23,7 @@ export function DesktopNav() {
             </NavLink>
           ))}
         </nav>
-        <span className="app-service-region"><span aria-hidden="true" />서울에서 만나요</span>
+        <div className="desktop-header-actions"><Link className="desktop-create-trip" to={ROUTES.newTrip}>여행 만들기</Link><Link className="desktop-account" to={user?ROUTES.myPage:ROUTES.login}><NavigationIcon name="user"/>{user?'마이':'로그인'}</Link></div>
       </div>
     </header>
   );

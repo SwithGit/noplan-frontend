@@ -1,0 +1,33 @@
+{
+  "name": "momu-backend",
+  "version": "1.0.0",
+  "description": "Momu backend API",
+  "main": "server.js",
+  "scripts": {
+    "audit:db": "node scripts/audit-momu-db.cjs",
+    "migrate:api-domain": "node scripts/migrate-api-domain.cjs",
+    "migrate:password-security": "node scripts/migrate-password-security.cjs",
+    "migrate:qr-download-links": "node scripts/migrate-qr-download-links.cjs",
+    "migrate:s3": "node scripts/migrate-s3-bucket.cjs",
+    "migrate:s3-urls": "node scripts/migrate-s3-urls.cjs",
+    "test": "node --test tests/*.test.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1009.0",
+    "@aws-sdk/s3-request-presigner": "^3.1009.0",
+    "@smithy/credential-provider-imds": "^4.2.12",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "mysql2": "^3.19.1",
+    "nodemailer": "^9.1.1",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
+  }
+}

@@ -5,7 +5,7 @@ import { getTrip, saveTrip } from '../../api/tripsApi';
 import MapBoard from '../../components/MapBoard';
 import nopi from '../../assets/nopi/nopi-icon.png';
 import type { UserSession } from '../../types/noplan';
-import { ROUTES, tripRoute } from '../../routes';
+import { ROUTES, tripRoute, eventRoute } from '../../routes';
 import { TripIcon } from './TripIcon';
 import { BlockForm, PlaceForm, TripSettings } from './TripForms';
 import { TripRecommendations } from './TripRecommendations';
@@ -28,8 +28,8 @@ export function TripWorkspace({ user }: { user: UserSession | null }) {
   const [storageError, setStorageError] = useState('');
   const [saving, setSaving] = useState(false);
   const [conflict, setConflict] = useState(false);
-  const [dayId, setDayId] = useState(seed?.document.days[0]?.id || '');
-  const [blockId, setBlockId] = useState(seed?.document.days[0]?.blocks[0]?.id || '');
+  const [dayId, setDayId] = useState((location.state as {focusDayId?:string}|null)?.focusDayId || seed?.document.days[0]?.id || '');
+  const [blockId, setBlockId] = useState((location.state as {focusBlockId?:string}|null)?.focusBlockId || seed?.document.days[0]?.blocks[0]?.id || '');
   const [dialog, setDialog] = useState<'place' | 'block' | 'settings' | null>(null);
   const [editingPlace, setEditingPlace] = useState<TripPlace | undefined>();
   const [addingBlock, setAddingBlock] = useState<TripBlock | null>(null);
@@ -115,7 +115,7 @@ export function TripWorkspace({ user }: { user: UserSession | null }) {
           <div className="trip-segment-rail"><span>{segment.startTime}</span><i>{String(index + 1).padStart(2, '0')}</i><small>{segment.endTime}</small></div>
           <div className="trip-segment-card"><button className="trip-segment-title" type="button" onClick={() => chooseBlock(segment)} aria-pressed={segment.id === block?.id}><div><span>{segment.places.length ? `${segment.places.length}곳 · 체류 ${segment.places.reduce((sum, place) => sum + place.durationMinutes, 0)}분` : '이 시간을 무엇으로 채울까요?'}</span><h3>{segment.title}</h3></div><TripIcon name="arrow" /></button>
             {segment.area && <p className="trip-segment-area"><TripIcon name="pin" />{segment.area}</p>}
-            {segment.places.length > 0 ? <ol className="trip-stop-list">{segment.places.map((place, position) => <li key={place.id}><span className="trip-stop-number">{position + 1}</span><div><strong>{place.name}</strong><small>{place.type} · {place.durationMinutes}분{place.fixed ? ' · 고정' : ''}</small></div>{place.fixed && <TripIcon name="lock" />}</li>)}</ol> : <button className="trip-segment-empty" type="button" onClick={() => { setBlockId(segment.id); setEditingPlace(undefined); setDialog('place'); }} disabled={saving}><TripIcon name="plus" /><span>가고 싶은 장소를 담아보세요</span></button>}
+            {segment.places.length > 0 ? <ol className="trip-stop-list">{segment.places.map((place, position) => <li key={place.id}><span className="trip-stop-number">{position + 1}</span><div><strong>{place.name}</strong><small>{place.type} · {place.durationMinutes}분{place.fixed ? ' · 고정' : ''}</small>{place.event&&<Link className="trip-text-link" to={eventRoute(place.event.id)}>행사 상세 · {place.event.hours||'관람 시간 확인'}</Link>}</div>{place.fixed && <TripIcon name="lock" />}</li>)}</ol> : <button className="trip-segment-empty" type="button" onClick={() => { setBlockId(segment.id); setEditingPlace(undefined); setDialog('place'); }} disabled={saving}><TripIcon name="plus" /><span>가고 싶은 장소를 담아보세요</span></button>}
             {usedMinutes(segment) > minutes(segment.endTime) - minutes(segment.startTime) && <p className="trip-alert">머무는 시간과 이동 여유가 구간을 넘어요.</p>}
             {segment.notes && <p className="trip-segment-note">{segment.notes}</p>}
             <div className="trip-segment-footer"><button type="button" className="trip-text-link" onClick={() => { chooseBlock(segment); setDetailTab('recommend'); }}><TripIcon name="spark" />이 구간 채우기</button><button type="button" aria-label={`${segment.title} 수정`} className="trip-icon-button" onClick={() => { setBlockId(segment.id); setAddingBlock(null); setDialog('block'); }} disabled={saving}><TripIcon name="menu" /></button></div>

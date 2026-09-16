@@ -21,6 +21,7 @@ export function BlockForm({ block, day, days, onClose, onSave }: { block: TripBl
   const submit = (event: FormEvent) => {
     event.preventDefault();
     const targetDay = days.find(item => item.id === target)!;
+    if(value.places.some(place=>place.event&&(targetDay.date<place.event.startDate||targetDay.date>place.event.endDate)))return setError('담긴 행사의 개최 기간에 해당하는 날짜를 선택해 주세요.');
     if (!value.title.trim()) return setError('구간 이름을 입력해 주세요.');
     if (minutes(value.endTime) <= minutes(value.startTime)) return setError('종료 시각을 시작 시각보다 늦게 선택해 주세요.');
     if (targetDay.blocks.some(item => item.id !== value.id && minutes(item.startTime) < minutes(value.endTime) && minutes(value.startTime) < minutes(item.endTime))) return setError('다른 일정 구간과 시간이 겹쳐요. 시작·종료 시각을 조정해 주세요.');
@@ -48,6 +49,7 @@ export function TripSettings({ trip, onClose, onSave }: { trip: TripDocument; on
     if (count < trip.days.length && !window.confirm(`여행을 ${count}일로 줄이면 이후 날짜의 일정이 제외돼요. 계속할까요? 저장 전에는 되돌릴 수 있어요.`)) return;
     const template = createTrip(value).document;
     const days = template.days.map((day, index) => trip.days[index] ? { ...trip.days[index], date: day.date } : day);
+    if(days.some(day=>day.blocks.some(block=>block.places.some(place=>place.event&&(day.date<place.event.startDate||day.date>place.event.endDate)))))return setError('여행 날짜를 바꾸면 담긴 행사의 개최 기간을 벗어나요. 행사 일정을 먼저 조정해 주세요.');
     onSave({ ...value, title: value.title.trim(), destination: value.destination.trim(), days });
   };
   return <TripDialog title="여행 정보" onClose={onClose}><form className="trip-form" onSubmit={submit}>
