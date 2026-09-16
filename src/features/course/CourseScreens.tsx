@@ -1,7 +1,6 @@
-import { isCourseRecommendationPlace } from '../planner/recommendationPolicy';
 import { FavoriteButton } from '../mobile/MobileUi';
 import { placeFavorite, planFavorite } from '../mobile/mobileModel';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AppTopBar } from '../../components/ui/AppTopBar';
 import { Chip } from '../../components/ui/Chip';
@@ -10,9 +9,10 @@ import { NopiBubble } from '../../components/ui/NopiBubble';
 import { PlaceVisual } from '../../components/ui/PlaceVisual';
 import { CrowdingStatus } from '../../components/ui/CrowdingStatus';
 import { usePlanner } from '../planner/PlannerContext';
-import type { CoursePlace } from '../../types/noplan';
-import { trackPlaceInteraction } from '../../api/plannerApi';
+import type { CoursePlace, CoursePlan } from '../../types/noplan';
+import { generateCourse, trackPlaceInteraction } from '../../api/plannerApi';
 import { ROUTES, coursePlaceRoute, courseReplaceRoute } from '../../routes';
+import './replacement-screen.css';
 
 function placeAt(places: CoursePlace[], indexValue: string | undefined) {
   const index = Number(indexValue || 0);
@@ -316,15 +316,30 @@ export function PlaceDetailScreen() {
 export function ReplacementCandidates() {
   const navigate = useNavigate();
   const { index } = useParams();
-  const placeIndex = Math.max(Number(index || 0), 0);
-  const { activePlan: plan, hasActivePlan, replacePlace } = usePlanner();
-  const current = placeAt(plan?.courseData || [], index);
-  const candidates = useMemo(() => {
-    if (!current || !plan) return [];
-    const eligible = plan.backupPlaces.filter(isCourseRecommendationPlace);
-    const sameType = eligible.filter((place) => place.type === current.type || place.category === current.category);
-    return sameType.length ? sameType : eligible;
-  }, [current, plan]);
+  const placeIndex = Number(index);
+  const { activePlan: plan, hasActivePlan, applyReplacementPlan } = usePlanner();
+  const current = Number.isInteger(placeIndex) ? plan?.courseData[placeIndex] : undefined;
+  const [attempt, setAttempt] = useState(0);
+  const replacementApplied = useRef(false);
+  const [response, setResponse] = useState<{ plan: CoursePlan; index: number; attempt: number; result: CoursePlan } | null>(null);
+  const context = plan?.planningContext;
+  const window = plan?.requestedWindow;
+  const canSearch = Boolean(current && context && window && plan?.courseData.every(place => place.catalogPlaceId));
+  const result = response?.plan === plan && response?.index === placeIndex && response?.attempt === attempt ? response.result : null;
+  const loading = canSearch && !result;
+  const candidates = result?.source === 'api' ? result.courseOptions || [] : [];
+
+  useEffect(() => {
+    if (replacementApplied.current || !canSearch || !plan || !context || !window) return;
+    const controller = new AbortController();
+    generateCourse(context.condition, context.currentPosition, {
+      replacement: { index: placeIndex, coursePlaceIds: plan.courseData.map(place => place.catalogPlaceId!), window },
+      signal: controller.signal,
+    }).then(next => {
+      if (!controller.signal.aborted) setResponse({ plan, index: placeIndex, attempt, result: next });
+    });
+    return () => controller.abort();
+  }, [plan, context, window, placeIndex, attempt, canSearch]);
 
   if (!hasActivePlan || !plan || !current) {
     return (
@@ -349,36 +364,50 @@ export function ReplacementCandidates() {
       </section>
 
       <section className="candidate-list">
-        {candidates.length === 0 && (
+        {loading && <p className="inline-message" role="status">주변 후보의 영업시간·앞뒤 이동 거리·전체 예산을 확인하고 있어요.</p>}
+        {!loading && candidates.length === 0 && (
           <section className="replacement-empty">
-            <p className="inline-message warning">현재 코스와 비슷한 교체 후보가 아직 없어요.</p>
+            <p className="inline-message warning" role="status">{!canSearch
+              ? '이 코스에는 처음 추천받은 조건이 저장되어 있지 않아요. 조건을 입력해 코스를 다시 찾으면 장소를 바꿀 수 있어요.'
+              : result?.message || '현재 코스의 조건을 모두 확인한 교체 후보를 찾지 못했어요. 현재 장소는 유지했어요.'}</p>
+            {canSearch && <button type="button" onClick={() => setAttempt(value => value + 1)}>후보 다시 찾기</button>}
             <button type="button" onClick={() => navigate(ROUTES.plannerCondition)}>조건 수정하기</button>
             <button className="primary" type="button" onClick={() => navigate(ROUTES.courseMap)}>현재 장소 유지</button>
           </section>
         )}
-        {candidates.map((candidate) => (
+        {candidates.length > 0 && <p className="inline-message">다른 장소는 그대로 유지해요. 교체 후 전체 일정과 비용을 다시 계산했어요.</p>}
+        {candidates.map(option => {
+          const candidate = option.courseData[placeIndex];
+          return (
           <article className="candidate-card" key={candidate.id}>
             <PlaceVisual alt={candidate.name} color={candidate.color} imageUrl={candidate.imageUrl} type={candidate.type} detailType={candidate.detailType} />
-            <div>
+            <div className="replacement-candidate-info">
               <span>{candidate.category}</span>
               <strong>{candidate.title}</strong>
-              <p>{candidate.summary}</p>
-              <small>{candidate.moveText} · {candidate.waitText} · {candidate.moodText}</small>
-              <small>{candidate.reason}</small>
+              <small>{candidate.moveText} · {candidate.scheduledStart ? new Date(candidate.scheduledStart).toLocaleTimeString('ko-KR', {timeZone:'Asia/Seoul',hour:'numeric',minute:'2-digit'}) + ' 방문' : candidate.time}</small>
+              <p className="replacement-course-cost">{option.summary.costKnown ? `${option.summary.estimatedMin?.toLocaleString()}~${option.summary.estimatedMax?.toLocaleString()}원` : '가격 확인 필요'}<span>교체 후 전체 코스 · 1인 예상</span></p>
+              {option.courseData.some(place => place.estimatedCost?.assumptions?.length) && <small>일부 가격 가정 포함</small>}
+              <details className="replacement-candidate-details"><summary>방문·가격 안내</summary><p>{candidate.reason}</p>{option.summary.warnings.map((warning, i) => <p key={i}>{warning}</p>)}</details>
               <CrowdingStatus compact snapshot={candidate.crowding} />
             </div>
             <button
               type="button"
               onClick={() => {
+                if (!result) return;
+                const end = new Date(option.summary.endAt).toLocaleTimeString('ko-KR', {timeZone:'Asia/Seoul',hour:'numeric',minute:'2-digit'});
+                replacementApplied.current = true;
+                if (!applyReplacementPlan(placeIndex, {...result,courseData:option.courseData,accuracySummary:option.summary,durationText:`${option.courseData.length}곳 · ${end}까지`}, plan)) {
+                  replacementApplied.current = false;
+                  return;
+                }
                 trackPlaceInteraction('place_replace', candidate, placeIndex + 1).catch(() => undefined);
-                replacePlace(placeIndex, candidate);
                 navigate(ROUTES.courseMap, { state: { replacementMessage: `${current.title}을(를) ${candidate.title}(으)로 바꿨어요.` } });
               }}
             >
               교체
             </button>
           </article>
-        ))}
+        );})}
       </section>
     </div>
   );

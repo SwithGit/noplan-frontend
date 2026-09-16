@@ -141,6 +141,7 @@ export interface CoursePlace {
 }
 
 export interface CoursePlan {
+  planningContext?: { condition: PlannerCondition; currentPosition: CurrentPosition | null };
   courseOptions?: Array<{ id: string; courseData: CoursePlace[]; summary: AccuracySummary; ranking: { score: number; walkingMinutes: number; basis: string } }>;
   selectedOptionId?: string;
   comparison?: { examinedCourses: number; verifiedCourses: number; returnedCourses: number; hoursUnknown?: boolean; limited: boolean };

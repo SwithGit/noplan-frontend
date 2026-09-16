@@ -357,6 +357,7 @@ function inferCompanionContext(condition: PlannerCondition) {
 export async function generateCourse(
   condition: PlannerCondition,
   currentPosition: CurrentPosition | null = null,
+  options: { replacement?: { index: number; coursePlaceIds: number[]; window: { startAt: string; endAt: string } }; signal?: AbortSignal } = {},
 ): Promise<CoursePlan> {
   const user = getLoggedInUser();
   const fallback = makeFallbackPlan(condition);
@@ -383,12 +384,16 @@ export async function generateCourse(
     : null;
   const controller = new AbortController();
   const timeoutId = window.setTimeout(() => controller.abort(), 55000);
+  const abort = () => controller.abort();
+  options.signal?.addEventListener('abort', abort, { once: true });
+  if (options.signal?.aborted) controller.abort();
 
   try {
     const result = await apiJson<GenerateCourseResponse>('/api/course/generate/generate-course', {
       method: 'POST',
       signal: controller.signal,
       body: JSON.stringify({
+        replacement: options.replacement,
         location: condition.location,
         locationLabel: condition.locationLabel || null,
         origin: currentOrigin,
@@ -448,6 +453,8 @@ export async function generateCourse(
       message: makePurposeCoverageMessage(result),
       searchCourseId: result.searchCourseId || null,
       source: 'api',
+      planningContext: structuredClone({ condition, currentPosition }),
+      requestedWindow: result.requestedWindow,
       algorithmVersion: result.generator || 'unknown',
       accuracySummary: result.accuracySummary,
       courseOptions: result.courseOptions?.map(option=>({...option,courseData:option.course.map(normalizePlace)})),
@@ -483,6 +490,7 @@ export async function generateCourse(
     };
   } finally {
     window.clearTimeout(timeoutId);
+    options.signal?.removeEventListener('abort', abort);
   }
 }
 

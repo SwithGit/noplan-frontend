@@ -1,0 +1,55 @@
+.replacement-screen .candidate-card {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 18px;
+  border: 1px solid #e9e5f1;
+  border-radius: 20px;
+  box-shadow: none;
+}
+.replacement-screen .replacement-candidate-info { min-width: 0; }
+.replacement-screen .replacement-candidate-info > span {
+  color: #79738b;
+  font-size: 11px;
+}
+.replacement-screen .replacement-candidate-info > strong {
+  display: block;
+  margin: 3px 0 8px;
+  font-size: 16px;
+  line-height: 1.4;
+}
+.replacement-screen .replacement-candidate-info small {
+  display: block;
+  color: #777186;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.65;
+}
+.replacement-screen .replacement-course-cost {
+  margin: 12px 0 4px;
+  color: #27213d;
+  font-size: 16px;
+  font-weight: 700;
+  overflow: visible;
+  white-space: normal;
+}
+.replacement-screen .replacement-course-cost > span {
+  display: block;
+  margin-top: 3px;
+  color: #79738b;
+  font-size: 11px;
+  font-weight: 400;
+}
+.replacement-screen .replacement-candidate-details { margin-top: 10px; color: #79738b; font-size: 11px; }
+.replacement-screen .replacement-candidate-details summary { cursor: pointer; }
+.replacement-screen .replacement-candidate-details p { white-space: normal; overflow: visible; color: #79738b; line-height: 1.65; font-weight: 400; }
+.replacement-screen .candidate-card > button {
+  grid-column: 2;
+  width: 100%;
+  min-height: 40px;
+  margin: 0;
+  color: #7050d0;
+  background: #f1ecff;
+  border-radius: 12px;
+}

@@ -3,7 +3,7 @@ import { savedAccuracyPreferences, accuracyMissing } from './accuracyModel';
 import { readPlannerDraft, savePlannerDraft, missingPlannerCondition } from './plannerDraft';
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { generateCourse, makeFallbackPlan, parsePlannerCondition, trackPlannerEvent, trackRecommendationImpressions } from '../../api/plannerApi';
-import type { CoursePlace, CoursePlan, CurrentPosition, PlannerCondition } from '../../types/noplan';
+import type { CoursePlan, CurrentPosition, PlannerCondition } from '../../types/noplan';
 import {
   categoryLabelFromKey,
   inferAtmosphereTags,
@@ -58,7 +58,7 @@ interface PlannerContextValue {
   loadPlan: (nextPlan: CoursePlan) => void;
   selectCurrentPlan: () => boolean;
   selectPlanOption: (id: string) => void;
-  replacePlace: (index: number, place: CoursePlace) => void;
+  applyReplacementPlan: (index: number, nextPlan: CoursePlan, expectedPlan: CoursePlan) => boolean;
   resetPlanner: () => void;
 }
 
@@ -463,23 +463,19 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const replacePlace = (index: number, place: CoursePlace) => {
-    if (!isCourseRecommendationPlace(place) || !activePlan || index < 0 || index >= activePlan.courseData.length) return;
-
-    const courseData = [...activePlan.courseData];
-    const duplicatesExistingPlace = courseData.some((item, itemIndex) => (
-      itemIndex !== index
-      && ((place.catalogPlaceId && item.catalogPlaceId === place.catalogPlaceId)
-        || (place.brandName && item.brandName === place.brandName))
-    ));
-    if (duplicatesExistingPlace) return;
-
-    // Replacement changes the venue, not the selected slot's visit date.
-    courseData[index] = { ...place, time: courseData[index]?.time || String(index + 1), scheduledStart: courseData[index]?.scheduledStart, scheduledEnd: courseData[index]?.scheduledEnd };
-    const replacedPlan = { ...activePlan, courseData };
-
+  const applyReplacementPlan = (index: number, nextPlan: CoursePlan, expectedPlan: CoursePlan) => {
+    if (!activePlan || activePlan !== expectedPlan || nextPlan.source !== 'api'
+      || !Number.isInteger(index) || index < 0 || index >= activePlan.courseData.length
+      || nextPlan.courseData.length !== activePlan.courseData.length
+      || !nextPlan.courseData.every(isCourseRecommendationPlace)) return false;
+    const ids = nextPlan.courseData.map(place => place.catalogPlaceId);
+    if (ids.some(id => !id) || new Set(ids).size !== ids.length
+      || ids[index] === activePlan.courseData[index].catalogPlaceId
+      || ids.some((id, slot) => slot !== index && id !== activePlan.courseData[slot].catalogPlaceId)) return false;
+    const replacedPlan = { ...nextPlan, id: undefined, searchCourseId: null, courseOptions: undefined, selectedOptionId: undefined };
     setActivePlan(replacedPlan);
-    setPlan((currentPlan) => (currentPlan === activePlan ? replacedPlan : currentPlan));
+    setPlan(currentPlan => currentPlan === activePlan ? replacedPlan : currentPlan);
+    return true;
   };
 
   const resetPlanner = () => {
@@ -505,7 +501,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     setCondition,
     startFromText,
     runSearch,
-    replacePlace,
+    applyReplacementPlan,
     resetPlanner,
   };
 
