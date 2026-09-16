@@ -1,4 +1,5 @@
 import { ApiError, apiJson, getLoggedInUser } from './client';
+import { requestCourse, type CourseProgress } from './courseRequest';
 import type { CrowdingSnapshot, CoursePlace, CoursePlan, CurrentPosition, PlannerCondition } from '../types/noplan';
 import {
   categoryKeyFromLabel,
@@ -243,7 +244,7 @@ function normalizePlace(item: Record<string, unknown>, index: number): CoursePla
     type,
     detailType: valueOf(item, ['detailType']),
     autoAdded: Boolean(item.autoAdded),
-    flowRole: valueOf(item, ['flowRole']) === 'connector' ? 'connector' : 'requested',
+    flowRole: valueOf(item, ['flowRole']) === 'connector' ? 'connector' : valueOf(item, ['flowRole']) === 'suggested' ? 'suggested' : 'requested',
     isFranchise: Boolean(item.isFranchise),
     brandName: valueOf(item, ['brandName']) || undefined,
     category,
@@ -357,7 +358,7 @@ function inferCompanionContext(condition: PlannerCondition) {
 export async function generateCourse(
   condition: PlannerCondition,
   currentPosition: CurrentPosition | null = null,
-  options: { replacement?: { index: number; coursePlaceIds: number[]; window: { startAt: string; endAt: string } }; signal?: AbortSignal } = {},
+  options: { replacement?: { index: number; coursePlaceIds: number[]; window: { startAt: string; endAt: string } }; signal?: AbortSignal; onProgress?: (progress: CourseProgress) => void } = {},
 ): Promise<CoursePlan> {
   const user = getLoggedInUser();
   const fallback = makeFallbackPlan(condition);
@@ -383,16 +384,14 @@ export async function generateCourse(
       }
     : null;
   const controller = new AbortController();
-  const timeoutId = window.setTimeout(() => controller.abort(), 55000);
+  const timeoutId = window.setTimeout(() => controller.abort(), 70000);
   const abort = () => controller.abort();
   options.signal?.addEventListener('abort', abort, { once: true });
   if (options.signal?.aborted) controller.abort();
 
   try {
-    const result = await apiJson<GenerateCourseResponse>('/api/course/generate/generate-course', {
-      method: 'POST',
-      signal: controller.signal,
-      body: JSON.stringify({
+    const result = await requestCourse<GenerateCourseResponse>(JSON.stringify({
+        streamProgress: Boolean(options.onProgress),
         replacement: options.replacement,
         location: condition.location,
         locationLabel: condition.locationLabel || null,
@@ -413,13 +412,12 @@ export async function generateCourse(
           ...condition.accuracy,
           avoidCrowds: condition.extras.includes('대기 적게'),
           shortWalking: condition.extras.includes('도보 짧게'),
-          autoFillCourse: false,
+          fillSchedule: condition.accuracy?.fillSchedule !== false,
         },
         sourceText: condition.rawText,
         companionContext: inferCompanionContext(condition),
         userId: user?.userId || null,
-      }),
-    });
+      }), controller.signal, options.onProgress);
 
     if (!result.success || !Array.isArray(result.course) || result.course.length === 0) {
       return {
@@ -484,7 +482,7 @@ export async function generateCourse(
     return {
       ...fallback,
       message: isTimeout
-        ? '추천 확인이 55초를 넘겨 중단했어요. 잠시 후 다시 시도해 주세요.'
+        ? '추천 확인이 70초를 넘겨 중단했어요. 잠시 후 다시 시도해 주세요.'
         : error instanceof Error ? `백엔드 연결 실패: ${error.message}` : fallback.message,
       failureReason: 'request_failed',
     };

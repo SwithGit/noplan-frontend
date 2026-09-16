@@ -1656,12 +1656,18 @@ function UnverifiedCandidates({places}: {places: CoursePlan['unverifiedPlaces']}
 
 export function SearchingScreen() {
   const navigate = useNavigate();
-  const { condition, plan, isSearching, runSearch, searchError, setCondition } = usePlanner();
+  const { condition, plan, isSearching, searchProgress, runSearch, searchError, setCondition } = usePlanner();
   const [searchTakingLong, setSearchTakingLong] = useState(false);
   const locationText = condition.location ? displayLocationLabel(condition) : '출발지 미입력';
   const searchSteps = useMemo(
     () =>
       [
+        {
+          detail: '인원·예산·제외 메뉴를 확인하고 있어요.',
+          label: '기본 조건',
+          nopi: '오늘의 조건부터 확인할게.',
+          value: condition.companion || '동행 미입력',
+        },
         {
           detail: `${locationText} 기준으로 가까운 후보를 먼저 모으는 중`,
           label: '출발지',
@@ -1675,14 +1681,8 @@ export function SearchingScreen() {
           value: condition.time || '출발 시간 미입력',
         },
         {
-          detail: `${condition.companion || '동행'}의 선택 취향과 예상 예산을 비교 중`,
-          label: '동행',
-          nopi: `${condition.companion || '동행'}랑 가도 편한 분위기인지 보고 있어.`,
-          value: condition.companion || '동행 미입력',
-        },
-        {
           detail: `${condition.mood || '취향'} 관련 메뉴, 리뷰, 분위기 확인 중`,
-          label: '취향',
+          label: '장소 후보',
           nopi: `${condition.mood || '취향'} 느낌에 맞는 곳만 남겨볼게.`,
           value: condition.mood || '활동 미입력',
         },
@@ -1695,6 +1695,10 @@ export function SearchingScreen() {
       ],
     [condition.companion, condition.mood, condition.time, locationText],
   );
+  const progressStep = ({'request-received':0,'preferences-normalized':1,'location-resolved':2,'time-window-resolved':3,'candidates-ready':4,'verification-started':4,'verifying-places':4,'verification-finished':4,'walking-route-diagnostics':4,'walking-routes-finished':4,'complete':5} as Record<string,number>)[searchProgress?.stage || 'request-received'] ?? 4;
+  const verificationText = searchProgress?.examined != null
+    ? `${searchProgress.examined}개 조합 확인 · ${searchProgress.verified || 0}개 코스 검증 완료`
+    : searchProgress?.checked != null ? `활동별 영업정보 ${searchProgress.checked}${searchProgress.total ? ` / ${searchProgress.total}` : ''}건 확인 중` : '실제 이동 경로와 방문 시간·전체 예산을 확인하고 있어요.';
   useEffect(() => {
     if (!isSearching && !searchError) navigate(ROUTES.plannerCondition, {replace:true});
   }, [isSearching,searchError,navigate]);
@@ -1722,11 +1726,11 @@ export function SearchingScreen() {
   return (
     <div className="searching-screen non-home-screen">
       <AppTopBar title={searchFailed ? "조건 확인이 필요해요" : "코스 찾는 중"} subtitle={searchFailed ? "아래 실패 이유를 확인해 주세요" : "조건에 맞는 장소를 고르고 있어"} />
-      <NopiBubble title={searchFailed ? "코스를 찾지 못했어." : '입력한 조건으로 코스를 찾고 있어.'} body={searchFailed ? searchError : '장소와 이동 경로, 영업시간을 확인한 뒤 결과를 보여줄게.'} />
-      <p className="search-live-status">
+      <NopiBubble title={searchFailed ? "코스를 찾지 못했어." : searchSteps[Math.min(progressStep,4)].nopi} body={searchFailed ? searchError : progressStep===4 ? verificationText : searchSteps[Math.min(progressStep,4)].detail} />
+      <p className="search-live-status" role="status" aria-live="polite">
         {searchFailed
           ? '조건에 맞는 코스를 완성하지 못했어요.'
-          : '서버에서 코스를 확인하고 있어요.'}
+          : progressStep===5 ? '코스 검증이 완료됐어요.' : `${searchSteps[progressStep].label} 확인 중 · ${progressStep + 1} / 5`}
       </p>
 
       {searchTakingLong && isSearching && (
@@ -1742,13 +1746,13 @@ export function SearchingScreen() {
           {condition.extras.includes('도보 짧게') && ' · 도보 짧게'}
         </p>}
         <div className="condition-check-row">
-          {searchSteps.slice(0, 4).map((step, index) => (
+          {[locationText,condition.time,condition.companion,condition.mood].map((value, index) => (
             <span
-              className="condition-check-chip"
-              key={step.label}
+              className={`condition-check-chip ${progressStep > [1,2,0,3][index] ? 'done' : ''}`}
+              key={index}
             >
-              <b>{index + 1}</b>
-              {step.value}
+              <b>{progressStep > [1,2,0,3][index] ? '✓' : index + 1}</b>
+              {value}
             </span>
           ))}
         </div>
@@ -1759,13 +1763,14 @@ export function SearchingScreen() {
         <div className="search-check-list">
           {searchSteps.map((step, index) => (
             <article
-              className="search-check-item"
+              className={`search-check-item ${index<progressStep?'done':index===progressStep&&!searchFailed?'active':''}`}
+              aria-current={index===progressStep&&!searchFailed?'step':undefined}
               key={step.label}
             >
-              <span>{index + 1}</span>
+              <span>{index<progressStep?'✓':index + 1}</span>
               <div>
                 <strong>{step.label}</strong>
-                <p>{step.label==='코스' ? (searchFailed?'추천 코스 없음':'검증 결과를 기다리고 있어요.') : step.value}</p>
+                <p>{step.label==='코스' ? (searchFailed?'코스 검증을 완료하지 못했어요.':verificationText) : index===progressStep ? step.detail : step.value}</p>
               </div>
             </article>
           ))}
@@ -1978,7 +1983,8 @@ export function ResultScreen() {
                   }}>
                     <PlaceVisual alt={place.name} color={place.color} imageUrl={place.imageUrl} type={place.type} detailType={place.detailType} />
                     <div className="result-place-copy">
-                      <small>{place.category || place.detailType || place.type}{place.durationMinutes ? ` · 약 ${place.durationMinutes}분 머물기` : ''}</small>
+                      <small>{place.category || place.detailType || place.type}{place.durationMinutes ? ` · 약 ${place.durationMinutes}분 머물기` : ''}{place.autoAdded ? ' · 일정에 맞춰 추가' : ''}</small>
+                      {place.scheduledStart && <small>{new Date(place.scheduledStart).toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'numeric',minute:'2-digit'})} 방문</small>}
                       <strong>{place.searchKeyword || place.title || place.name}</strong>
                       <span className={`stop-status ${place.businessStatus==='open'?'is-open':''}`}>{place.businessStatus==='open'?'방문 시간 영업 확인':place.businessStatus==='closed'?'영업 종료':'영업시간 확인 필요'}</span>
                     </div>

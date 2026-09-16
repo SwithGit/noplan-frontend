@@ -54,6 +54,8 @@ export interface CourseMenuItem {
 }
 
 export interface PlannerAccuracy {
+  fillSchedule?: boolean;
+  additionalActivities?: Array<'activity' | 'cafe' | 'hotplace'>;
   budgetPerPerson?: number;
   groupSize?: number;
   drinkServings?: number;
@@ -104,7 +106,7 @@ export interface CoursePlace {
   type: string;
   detailType?: string;
   autoAdded?: boolean;
-  flowRole?: 'requested' | 'connector';
+  flowRole?: 'requested' | 'connector' | 'suggested';
   isFranchise?: boolean;
   brandName?: string;
   category: string;

@@ -4,6 +4,7 @@ import { readPlannerDraft, savePlannerDraft, missingPlannerCondition } from './p
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { generateCourse, makeFallbackPlan, parsePlannerCondition, trackPlannerEvent, trackRecommendationImpressions } from '../../api/plannerApi';
 import type { CoursePlan, CurrentPosition, PlannerCondition } from '../../types/noplan';
+import type { CourseProgress } from '../../api/courseRequest';
 import {
   categoryLabelFromKey,
   inferAtmosphereTags,
@@ -49,6 +50,7 @@ interface PlannerContextValue {
   activePlan: CoursePlan | null;
   hasActivePlan: boolean;
   isSearching: boolean;
+  searchProgress: CourseProgress | null;
   locationStatus: 'idle' | 'locating' | 'success' | 'error';
   searchError: string;
   detectCurrentLocation: (options?: { updateCondition?: boolean; updateStatus?: boolean }) => Promise<{ address: string; label: string }>;
@@ -305,6 +307,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
   const [activePlan, setActivePlan] = useState<CoursePlan | null>(null);
   const hasActivePlan = Boolean(activePlan && activePlan.courseData.length > 0 && activePlan.source !== 'fallback');
   const [isSearching, setIsSearching] = useState(false);
+  const [searchProgress, setSearchProgress] = useState<CourseProgress | null>(null);
   const [locationStatus, setLocationStatus] = useState<'idle' | 'locating' | 'success' | 'error'>('idle');
   const [searchError, setSearchError] = useState('');
   useEffect(() => { savePlannerDraft(condition,currentPosition); }, [condition,currentPosition]);
@@ -386,14 +389,15 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     }
     savePlannerDraft(searchCondition,currentPosition);
     setIsSearching(true);
+    setSearchProgress({stage:'request-received'});
     setSearchError('');
-    await trackPlannerEvent('course_generate_start', undefined, searchCondition).catch(() => undefined);
-    const nextPlan = await generateCourse(searchCondition, currentPosition);
+    void trackPlannerEvent('course_generate_start', undefined, searchCondition).catch(() => undefined);
+    const nextPlan = await generateCourse(searchCondition, currentPosition, {onProgress:setSearchProgress});
     if (nextPlan.source === 'fallback' && nextPlan.message) {
       setSearchError(nextPlan.message);
-      await trackPlannerEvent('course_generate_failure', { errorType: 'no_verified_course' }, searchCondition).catch(() => undefined);
+      void trackPlannerEvent('course_generate_failure', { errorType: 'no_verified_course' }, searchCondition).catch(() => undefined);
     } else {
-      await trackPlannerEvent('course_generate_success', {
+      void trackPlannerEvent('course_generate_success', {
         courseCount: nextPlan.courseData.length,
         generator: nextPlan.algorithmVersion || 'unknown',
         catalogOnly: Boolean(nextPlan.catalogOnly),
@@ -404,6 +408,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     }
     setPlan(nextPlan);
     const searchSucceeded = nextPlan.source !== 'fallback' && nextPlan.courseData.length > 0;
+    if(searchSucceeded)setSearchProgress({stage:'complete'});
     trackRecommendationImpressions(nextPlan, searchCondition).catch(() => undefined);
     window.setTimeout(() => setIsSearching(false), 550);
     return searchSucceeded;
@@ -492,6 +497,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     activePlan,
     hasActivePlan,
     isSearching,
+    searchProgress,
     locationStatus,
     searchError,
     detectCurrentLocation,
