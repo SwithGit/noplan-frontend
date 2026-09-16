@@ -1647,9 +1647,8 @@ function PriceUnknownCandidates({places}: {places: CoursePlan['priceUnknownPlace
 export function SearchingScreen() {
   const navigate = useNavigate();
   const { condition, plan, isSearching, runSearch, searchError, setCondition } = usePlanner();
-  const [checkedCount, setCheckedCount] = useState(0);
   const [searchTakingLong, setSearchTakingLong] = useState(false);
-  const locationText = displayLocationLabel(condition);
+  const locationText = condition.location ? displayLocationLabel(condition) : '출발지 미입력';
   const searchSteps = useMemo(
     () =>
       [
@@ -1663,19 +1662,19 @@ export function SearchingScreen() {
           detail: `${condition.time || '선택한 시간'}에 갈 수 있는지 확인 중`,
           label: '시간',
           nopi: `${condition.time || '선택한 시간'} 기준으로 영업시간을 걸러보고 있어.`,
-          value: condition.time || '시간 확인',
+          value: condition.time || '출발 시간 미입력',
         },
         {
           detail: `${condition.companion || '동행'}의 선택 취향과 예상 예산을 비교 중`,
           label: '동행',
           nopi: `${condition.companion || '동행'}랑 가도 편한 분위기인지 보고 있어.`,
-          value: condition.companion || '동행 확인',
+          value: condition.companion || '동행 미입력',
         },
         {
           detail: `${condition.mood || '취향'} 관련 메뉴, 리뷰, 분위기 확인 중`,
           label: '취향',
           nopi: `${condition.mood || '취향'} 느낌에 맞는 곳만 남겨볼게.`,
-          value: condition.mood || '취향 확인',
+          value: condition.mood || '활동 미입력',
         },
         {
           detail: '이동 순서와 코스 흐름 정리 중',
@@ -1686,21 +1685,15 @@ export function SearchingScreen() {
       ],
     [condition.companion, condition.mood, condition.time, locationText],
   );
-  const activeStep = searchSteps[Math.min(checkedCount, searchSteps.length - 1)];
+  useEffect(() => {
+    if (!isSearching && !searchError) navigate(ROUTES.plannerCondition, {replace:true});
+  }, [isSearching,searchError,navigate]);
 
   useEffect(() => {
-    const timers = searchSteps.slice(0, 4).map((_, index) =>
-      window.setTimeout(() => {
-        setCheckedCount(index + 1);
-      }, 650 + index * 620),
-    );
+    if(!isSearching)return;
     const delayedTimer = window.setTimeout(() => setSearchTakingLong(true), 8000);
-
-    return () => {
-      timers.forEach((timer) => window.clearTimeout(timer));
-      window.clearTimeout(delayedTimer);
-    };
-  }, [searchSteps]);
+    return () => window.clearTimeout(delayedTimer);
+  }, [isSearching]);
 
   const retrySearch = async () => {
     setSearchTakingLong(false);
@@ -1719,15 +1712,11 @@ export function SearchingScreen() {
   return (
     <div className="searching-screen non-home-screen">
       <AppTopBar title={searchFailed ? "조건 확인이 필요해요" : "코스 찾는 중"} subtitle={searchFailed ? "아래 실패 이유를 확인해 주세요" : "조건에 맞는 장소를 고르고 있어"} />
-      <NopiBubble title={searchFailed ? "이번 조건에서는 코스를 완성하지 못했어." : activeStep.nopi} body={searchFailed ? "예산·가격 정보·동선 중 무엇이 막혔는지 아래에 적었어." : "조건이 맞는지 하나씩 확인하고 있어."} />
+      <NopiBubble title={searchFailed ? "코스를 찾지 못했어." : '입력한 조건으로 코스를 찾고 있어.'} body={searchFailed ? searchError : '장소와 이동 경로, 영업시간을 확인한 뒤 결과를 보여줄게.'} />
       <p className="search-live-status">
         {searchFailed
           ? '조건에 맞는 코스를 완성하지 못했어요.'
-          : checkedCount < searchSteps.length
-          ? `${activeStep.label} 조건을 확인하고 있어요.`
-          : isSearching
-            ? '후보 장소를 마지막으로 정리하고 있어요.'
-            : '추천 결과를 정리했어요.'}
+          : '서버에서 코스를 확인하고 있어요.'}
       </p>
 
       {searchTakingLong && isSearching && (
@@ -1735,8 +1724,8 @@ export function SearchingScreen() {
       )}
 
       <section className="reading-card">
-        <strong>읽고 있는 조건</strong>
-        {condition.accuracy && <p className="inline-message">
+        <strong>요청한 조건</strong>
+        {condition.accuracy?.budgetPerPerson != null && <p className="inline-message">
           {condition.accuracy.budgetPerPerson != null && (condition.accuracy.budgetPerPerson === 0 ? '예산 제한 없음' : `1인 ${condition.accuracy.budgetPerPerson.toLocaleString()}원`)}
           {/술/.test(condition.mood) && ` · ${{any:'주류 무관',soju:'소주',beer:'맥주',wine:'와인',cocktail:'칵테일·하이볼'}[condition.accuracy.alcoholPreference || 'any']} ${condition.accuracy.drinkServings ?? 2}주문단위`}
           {Boolean(condition.accuracy.excludedDetails?.length) && ` · 제외: ${condition.accuracy.excludedDetails?.join(', ')}`}
@@ -1745,12 +1734,10 @@ export function SearchingScreen() {
         <div className="condition-check-row">
           {searchSteps.slice(0, 4).map((step, index) => (
             <span
-              className={`condition-check-chip ${
-                index < checkedCount ? 'done' : index === checkedCount ? 'active' : ''
-              }`}
+              className="condition-check-chip"
               key={step.label}
             >
-              <b>{index < checkedCount ? '✓' : index + 1}</b>
+              <b>{index + 1}</b>
               {step.value}
             </span>
           ))}
@@ -1758,19 +1745,17 @@ export function SearchingScreen() {
       </section>
 
       <section className="screen-section">
-        <h2>{searchFailed ? "확인한 조건" : "Nopi가 확인하는 중"}</h2>
+        <h2>{searchFailed ? '요청 내용' : '이 조건으로 확인 중이에요'}</h2>
         <div className="search-check-list">
           {searchSteps.map((step, index) => (
             <article
-              className={`search-check-item ${
-                index < checkedCount ? 'done' : index === checkedCount ? 'active' : ''
-              }`}
+              className="search-check-item"
               key={step.label}
             >
-              <span>{index < checkedCount ? '✓' : index + 1}</span>
+              <span>{index + 1}</span>
               <div>
                 <strong>{step.label}</strong>
-                <p>{step.detail}</p>
+                <p>{step.label==='코스' ? (searchFailed?'추천 코스 없음':'검증 결과를 기다리고 있어요.') : step.value}</p>
               </div>
             </article>
           ))}

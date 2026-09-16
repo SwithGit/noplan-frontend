@@ -1,6 +1,7 @@
 import { isCourseRecommendationPlace } from './recommendationPolicy';
-import { savedAccuracyPreferences } from './accuracyModel';
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { savedAccuracyPreferences, accuracyMissing } from './accuracyModel';
+import { readPlannerDraft, savePlannerDraft, missingPlannerCondition } from './plannerDraft';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { generateCourse, makeFallbackPlan, parsePlannerCondition, trackPlannerEvent, trackRecommendationImpressions } from '../../api/plannerApi';
 import type { CoursePlace, CoursePlan, CurrentPosition, PlannerCondition } from '../../types/noplan';
 import {
@@ -297,14 +298,16 @@ function inferConditionFromText(text: string): Partial<PlannerCondition> {
 }
 
 export function PlannerProvider({ children }: { children: ReactNode }) {
-  const [condition, setConditionState] = useState(() => ({ ...defaultCondition, accuracy: savedAccuracyPreferences() }));
-  const [currentPosition, setCurrentPosition] = useState<CurrentPosition | null>(null);
+  const [initialDraft] = useState(() => readPlannerDraft({ ...defaultCondition, accuracy: savedAccuracyPreferences() }));
+  const [condition, setConditionState] = useState(initialDraft.condition);
+  const [currentPosition, setCurrentPosition] = useState<CurrentPosition | null>(initialDraft.currentPosition);
   const [plan, setPlan] = useState(() => makeFallbackPlan(defaultCondition));
   const [activePlan, setActivePlan] = useState<CoursePlan | null>(null);
   const hasActivePlan = Boolean(activePlan && activePlan.courseData.length > 0 && activePlan.source !== 'fallback');
   const [isSearching, setIsSearching] = useState(false);
   const [locationStatus, setLocationStatus] = useState<'idle' | 'locating' | 'success' | 'error'>('idle');
   const [searchError, setSearchError] = useState('');
+  useEffect(() => { savePlannerDraft(condition,currentPosition); }, [condition,currentPosition]);
 
   const setCondition = (patch: Partial<PlannerCondition>) => {
     if (patch.location !== undefined && patch.location !== currentPosition?.address) {
@@ -374,6 +377,14 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
 
   const runSearch = async (conditionOverride?: PlannerCondition) => {
     const searchCondition = conditionOverride || condition;
+    const missing=missingPlannerCondition(searchCondition) || accuracyMissing(searchCondition);
+    if(missing){
+      setSearchError(missing);
+      setPlan({...makeFallbackPlan(searchCondition),failureReason:'invalid_conditions',message:missing});
+      setIsSearching(false);
+      return false;
+    }
+    savePlannerDraft(searchCondition,currentPosition);
     setIsSearching(true);
     setSearchError('');
     await trackPlannerEvent('course_generate_start', undefined, searchCondition).catch(() => undefined);
