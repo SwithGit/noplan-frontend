@@ -8,6 +8,8 @@ import {
 } from '../features/planner/plannerIntents';
 
 interface GenerateCourseResponse {
+  constraintFailureCode?: string;
+  requestedWindow?: CoursePlan['requestedWindow'];
   accuracySummary?: CoursePlan['accuracySummary'];
   success?: boolean;
   partial?: boolean;
@@ -413,6 +415,8 @@ export async function generateCourse(
         ...fallback,
         message: result.message || '백엔드에서 추천 코스를 받지 못했어요.',
         failureReason: result.failureReason || 'request_failed',
+        constraintFailureCode: result.constraintFailureCode,
+        requestedWindow: result.requestedWindow,
       };
     }
 
@@ -450,6 +454,8 @@ export async function generateCourse(
         ...fallback,
         message: response.message || error.message,
         failureReason: response.failureReason || 'request_failed',
+        constraintFailureCode: response.constraintFailureCode,
+        requestedWindow: response.requestedWindow,
       };
     }
     const isTimeout = error instanceof Error && error.name === 'AbortError';

@@ -138,6 +138,8 @@ export interface CoursePlace {
 }
 
 export interface CoursePlan {
+  constraintFailureCode?: string;
+  requestedWindow?: { startAt: string; endAt: string; availableMinutes: number };
   accuracySummary?: AccuracySummary;
   id?: number | string;
   title: string;

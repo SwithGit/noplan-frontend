@@ -43,6 +43,13 @@ const placeDetailOptions: Record<string, string[]> = {
 };
 const MAX_PLACE_SELECTIONS = 3;
 const durationOptions = ['2시간', '4시간', '저녁까지', '밤까지'];
+const durationOptionLabel = (value: string) => value === '밤까지' ? '밤까지 (00:30)' : value;
+function endTimeHint(value: string) {
+  const match = value.match(/^종료 (\d{2}):(\d{2})$/);
+  if (!match) return '출발 시각보다 이른 종료 시각은 다음 날로 계산해요.';
+  const hour = Number(match[1]);
+  return `${hour < 12 ? '오전' : '오후'} ${hour % 12 || 12}시 ${match[2]}분 종료예요. 출발보다 이르면 다음 날이에요.`;
+}
 const tuningOptions = ['도보 짧게', '대기 적게', '사진 예쁜 곳', '조용한 곳'];
 const companionImages: Record<string, string> = {
   가족: companionFamilyImage,
@@ -754,7 +761,7 @@ export function ChatStart() {
                 }}
                 type="button"
               >
-                {option}
+                {durationOptionLabel(option)}
               </button>
             ))}
           </div>
@@ -771,6 +778,7 @@ export function ChatStart() {
               value={condition.duration.startsWith('종료 ') ? condition.duration.slice(3) : ''}
             />
           </label>
+          <p className="inline-message">{endTimeHint(condition.duration)}</p>
         </QuickQuestion>}
 
         {statusMessage && activeStep !== 0 && <p className="inline-message warning">{statusMessage}</p>}
@@ -1111,7 +1119,7 @@ function ConditionEditSheet({
           {section === 'duration' && (
             <>
               <h2>얼마나 놀까요?</h2>
-              <p className="edit-subtitle">선택하지 않으면 자동으로 코스를 짜드려요.</p>
+              <p className="edit-subtitle">이동 시간을 포함해 즐길 시간을 선택해 주세요.</p>
               <div className="edit-grid four">
                 {durationOptions.map((option) => (
                   <button
@@ -1121,7 +1129,7 @@ function ConditionEditSheet({
                     onClick={() => setDraftDuration((previous) => (previous === option ? '' : option))}
                     type="button"
                   >
-                    {option}
+                    {durationOptionLabel(option)}
                   </button>
                 ))}
               </div>
@@ -1134,6 +1142,7 @@ function ConditionEditSheet({
                   value={draftDuration.startsWith('종료 ') ? draftDuration.slice(3) : ''}
                 />
               </label>
+              <p className="edit-subtitle">{endTimeHint(draftDuration)}</p>
             </>
           )}
 
@@ -1628,7 +1637,7 @@ function ConditionCard({
 
 export function SearchingScreen() {
   const navigate = useNavigate();
-  const { condition, isSearching, runSearch, searchError } = usePlanner();
+  const { condition, plan, isSearching, runSearch, searchError, setCondition } = usePlanner();
   const [checkedCount, setCheckedCount] = useState(0);
   const [searchTakingLong, setSearchTakingLong] = useState(false);
   const locationText = displayLocationLabel(condition);
@@ -1691,6 +1700,12 @@ export function SearchingScreen() {
   };
 
   const searchFailed = Boolean(searchError && !isSearching);
+  const retryIncludingUnknown = async () => {
+    const nextCondition = { ...condition, accuracy: { ...condition.accuracy, allowUnverifiedHours: true } };
+    setCondition({ accuracy: nextCondition.accuracy });
+    const succeeded = await runSearch(nextCondition);
+    if (succeeded) navigate(ROUTES.plannerResult, { replace: true });
+  };
 
   return (
     <div className="searching-screen non-home-screen">
@@ -1734,7 +1749,7 @@ export function SearchingScreen() {
       </section>
 
       <section className="screen-section">
-        <h2>Nopi가 확인하는 중</h2>
+        <h2>{searchFailed ? "확인한 조건" : "Nopi가 확인하는 중"}</h2>
         <div className="search-check-list">
           {searchSteps.map((step, index) => (
             <article
@@ -1751,11 +1766,11 @@ export function SearchingScreen() {
             </article>
           ))}
         </div>
-        <div className="loading-dots">
+        {!searchFailed && <div className="loading-dots">
           <span />
           <span />
           <span />
-        </div>
+        </div>}
       </section>
 
       {searchFailed ? (
@@ -1763,6 +1778,11 @@ export function SearchingScreen() {
           <span>검색 실패</span>
           <h2>이번 조건으로 코스를 완성하지 못했어요</h2>
           <p>{searchError}</p>
+          {plan.requestedWindow && <p>계산한 일정: {new Date(plan.requestedWindow.startAt).toLocaleString('ko-KR', {timeZone:'Asia/Seoul',month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'})} → {new Date(plan.requestedWindow.endAt).toLocaleString('ko-KR', {timeZone:'Asia/Seoul',month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'})} · {plan.requestedWindow.availableMinutes}분</p>}
+          {plan.constraintFailureCode === 'hours_unknown' && !condition.accuracy?.allowUnverifiedHours && <>
+            <p>영업 정보가 없는 후보를 포함할 수 있어요. 포함하면 방문 전 직접 확인이 필요하고, 휴무·폐업으로 확인된 곳은 계속 제외해요.</p>
+            <button className="primary" type="button" onClick={() => void retryIncludingUnknown()}>영업 미확인 후보 포함해 다시 찾기</button>
+          </>}
           <div>
             <button type="button" onClick={() => navigate(ROUTES.plannerCondition, { replace: true })}>조건 수정</button>
             <button className="primary" type="button" onClick={() => void retrySearch()}>같은 조건으로 다시 찾기</button>
