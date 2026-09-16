@@ -11,6 +11,8 @@ export const ROUTES = {
   explore: '/app/explore',
   courseMap: '/app/course/map',
   myPage: '/app/mypage',
+  myCourses: '/app/mypage/courses',
+  favorites: '/app/favorites',
   login: '/app/login',
   signup: '/app/signup',
   kakaoSignup: '/app/kakao-signup',

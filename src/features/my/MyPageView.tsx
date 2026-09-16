@@ -12,13 +12,14 @@ import { usePlanner } from '../planner/PlannerContext';
 import { ROUTES } from '../../routes';
 
 interface MyPageViewProps {
+  active?: boolean;
   onLogout: () => void;
   user: UserSession | null;
 }
 
 type CourseListType = 'saved' | 'recent';
 
-export function MyPageView({ onLogout, user }: MyPageViewProps) {
+export function MyPageView({ onLogout, user, active = true }: MyPageViewProps) {
   const navigate = useNavigate();
   const { loadPlan } = usePlanner();
   const [summary, setSummary] = useState<MyPageSummary>({});
@@ -37,7 +38,7 @@ export function MyPageView({ onLogout, user }: MyPageViewProps) {
   const publishInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!user?.userId) return;
+    if (!active || !user?.userId) return;
     let cancelled = false;
     setLoading(true);
 
@@ -52,7 +53,7 @@ export function MyPageView({ onLogout, user }: MyPageViewProps) {
     return () => {
       cancelled = true;
     };
-  }, [user?.userId]);
+  }, [active, user?.userId]);
 
   useEffect(() => {
     if (publishingCourse) publishInputRef.current?.focus();

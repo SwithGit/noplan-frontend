@@ -4,7 +4,9 @@ import { getSharedCourse } from './api/courseApi';
 import { fetchAuthSession, logoutSession } from './api/authApi';
 import { AppFrame } from './components/ui/AppFrame';
 import { CourseMapScreen, PlaceDetailScreen, ReplacementCandidates } from './features/course/CourseScreens';
-import { ExploreTab } from './features/explore/ExploreTab';
+import { ExploreEntry, MyEntry } from './features/mobile/MobileEntries';
+import { MobileFavorites } from './features/mobile/MobileFavorites';
+import { FavoritesProvider } from './features/mobile/FavoritesProvider';
 import { MyPageView } from './features/my/MyPageView';
 import { PlannerProvider, usePlanner } from './features/planner/PlannerContext';
 import { ChatStart, ConditionConfirm, PlannerHome, ResultScreen, SearchingScreen } from './features/planner/PlannerScreens';
@@ -174,8 +176,10 @@ function AppRoutes() {
       <Route path={ROUTES.courseMap} element={<CourseMapScreen />} />
       <Route path="/app/course/place/:index" element={<PlaceDetailScreen />} />
       <Route path="/app/course/replace/:index" element={<ReplacementCandidates />} />
-      <Route path={ROUTES.explore} element={<ExploreTab />} />
-      <Route path={ROUTES.myPage} element={<MyPageView onLogout={() => {
+      <Route path={ROUTES.explore} element={<ExploreEntry />} />
+      <Route path={ROUTES.favorites} element={<MobileFavorites />} />
+      <Route path={ROUTES.myCourses} element={<MyPageView user={user} onLogout={() => {void logoutSession().finally(()=>{setUser(null);navigate(ROUTES.appHome);});}}/>}/>
+      <Route path={ROUTES.myPage} element={<MyEntry onLogout={() => {
         void logoutSession().finally(() => {
           setUser(null);
           navigate(ROUTES.appHome);
@@ -221,7 +225,7 @@ function AppRoutes() {
     </Routes>
   );
 
-  return fullPage ? routes : <AppFrame hideNav={hideNav}>{routes}</AppFrame>;
+  return <FavoritesProvider key={user?.userId || 'guest'} user={user}>{fullPage ? routes : <AppFrame hideNav={hideNav}>{routes}</AppFrame>}</FavoritesProvider>;
 }
 
 export default function App() {

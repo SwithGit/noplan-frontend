@@ -20,7 +20,7 @@ function readSavedDong() {
   }
 }
 
-export function ExploreTab() {
+export function ExploreTab({ active = true }: { active?: boolean }) {
   const navigate = useNavigate();
   const { detectCurrentLocation, loadPlan } = usePlanner();
   const [courses, setCourses] = useState<ExploreCourse[]>([]);
@@ -69,10 +69,10 @@ export function ExploreTab() {
   }, [applyDong, detectCurrentLocation, dong]);
 
   useEffect(() => {
-    if (didRequestLocation.current) return;
+    if (!active || didRequestLocation.current) return;
     didRequestLocation.current = true;
     void locateNeighborhood(true);
-  }, [locateNeighborhood]);
+  }, [active, locateNeighborhood]);
 
   const loadCourses = async () => {
     if (!dong) {
@@ -216,7 +216,7 @@ export function ExploreTab() {
         })}
       </section>
 
-      {selectedCourse && (
+      {active && selectedCourse && (
         <ExploreDetailModal
           course={selectedCourse}
           onClose={() => setSelectedCourse(null)}

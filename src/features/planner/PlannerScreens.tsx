@@ -1,4 +1,6 @@
-﻿import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+﻿import { FavoriteButton } from '../mobile/MobileUi';
+import { planFavorite } from '../mobile/mobileModel';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Chip } from '../../components/ui/Chip';
 import { AppTopBar } from '../../components/ui/AppTopBar';
@@ -1951,6 +1953,7 @@ export function ResultScreen() {
         </section>
       )}
 
+      {hasCourse && <div className="m-mobile-only m-result-save"><FavoriteButton item={planFavorite(plan)}/></div>}
       <div className="sticky-actions result-actions">
         {saveMessage && (
           <p className={`result-save-message ${saveStatus === 'error' ? 'error' : ''}`} role={saveStatus === 'error' ? 'alert' : 'status'}>
@@ -1962,7 +1965,7 @@ export function ResultScreen() {
             {plan.partial ? (
               <button type="button" onClick={() => void retrySearch(true)}>범위를 넓혀 다시 찾기</button>
             ) : (
-              <button disabled={saveStatus === 'saving' || saveStatus === 'saved'} type="button" onClick={() => void handleSave()}>
+              <button className="m-desktop-only" disabled={saveStatus === 'saving' || saveStatus === 'saved'} type="button" onClick={() => void handleSave()}>
                 {saveStatus === 'saving' ? '저장 중' : saveStatus === 'saved' ? '저장됨' : '저장'}
               </button>
             )}

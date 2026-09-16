@@ -1,7 +1,7 @@
 import { apiJson, getLoggedInUser } from './client';
 import type { ExploreCourse } from '../types/noplan';
 
-export async function fetchExploreCourses(sort: 'likes' | 'views' = 'likes', dong = '') {
+export async function fetchExploreCourses(sort: 'likes' | 'views' | 'latest' = 'likes', dong = '') {
   const params = new URLSearchParams({ sort });
   if (dong) params.set('dong', dong);
   const result = await apiJson<{ success?: boolean; courses?: ExploreCourse[] }>(

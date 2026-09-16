@@ -1,3 +1,5 @@
+import { FavoriteButton } from '../mobile/MobileUi';
+import { placeFavorite, planFavorite } from '../mobile/mobileModel';
 import { useEffect, useMemo } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AppTopBar } from '../../components/ui/AppTopBar';
@@ -126,7 +128,7 @@ export function CourseMapScreen() {
 
   return (
     <div className="course-screen">
-      <AppTopBar title={plan.title} subtitle={`${locationText} · ${plan.durationText}`} />
+      <AppTopBar title={plan.title} subtitle={`${locationText} · ${plan.durationText}`} /><div className="m-mobile-only"><FavoriteButton item={planFavorite(plan)}/></div>
 
       <section className="route-map-panel real-map-panel">
         <MapBoard courseList={plan.courseData} userLocation={plan.location} />
@@ -203,7 +205,7 @@ export function PlaceDetailScreen() {
 
   return (
     <div className="place-detail-screen">
-      <AppTopBar title={place.title} subtitle={place.category || place.type} />
+      <AppTopBar title={place.title} subtitle={place.category || place.type} /><div className="m-mobile-only"><FavoriteButton item={placeFavorite(place)}/></div>
 
       {place.galleryImages?.length ? (
         <section className="place-gallery place-gallery-first" aria-label="장소 사진">
