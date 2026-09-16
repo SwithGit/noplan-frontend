@@ -16,7 +16,6 @@ export const categories = [
   {label:'맛집', mood:'맛집', type:'food', key:'food', tone:'peach'},
   {label:'카페', mood:'카페/디저트', type:'cafe', key:'cafe', tone:'brown'},
   {label:'놀거리', mood:'놀거리', type:'activity', key:'activity', tone:'purple'},
-  {label:'문화·전시', mood:'문화/전시', type:'activity', detail:'전시', key:'culture', tone:'mint'},
   {label:'산책·명소', mood:'산책/구경', type:'hotplace', key:'hotplace', tone:'green'},
   {label:'술·야간', mood:'술/야간', type:'drink', key:'drink', tone:'blue'},
 ] as const;

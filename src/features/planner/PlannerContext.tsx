@@ -1,3 +1,4 @@
+import { isCourseRecommendationPlace } from './recommendationPolicy';
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import { generateCourse, makeFallbackPlan, parsePlannerCondition, trackPlannerEvent, trackRecommendationImpressions } from '../../api/plannerApi';
 import type { CoursePlace, CoursePlan, CurrentPosition, PlannerCondition } from '../../types/noplan';
@@ -265,7 +266,6 @@ function inferConditionFromText(text: string): Partial<PlannerCondition> {
 
   if (/맛집|밥|식사|고기|파스타|한식|일식/.test(text)) patch.mood = '맛집';
   else if (/카페|디저트|커피|베이커리|브런치/.test(text)) patch.mood = '카페/디저트';
-  else if (/전시|영화|공연|팝업|미술관|박물관/.test(text)) patch.mood = '문화/전시';
   else if (/산책|걷|공원|야경|구경|시장/.test(text)) patch.mood = '산책/구경';
   else if (/술|포차|펍|와인|칵테일|이자카야/.test(text)) patch.mood = '술/야간';
   else if (/놀|놀거리|체험|방탈출|보드게임|볼링|노래방|오락실|공방|스포츠/.test(text)) patch.mood = '놀거리';
@@ -438,7 +438,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
   };
 
   const replacePlace = (index: number, place: CoursePlace) => {
-    if (!activePlan || index < 0 || index >= activePlan.courseData.length) return;
+    if (!isCourseRecommendationPlace(place) || !activePlan || index < 0 || index >= activePlan.courseData.length) return;
 
     const courseData = [...activePlan.courseData];
     const duplicatesExistingPlace = courseData.some((item, itemIndex) => (
@@ -448,7 +448,8 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     ));
     if (duplicatesExistingPlace) return;
 
-    courseData[index] = { ...place, time: courseData[index]?.time || String(index + 1) };
+    // Replacement changes the venue, not the selected slot's visit date.
+    courseData[index] = { ...place, time: courseData[index]?.time || String(index + 1), scheduledStart: courseData[index]?.scheduledStart, scheduledEnd: courseData[index]?.scheduledEnd };
     const replacedPlan = { ...activePlan, courseData };
 
     setActivePlan(replacedPlan);

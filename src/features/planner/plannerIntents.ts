@@ -16,7 +16,7 @@ export interface PlannerCategoryDefinition {
 
 const intent = (key: string, label: string, ...patterns: RegExp[]): PlannerIntentOption => ({ key, label, patterns });
 
-export const PLANNER_CATEGORIES: PlannerCategoryDefinition[] = [
+export const CATALOG_CATEGORIES: PlannerCategoryDefinition[] = [
   {
     key: 'food', label: '맛집', aliases: ['음식점', '식사'], patterns: [/맛집|밥|식사|음식|한식|일식|중식|양식|분식|고기|해산물/],
     intents: [
@@ -98,6 +98,8 @@ export const PLANNER_CATEGORIES: PlannerCategoryDefinition[] = [
   },
 ];
 
+export const PLANNER_CATEGORIES=CATALOG_CATEGORIES.filter(category=>category.key!=='culture');
+
 export const ATMOSPHERE_OPTIONS = [
   { key: 'quiet', label: '조용한', pattern: /조용|차분/ },
   { key: 'lively', label: '활기찬', pattern: /활기|신나는|북적/ },
@@ -111,7 +113,7 @@ const normalize = (value: unknown) => String(value || '').trim().toLowerCase().r
 
 export function getPlannerCategory(value: unknown) {
   const normalized = normalize(value);
-  return PLANNER_CATEGORIES.find((category) => (
+  return CATALOG_CATEGORIES.find((category) => (
     normalize(category.key) === normalized
     || normalize(category.label) === normalized
     || category.aliases.some((alias) => normalize(alias) === normalized)

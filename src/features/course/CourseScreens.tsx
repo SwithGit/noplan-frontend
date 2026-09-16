@@ -1,3 +1,4 @@
+import { isCourseRecommendationPlace } from '../planner/recommendationPolicy';
 import { FavoriteButton } from '../mobile/MobileUi';
 import { placeFavorite, planFavorite } from '../mobile/mobileModel';
 import { useEffect, useMemo } from 'react';
@@ -320,8 +321,9 @@ export function ReplacementCandidates() {
   const current = placeAt(plan?.courseData || [], index);
   const candidates = useMemo(() => {
     if (!current || !plan) return [];
-    const sameType = plan.backupPlaces.filter((place) => place.type === current.type || place.category === current.category);
-    return sameType.length ? sameType : plan.backupPlaces;
+    const eligible = plan.backupPlaces.filter(isCourseRecommendationPlace);
+    const sameType = eligible.filter((place) => place.type === current.type || place.category === current.category);
+    return sameType.length ? sameType : eligible;
   }, [current, plan]);
 
   if (!hasActivePlan || !plan || !current) {

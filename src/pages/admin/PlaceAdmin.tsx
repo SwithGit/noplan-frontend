@@ -26,7 +26,7 @@ import { PlaceVisual } from '../../components/ui/PlaceVisual';
 import { ROUTES } from '../../routes';
 import {
   ATMOSPHERE_OPTIONS,
-  PLANNER_CATEGORIES,
+  CATALOG_CATEGORIES as PLANNER_CATEGORIES,
   getCoreIntentOptions,
   getPlannerCategory,
   normalizeCoreIntent,

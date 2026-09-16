@@ -124,6 +124,7 @@
 }
 
 .app-shell .bottom-nav {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   position: fixed;
   inset: auto 0 0;
   z-index: 40;
@@ -140,6 +141,7 @@
 }
 
 .app-shell .bottom-nav a {
+  min-width: 0;
   height: 58px;
   flex-direction: column;
   gap: 4px;
@@ -153,9 +155,12 @@
 }
 
 .app-shell .bottom-nav b {
+  white-space: nowrap;
   font-size: 12px;
   font-weight: 700;
 }
+
+.app-shell .bottom-nav .navigation-icon { width:26px; height:26px; }
 
 .navigation-icon {
   display: block;

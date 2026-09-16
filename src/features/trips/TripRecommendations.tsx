@@ -55,7 +55,7 @@ export function TripRecommendations({ trip, day, block, disabled = false, onAppl
   return <section className="trip-ai-panel" aria-label="이 구간 AI 추천">
     <div className="trip-ai-heading"><span><TripIcon name="spark" /></span><div><h3>빈 시간은 노피에게</h3><p>이 구간의 흐름에 맞춰 채워드려요.</p></div></div>
     <div className="trip-ai-context"><span><TripIcon name="pin" />{location}</span><span><TripIcon name="clock" />{available > 0 ? `${clock(start)}–${clock(limit)} · ${available}분 여유` : '구간에 남은 시간이 없어요'}</span></div>
-    <label className="trip-field">어떤 시간을 보내고 싶나요?<select value={purpose} onChange={event => { setPurpose(event.target.value); setPreview([]); setState('idle'); setMessage(''); }} disabled={disabled || state === 'loading'}><option>카페/디저트</option><option>맛집</option><option>문화/전시</option><option>산책/구경</option><option>놀거리</option><option>맛집 · 카페/디저트</option></select></label>
+    <label className="trip-field">어떤 시간을 보내고 싶나요?<select value={purpose} onChange={event => { setPurpose(event.target.value); setPreview([]); setState('idle'); setMessage(''); }} disabled={disabled || state === 'loading'}><option>카페/디저트</option><option>맛집</option><option>산책/구경</option><option>놀거리</option><option>맛집 · 카페/디저트</option></select></label>
     {!supported && <p className="trip-muted">AI 주변 추천은 서울·도보 일정에서 사용할 수 있어요. 이 여행에는 장소를 직접 담아주세요.</p>}
     <button className="trip-button primary" disabled={disabled || !supported || available < 30 || state === 'loading'} onClick={() => void recommend()} type="button"><TripIcon name="spark" />{state === 'loading' ? '코스를 찾고 있어요…' : '이 구간 추천받기'}</button>
     {message && <p className={state === 'error' ? 'trip-alert' : 'trip-ai-message'} role={state === 'error' ? 'alert' : 'status'}>{message}</p>}

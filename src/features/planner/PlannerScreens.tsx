@@ -1,7 +1,8 @@
-﻿import { FavoriteButton } from '../mobile/MobileUi';
+import { FavoriteButton } from '../mobile/MobileUi';
+import { CourseNearbyEvents } from '../events/CourseNearbyEvents';
 import { planFavorite } from '../mobile/mobileModel';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Chip } from '../../components/ui/Chip';
 import { AppTopBar } from '../../components/ui/AppTopBar';
 import { NopiBubble } from '../../components/ui/NopiBubble';
@@ -35,7 +36,6 @@ const placeDetailOptions: Record<string, string[]> = {
   맛집: ['한식', '일식', '중식', '양식', '고기', '분식', '해산물', '아무거나'],
   '카페/디저트': ['커피', '디저트', '베이커리', '브런치', '아무거나'],
   놀거리: ['방탈출', '보드게임', '볼링', '노래방', '오락실', '공방/체험', '스포츠', '아무거나'],
-  '문화/전시': ['전시', '영화', '공연', '팝업', '미술관/박물관', '아무거나'],
   '산책/구경': ['산책', '공원', '야경', '쇼핑몰', '시장/상권', '아무거나'],
   '술/야간': ['포차', '펍', '와인/칵테일', '이자카야', '아무거나'],
 };
@@ -197,7 +197,6 @@ function getMoodSelections(mood: string): MoodSelection[] {
     디저트: '카페/디저트',
     운동: '놀거리',
     놀이: '놀거리',
-    전시: '문화/전시',
     산책: '산책/구경',
     술집: '술/야간',
   };
@@ -1475,6 +1474,7 @@ export function ConditionConfirm() {
   return (
     <div className="condition-confirm-screen non-home-screen">
       <AppTopBar title="조건 확인" subtitle="Nopi가 이해한 내용을 다듬어줘" />
+      {/전시|영화|공연|팝업|미술관|박물관|문화/.test(condition.rawText)&&<p className="inline-message">문화·전시는 별도로 둘러볼 수 있어요. <Link to={ROUTES.events}>문화·행사 보러 가기 →</Link></p>}
       <NopiBubble title="마지막으로 조건을 확인해줘." body="바꾸고 싶은 항목만 누르면 돼." />
       {firstMissingSection && <p className="inline-message warning">필수 조건이 비어 있어요. 표시된 항목을 먼저 선택해 주세요.</p>}
 
@@ -1927,6 +1927,7 @@ export function ResultScreen() {
         </section>
       )}
 
+      {hasCourse && <CourseNearbyEvents places={plan.courseData}/>}
       {hasCourse && (
         <section className="mvp-feedback-panel">
           <div><span>MVP 피드백</span><h2>이 코스로 실제 나가볼 의향이 있나요?</h2></div>
