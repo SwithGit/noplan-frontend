@@ -1322,7 +1322,7 @@ function AddressInputSheet({ onChange, onClose, onConfirm, value }: AddressInput
           <input
             autoFocus
             onChange={(event) => onChange(event.target.value)}
-            placeholder="예: 건대입구역 또는 서울 광진구 군자동"
+            placeholder="예: OO역, OO동"
             type="text"
             value={value}
           />
@@ -1694,8 +1694,8 @@ export function SearchingScreen() {
 
   return (
     <div className="searching-screen non-home-screen">
-      <AppTopBar title="코스 찾는 중" subtitle="조건에 맞는 장소를 고르고 있어" />
-      <NopiBubble title={activeStep.nopi} body="조건이 맞는지 하나씩 확인하고 있어." />
+      <AppTopBar title={searchFailed ? "조건 확인이 필요해요" : "코스 찾는 중"} subtitle={searchFailed ? "아래 실패 이유를 확인해 주세요" : "조건에 맞는 장소를 고르고 있어"} />
+      <NopiBubble title={searchFailed ? "이번 조건에서는 코스를 완성하지 못했어." : activeStep.nopi} body={searchFailed ? "예산·가격 정보·동선 중 무엇이 막혔는지 아래에 적었어." : "조건이 맞는지 하나씩 확인하고 있어."} />
       <p className="search-live-status">
         {searchFailed
           ? '조건에 맞는 코스를 완성하지 못했어요.'
@@ -1712,6 +1712,12 @@ export function SearchingScreen() {
 
       <section className="reading-card">
         <strong>읽고 있는 조건</strong>
+        {condition.accuracy && <p className="inline-message">
+          {condition.accuracy.budgetPerPerson != null && (condition.accuracy.budgetPerPerson === 0 ? '예산 제한 없음' : `1인 ${condition.accuracy.budgetPerPerson.toLocaleString()}원`)}
+          {/술/.test(condition.mood) && ` · ${{any:'주류 무관',soju:'소주',beer:'맥주',wine:'와인',cocktail:'칵테일·하이볼'}[condition.accuracy.alcoholPreference || 'any']} ${condition.accuracy.drinkServings ?? 2}주문단위`}
+          {Boolean(condition.accuracy.excludedDetails?.length) && ` · 제외: ${condition.accuracy.excludedDetails?.join(', ')}`}
+          {condition.extras.includes('도보 짧게') && ' · 도보 짧게'}
+        </p>}
         <div className="condition-check-row">
           {searchSteps.slice(0, 4).map((step, index) => (
             <span
