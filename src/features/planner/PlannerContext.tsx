@@ -56,6 +56,7 @@ interface PlannerContextValue {
   runSearch: (conditionOverride?: PlannerCondition) => Promise<boolean>;
   loadPlan: (nextPlan: CoursePlan) => void;
   selectCurrentPlan: () => boolean;
+  selectPlanOption: (id: string) => void;
   replacePlace: (index: number, place: CoursePlace) => void;
   resetPlanner: () => void;
 }
@@ -441,6 +442,16 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     return true;
   };
 
+  const selectPlanOption = (id: string) => {
+    setPlan(current => {
+      const option=current.courseOptions?.find(item=>item.id===id);
+      if(!option || current.selectedOptionId===id)return current;
+      const end=new Date(option.summary.endAt).toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'numeric',minute:'2-digit'});
+      return {...current,selectedOptionId:id,courseData:option.courseData,accuracySummary:option.summary,
+        durationText:`${option.courseData.length}곳 · ${end}까지`,backupPlaces:[],id:undefined,searchCourseId:null};
+    });
+  };
+
   const replacePlace = (index: number, place: CoursePlace) => {
     if (!isCourseRecommendationPlace(place) || !activePlan || index < 0 || index >= activePlan.courseData.length) return;
 
@@ -479,6 +490,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     detectCurrentLocation,
     loadPlan,
     selectCurrentPlan,
+    selectPlanOption,
     setCondition,
     startFromText,
     runSearch,

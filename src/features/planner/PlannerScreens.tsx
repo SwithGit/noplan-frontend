@@ -16,7 +16,7 @@ import homeNopiImage from '../../assets/nopi/nopi-home.png';
 import nopiIconImage from '../../assets/nopi/nopi-icon.png';
 import { saveCourse } from '../../api/courseApi';
 import { trackMvpFeedback, trackPlannerEvent } from '../../api/plannerApi';
-import type { PlannerCondition } from '../../types/noplan';
+import type { PlannerCondition, CoursePlan } from '../../types/noplan';
 import { ROUTES, coursePlaceRoute } from '../../routes';
 import { usePlanner } from './PlannerContext';
 import { AccuracyPreferences } from './AccuracyPreferences';
@@ -1635,6 +1635,15 @@ function ConditionCard({
   );
 }
 
+function PriceUnknownCandidates({places}: {places: CoursePlan['priceUnknownPlaces']}) {
+  if(!places?.length)return null;
+  return <section className="screen-section price-unknown-places">
+    <h2>가격 확인이 필요한 주변 후보</h2>
+    <p>아래 장소는 예산을 계산할 수 없어 추천 코스에서 제외했어요. 영업시간과 동선도 최종 확인되지 않았어요.</p>
+    {places.map((place,index)=><p key={`${place.catalogPlaceId}-${index}`}><strong>{place.name}</strong> · {place.basis}</p>)}
+  </section>;
+}
+
 export function SearchingScreen() {
   const navigate = useNavigate();
   const { condition, plan, isSearching, runSearch, searchError, setCondition } = usePlanner();
@@ -1778,6 +1787,7 @@ export function SearchingScreen() {
           <span>검색 실패</span>
           <h2>이번 조건으로 코스를 완성하지 못했어요</h2>
           <p>{searchError}</p>
+          <PriceUnknownCandidates places={plan.priceUnknownPlaces}/>
           {plan.requestedWindow && <p>계산한 일정: {new Date(plan.requestedWindow.startAt).toLocaleString('ko-KR', {timeZone:'Asia/Seoul',month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'})} → {new Date(plan.requestedWindow.endAt).toLocaleString('ko-KR', {timeZone:'Asia/Seoul',month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'})} · {plan.requestedWindow.availableMinutes}분</p>}
           {plan.constraintFailureCode === 'hours_unknown' && !condition.accuracy?.allowUnverifiedHours && <>
             <p>영업 정보가 없는 후보를 포함할 수 있어요. 포함하면 방문 전 직접 확인이 필요하고, 휴무·폐업으로 확인된 곳은 계속 제외해요.</p>
@@ -1815,8 +1825,8 @@ function SkeletonCard() {
 
 export function ResultScreen() {
   const navigate = useNavigate();
-  const { condition, plan, runSearch, selectCurrentPlan, setCondition } = usePlanner();
-  const feedbackStorageKey = `noplanMvpFeedback:${plan.searchCourseId || plan.algorithmVersion || 'current'}`;
+  const { condition, plan, runSearch, selectCurrentPlan, selectPlanOption, setCondition } = usePlanner();
+  const feedbackStorageKey = `noplanMvpFeedback:${plan.searchCourseId || plan.algorithmVersion || 'current'}:${plan.selectedOptionId || 'default'}`;
   const [saveMessage, setSaveMessage] = useState('');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [feedbackScore, setFeedbackScore] = useState(0);
@@ -1917,6 +1927,27 @@ export function ResultScreen() {
       )}
       {hasCourse && plan.partial && !plan.adjustmentNotice && <p className="inline-message warning">일부 조건을 통과한 장소가 부족해 확인된 일정만 보여드려요.</p>}
 
+      {hasCourse && plan.courseOptions && <section className="screen-section course-options" aria-label="추천 코스 비교">
+        <h2>조건에 맞는 코스를 비교해 보세요</h2>
+        <p>{plan.comparison?.examinedCourses ?? plan.courseOptions.length}개 조합을 확인해 조건을 통과한 코스 {plan.courseOptions.length}개를 골랐어요. {plan.comparison?.limited ? '확인 한도 내에서 비교했어요.' : ''}</p>
+        {plan.courseOptions.length<3 && plan.comparison?.hoursUnknown && <p>영업시간을 확인하지 못해 제외한 후보가 있어요. 미확인 장소를 포함하려면 조건 수정에서 허용할 수 있어요.</p>}
+        <div className="course-option-grid">
+          {plan.courseOptions.map((option,index)=><button type="button" key={option.id}
+            className={`course-option ${plan.selectedOptionId===option.id?'selected':''}`} aria-pressed={plan.selectedOptionId===option.id}
+            disabled={saveStatus==='saving'} onClick={()=>{
+              if(plan.selectedOptionId===option.id)return;
+              selectPlanOption(option.id);setSaveStatus('idle');setSaveMessage('');setFeedbackScore(0);setFeedbackConcern('');setFeedbackSubmitted(false);
+            }}>
+            <strong>코스 {index+1}{index===0?' · 추천':''}</strong>
+            <span>{option.courseData.map(place=>place.name).join(' → ')}</span>
+            <small>{option.summary.costKnown?`1인 예상 ${option.summary.estimatedMin?.toLocaleString()}~${option.summary.estimatedMax?.toLocaleString()}원`:'가격 확인 필요'}</small>
+            <small>도보 약 {option.ranking.walkingMinutes}분 · {option.courseData.every(place=>place.walkingRouteSource==='google_routes')?'경로 기준':'추정 포함'}</small>
+            {option.courseData.some(place=>place.estimatedCost?.assumptions?.length) && <small>일부 가격 가정 포함</small>}
+          </button>)}
+        </div>
+        <small>{plan.courseOptions[0]?.ranking.basis} 기준으로 비교했어요. 일부 장소는 코스끼리 겹칠 수 있어요.</small>
+      </section>}
+
       {hasCourse ? (
         <article className="result-card">
           <span className="rank-pill">{plan.partial ? '부분 추천' : '추천 완료'}</span>
@@ -1960,6 +1991,7 @@ export function ResultScreen() {
                   {place.estimatedCost && <small>{place.estimatedCost.status === 'estimated'
                     ? `1인 예상 ${place.estimatedCost.min?.toLocaleString()}~${place.estimatedCost.max?.toLocaleString()}원`
                     : '가격 확인 필요'}</small>}
+                  {place.estimatedCost?.assumptions?.map(text=><small key={text}>{text}</small>)}
                   <CrowdingStatus compact snapshot={place.crowding} />
                   {place.rating != null && place.reviewCount != null && (
                     <small className="google-place-meta">Google 평점 {place.rating.toFixed(1)} · 리뷰 {place.reviewCount.toLocaleString('ko-KR')}개 · Google Maps 제공</small>
@@ -1975,6 +2007,7 @@ export function ResultScreen() {
       )}
 
       {hasCourse && <CourseNearbyEvents places={plan.courseData}/>}
+      <PriceUnknownCandidates places={plan.priceUnknownPlaces}/>
       {hasCourse && (
         <section className="mvp-feedback-panel">
           <div><span>MVP 피드백</span><h2>이 코스로 실제 나가볼 의향이 있나요?</h2></div>

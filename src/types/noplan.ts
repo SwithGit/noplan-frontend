@@ -90,7 +90,7 @@ export interface CrowdingSnapshot {
 }
 
 export interface CoursePlace {
-  estimatedCost?: { status: 'estimated' | 'unknown'; min: number | null; max: number | null; basis: string };
+  estimatedCost?: { status: 'estimated' | 'unknown'; min: number | null; max: number | null; basis: string; assumptions?: string[] };
   id: string;
   time?: string;
   durationMinutes?: number;
@@ -138,6 +138,10 @@ export interface CoursePlace {
 }
 
 export interface CoursePlan {
+  courseOptions?: Array<{ id: string; courseData: CoursePlace[]; summary: AccuracySummary; ranking: { score: number; walkingMinutes: number; basis: string } }>;
+  selectedOptionId?: string;
+  comparison?: { examinedCourses: number; verifiedCourses: number; returnedCourses: number; hoursUnknown?: boolean; limited: boolean };
+  priceUnknownPlaces?: Array<{ catalogPlaceId?: number; name: string; type: string; detailType?: string; basis: string }>;
   constraintFailureCode?: string;
   requestedWindow?: { startAt: string; endAt: string; availableMinutes: number };
   accuracySummary?: AccuracySummary;

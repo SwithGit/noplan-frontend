@@ -5200,3 +5200,12 @@ button {
     transition-duration: 0.01ms !important;
   }
 }
+.course-options > p, .course-options > small { color: var(--nopi-text-secondary, #6d6787); line-height: 1.6; }
+.course-option-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 12px 0; }
+.course-option { display: flex; flex-direction: column; gap: 8px; text-align: left; min-width: 0; border: 1px solid #e5def5; border-radius: 16px; padding: 16px; background: #fff; color: #292440; cursor: pointer; }
+.course-option span { line-height: 1.5; overflow-wrap: anywhere; }
+.course-option small { color: #706784; line-height: 1.5; }
+.course-option.selected { border: 2px solid #7751d9; padding: 15px; background: #f5f0ff; }
+.course-option:focus-visible { outline: 3px solid #bba6f3; outline-offset: 2px; }
+.price-unknown-places { padding: 16px; border: 1px solid #e5def5; border-radius: 16px; background: #faf8ff; line-height: 1.6; }
+@media (max-width: 640px) { .course-option-grid { grid-template-columns: 1fr; } }

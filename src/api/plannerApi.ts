@@ -8,6 +8,9 @@ import {
 } from '../features/planner/plannerIntents';
 
 interface GenerateCourseResponse {
+  courseOptions?: Array<{id:string;course:Array<Record<string,unknown>>;summary:NonNullable<CoursePlan['accuracySummary']>;ranking:{score:number;walkingMinutes:number;basis:string}}>;
+  comparison?: CoursePlan['comparison'];
+  priceUnknownPlaces?: CoursePlan['priceUnknownPlaces'];
   constraintFailureCode?: string;
   requestedWindow?: CoursePlan['requestedWindow'];
   accuracySummary?: CoursePlan['accuracySummary'];
@@ -416,6 +419,7 @@ export async function generateCourse(
         message: result.message || '백엔드에서 추천 코스를 받지 못했어요.',
         failureReason: result.failureReason || 'request_failed',
         constraintFailureCode: result.constraintFailureCode,
+        priceUnknownPlaces: result.priceUnknownPlaces,
         requestedWindow: result.requestedWindow,
       };
     }
@@ -442,6 +446,10 @@ export async function generateCourse(
       source: 'api',
       algorithmVersion: result.generator || 'unknown',
       accuracySummary: result.accuracySummary,
+      courseOptions: result.courseOptions?.map(option=>({...option,courseData:option.course.map(normalizePlace)})),
+      selectedOptionId: result.courseOptions?.[0]?.id,
+      comparison: result.comparison,
+      priceUnknownPlaces: result.priceUnknownPlaces,
       catalogOnly: Boolean(result.catalogOnly),
       partial: Boolean(result.partial),
       adjustmentNotice: result.adjustmentNotice || undefined,
@@ -455,6 +463,7 @@ export async function generateCourse(
         message: response.message || error.message,
         failureReason: response.failureReason || 'request_failed',
         constraintFailureCode: response.constraintFailureCode,
+        priceUnknownPlaces: response.priceUnknownPlaces,
         requestedWindow: response.requestedWindow,
       };
     }
