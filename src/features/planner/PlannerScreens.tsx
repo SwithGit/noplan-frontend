@@ -1936,7 +1936,7 @@ export function ResultScreen() {
             <strong>코스 {index+1}{index===0?' · 추천':''}</strong>
             <span>{option.courseData.map(place=>place.name).join(' → ')}</span>
             <small>{option.summary.costKnown?`1인 예상 ${option.summary.estimatedMin?.toLocaleString()}~${option.summary.estimatedMax?.toLocaleString()}원`:'가격 확인 필요'}</small>
-            <small>도보 약 {option.ranking.walkingMinutes}분 · {option.courseData.every(place=>place.walkingRouteSource==='google_routes')?'경로 기준':'추정 포함'}</small>
+            <small>도보 약 {option.ranking.walkingMinutes}분 · {option.courseData.every(place=>['google_routes','tmap_pedestrian'].includes(place.walkingRouteSource || ''))?'경로 기준':'추정 포함'}</small>
             {option.courseData.some(place=>place.estimatedCost?.assumptions?.length) && <small>일부 가격 가정 포함</small>}
           </button>)}
         </div>
@@ -1998,6 +1998,9 @@ export function ResultScreen() {
           </div>
           {plan.courseData.some((place) => place.walkingRouteSource === 'google_routes') && (
             <p className="walking-route-notice">Google Maps 도보 경로 기준이며 실제 보행 환경과 다를 수 있어요.</p>
+          )}
+          {plan.courseData.some((place) => place.walkingRouteSource === 'tmap_pedestrian') && (
+            <p className="walking-route-notice">TMAP 도보 경로 기준이며 실제 보행 환경과 다를 수 있어요.</p>
           )}
         </section>
       )}
