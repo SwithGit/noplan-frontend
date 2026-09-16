@@ -1,3 +1,4 @@
+import './result-screen.css';
 import { FavoriteButton } from '../mobile/MobileUi';
 import { CourseNearbyEvents } from '../events/CourseNearbyEvents';
 import { planFavorite } from '../mobile/mobileModel';
@@ -1637,20 +1638,20 @@ function ConditionCard({
 
 function PriceUnknownCandidates({places}: {places: CoursePlan['priceUnknownPlaces']}) {
   if(!places?.length)return null;
-  return <section className="screen-section price-unknown-places">
-    <h2>가격 확인이 필요한 주변 후보</h2>
+  return <details className="candidate-disclosure">
+    <summary>가격 확인이 필요한 후보 <span>{places.length}곳</span></summary>
     <p>아래 장소는 예산을 계산할 수 없어 추천 코스에서 제외했어요. 영업시간과 동선도 최종 확인되지 않았어요.</p>
     {places.map((place,index)=><p key={`${place.catalogPlaceId}-${index}`}><strong>{place.name}</strong> · {place.basis}</p>)}
-  </section>;
+  </details>;
 }
 
 function UnverifiedCandidates({places}: {places: CoursePlan['unverifiedPlaces']}) {
   if(!places?.length)return null;
-  return <section className="screen-section price-unknown-places">
-    <h2>추가 확인이 필요한 후보</h2>
+  return <details className="candidate-disclosure">
+    <summary>영업·경로 확인이 필요한 후보 <span>{places.length}곳</span></summary>
     <p>아래 장소는 확인된 추천과 구분해 표시해요. 이 목록만으로 영업 중이거나 코스 전체 조건을 충족한다고 볼 수는 없어요.</p>
     {places.map((p,i)=><p key={`${p.catalogPlaceId}-${i}`}><strong>{p.name}</strong> · {p.basis}</p>)}
-  </section>;
+  </details>;
 }
 
 export function SearchingScreen() {
@@ -1832,12 +1833,7 @@ export function ResultScreen() {
   const locationText = displayLocationLabel(condition);
   const hasCourse = plan.source !== 'fallback' && plan.courseData.length > 0;
   const crowding = plan.courseData.find((place) => place.crowding)?.crowding;
-  const walkingSummary = plan.courseData
-    .slice(1)
-    .map((place) => place.moveText)
-    .filter(Boolean)
-    .slice(0, 2)
-    .join(' · ') || '장소 간 이동 정보 확인';
+  const walkingMinutes = plan.courseOptions?.find(option => option.id === plan.selectedOptionId)?.ranking.walkingMinutes;
   const failureContent = plan.failureReason === 'no_candidates'
     ? {
         badge: '장소 부족',
@@ -1923,8 +1919,8 @@ export function ResultScreen() {
       {hasCourse && plan.partial && !plan.adjustmentNotice && <p className="inline-message warning">일부 조건을 통과한 장소가 부족해 확인된 일정만 보여드려요.</p>}
 
       {hasCourse && plan.courseOptions && <section className="screen-section course-options" aria-label="추천 코스 비교">
-        <h2>조건에 맞는 코스를 비교해 보세요</h2>
-        <p>{plan.comparison?.examinedCourses ?? plan.courseOptions.length}개 조합을 확인해 조건을 통과한 코스 {plan.courseOptions.length}개를 골랐어요. {plan.comparison?.limited ? '확인 한도 내에서 비교했어요.' : ''}</p>
+        <div className="result-section-heading"><div><span className="result-eyebrow">나에게 맞는 하루</span><h2>어떤 코스로 떠날까요?</h2></div><span className="result-count">{plan.courseOptions.length}개 코스</span></div>
+        <p className="result-intro">마음에 드는 코스를 선택하면 아래에서 일정을 볼 수 있어요.</p>
         {plan.courseOptions.length<3 && plan.comparison?.hoursUnknown && <p>영업시간을 확인하지 못해 제외한 후보가 있어요. 미확인 장소를 포함하려면 조건 수정에서 허용할 수 있어요.</p>}
         <div className="course-option-grid">
           {plan.courseOptions.map((option,index)=><button type="button" key={option.id}
@@ -1933,33 +1929,33 @@ export function ResultScreen() {
               if(plan.selectedOptionId===option.id)return;
               selectPlanOption(option.id);setSaveStatus('idle');setSaveMessage('');setFeedbackScore(0);setFeedbackConcern('');setFeedbackSubmitted(false);
             }}>
-            <strong>코스 {index+1}{index===0?' · 추천':''}</strong>
-            <span>{option.courseData.map(place=>place.name).join(' → ')}</span>
-            <small>{option.summary.costKnown?`1인 예상 ${option.summary.estimatedMin?.toLocaleString()}~${option.summary.estimatedMax?.toLocaleString()}원`:'가격 확인 필요'}</small>
+            <span className="option-heading"><strong>코스 {index+1}</strong>{index===0 && <em>추천</em>}<span className="option-check" aria-hidden="true">{plan.selectedOptionId===option.id?'✓':''}</span></span>
+            <span className="option-route">{option.courseData.map((place,i)=><span key={place.id || i}>{i>0 && <i aria-hidden="true">→</i>}{place.name}</span>)}</span>
+            <small className="option-budget">{option.summary.costKnown?`1인 예상 ${option.summary.estimatedMin?.toLocaleString()}~${option.summary.estimatedMax?.toLocaleString()}원`:'가격 확인 필요'}</small>
             <small>도보 약 {option.ranking.walkingMinutes}분 · {option.courseData.every(place=>['google_routes','tmap_pedestrian'].includes(place.walkingRouteSource || ''))?'경로 기준':'추정 포함'}</small>
             {option.courseData.some(place=>place.estimatedCost?.assumptions?.length) && <small>일부 가격 가정 포함</small>}
           </button>)}
         </div>
-        <small>{plan.courseOptions[0]?.ranking.basis} 기준으로 비교했어요. 일부 장소는 코스끼리 겹칠 수 있어요.</small>
+        <details className="result-disclosure"><summary>코스는 어떻게 골랐나요?</summary><p>{plan.comparison?.examinedCourses ?? plan.courseOptions.length}개 조합을 확인했어요. {plan.courseOptions[0]?.ranking.basis} 기준으로 비교했으며 일부 장소는 겹칠 수 있어요. {plan.comparison?.limited ? '확인 한도 내에서 비교한 결과예요.' : ''}</p></details>
       </section>}
 
       {hasCourse ? (
         <article className="result-card">
-          <span className="rank-pill">{plan.partial ? '부분 추천' : '추천 완료'}</span>
+          <span className="rank-pill">{plan.partial ? '부분 추천' : '선택한 코스'}</span>
           <h1>{plan.title}</h1>
           <p>{plan.durationText}</p>
           {plan.accuracySummary && <div className="accuracy-result">
-            <strong>필수 활동 {plan.accuracySummary.fulfilledCount}/{plan.accuracySummary.requiredCount} 포함</strong>
-            <p>{plan.accuracySummary.costKnown
-              ? `1인 예상 ${plan.accuracySummary.estimatedMin?.toLocaleString()}~${plan.accuracySummary.estimatedMax?.toLocaleString()}원 · 저장 메뉴 기준 추정`
-              : '총 예상 비용 미확인 · 가격 정보가 부족한 장소 포함'}</p>
-            {plan.accuracySummary.warnings.map(warning => <p key={warning}>{warning}</p>)}
+            <span>1인 예상 비용</span>
+            <strong className="result-total">{plan.accuracySummary.costKnown
+              ? `${plan.accuracySummary.estimatedMin?.toLocaleString()}~${plan.accuracySummary.estimatedMax?.toLocaleString()}원`
+              : '가격 확인 필요'}</strong>
+            <div className="result-facts"><span>활동 {plan.accuracySummary.fulfilledCount}/{plan.accuracySummary.requiredCount} 포함</span>{walkingMinutes != null && <span>총 도보 약 {walkingMinutes}분</span>}</div>
+            <details className="result-disclosure"><summary>예상 비용·방문 전 확인사항</summary>
+              <p>메뉴 가격과 선택한 주문량으로 계산한 예상 비용이에요.</p>
+              {plan.accuracySummary.warnings.map(warning => <p key={warning}>{warning}</p>)}
+            </details>
           </div>}
-          <div className="result-summary-grid">
-            <div><span>이동</span><strong>{walkingSummary}</strong></div>
-            <div><span>혼잡도</span><strong>{crowding ? `${crowding.areaName || '주변'} · ${crowding.label}` : '정보 확인 중'}</strong></div>
-          </div>
-          <p className="result-reason"><strong>추천 이유</strong>{plan.courseData[0]?.reason || '선택한 조건과 동선이 잘 맞는 코스예요.'}</p>
+          {crowding && <CrowdingStatus snapshot={crowding} compact/>}
         </article>
       ) : (
         <article className="result-card">
@@ -1970,30 +1966,33 @@ export function ResultScreen() {
       )}
 
       {hasCourse && (
-        <section className="screen-section">
-          <h2>추천된 장소</h2>
+        <section className="screen-section result-itinerary">
+          <div className="result-section-heading"><h2>오늘의 일정</h2><span>{plan.courseData.length}곳</span></div>
           <div className="result-place-list">
             {plan.courseData.map((place, index) => (
-              <button key={place.id} type="button" onClick={() => {
-                if (selectCurrentPlan()) navigate(coursePlaceRoute(index));
-              }}>
-                <PlaceVisual alt={place.name} color={place.color} imageUrl={place.imageUrl} label={String(index + 1)} type={place.type} detailType={place.detailType} />
-                <div className="result-place-copy">
-                  {place.autoAdded && <span className="auto-added-badge">코스 흐름상 추가</span>}
-                  <strong>{place.searchKeyword || place.title}</strong>
-                  <small>{place.category || place.detailType || place.type}{place.durationMinutes ? ` · 예상 ${place.durationMinutes}분` : ''}</small>
-                  <small>{place.moveText || (index === 0 ? '출발지에서 이동' : '이전 장소에서 이동')} · {(place.businessStatus === 'open' ? '방문 시간 영업 확인' : place.businessStatus === 'closed' ? '영업 종료' : '영업시간 확인 필요')}</small>
-                  {place.estimatedCost && <small>{place.estimatedCost.status === 'estimated'
-                    ? `1인 예상 ${place.estimatedCost.min?.toLocaleString()}~${place.estimatedCost.max?.toLocaleString()}원`
-                    : '가격 확인 필요'}</small>}
-                  {place.estimatedCost?.assumptions?.map(text=><small key={text}>{text}</small>)}
-                  {Boolean(place.estimatedCost?.menuExamples?.length) && <small>예산 기준 메뉴: {place.estimatedCost?.menuExamples?.slice(0,3).join(' · ')}</small>}
-                  <CrowdingStatus compact snapshot={place.crowding} />
-                  {place.rating != null && place.reviewCount != null && (
-                    <small className="google-place-meta">Google 평점 {place.rating.toFixed(1)} · 리뷰 {place.reviewCount.toLocaleString('ko-KR')}개 · Google Maps 제공</small>
-                  )}
+              <article className="result-stop" key={`${plan.selectedOptionId}-${place.id}-${index}`}>
+                <div className="stop-transfer"><span className="stop-number">{index+1}</span><span>{index===0 ? '출발지에서' : '이전 장소에서'} · {place.moveText || '이동 정보 확인'}</span></div>
+                <div className="stop-card">
+                  <button className="stop-open" type="button" aria-label={`${place.name} 상세 보기`} onClick={() => {
+                    if (selectCurrentPlan()) navigate(coursePlaceRoute(index));
+                  }}>
+                    <PlaceVisual alt={place.name} color={place.color} imageUrl={place.imageUrl} type={place.type} detailType={place.detailType} />
+                    <div className="result-place-copy">
+                      <small>{place.category || place.detailType || place.type}{place.durationMinutes ? ` · 약 ${place.durationMinutes}분 머물기` : ''}</small>
+                      <strong>{place.searchKeyword || place.title || place.name}</strong>
+                      <span className={`stop-status ${place.businessStatus==='open'?'is-open':''}`}>{place.businessStatus==='open'?'방문 시간 영업 확인':place.businessStatus==='closed'?'영업 종료':'영업시간 확인 필요'}</span>
+                    </div>
+                    <span className="stop-arrow" aria-hidden="true">›</span>
+                  </button>
+                  {place.estimatedCost && <p className="stop-price"><span>1인 예상</span><strong>{place.estimatedCost.status==='estimated' ? `${place.estimatedCost.min?.toLocaleString()}~${place.estimatedCost.max?.toLocaleString()}원` : '가격 확인 필요'}</strong></p>}
+                  {place.rating != null && place.reviewCount != null && <p className="stop-rating">★ {place.rating.toFixed(1)} <span>리뷰 {place.reviewCount.toLocaleString('ko-KR')} · Google Maps 제공</span></p>}
+                  <CrowdingStatus compact snapshot={place.crowding}/>
+                  {(Boolean(place.estimatedCost?.menuExamples?.length) || Boolean(place.estimatedCost?.assumptions?.length)) && <details className="result-disclosure stop-evidence"><summary>예산 기준 메뉴·가격 가정</summary>
+                    {Boolean(place.estimatedCost?.menuExamples?.length) && <p>{place.estimatedCost?.menuExamples?.slice(0,3).join(' · ')}</p>}
+                    {place.estimatedCost?.assumptions?.map(text=><p key={text}>{text}</p>)}
+                  </details>}
                 </div>
-              </button>
+              </article>
             ))}
           </div>
           {plan.courseData.some((place) => place.walkingRouteSource === 'google_routes') && (
@@ -2009,14 +2008,15 @@ export function ResultScreen() {
       <PriceUnknownCandidates places={plan.priceUnknownPlaces}/>
       <UnverifiedCandidates places={plan.unverifiedPlaces}/>
       {hasCourse && (
-        <section className="mvp-feedback-panel">
-          <div><span>MVP 피드백</span><h2>이 코스로 실제 나가볼 의향이 있나요?</h2></div>
+        <details className="mvp-feedback-panel result-feedback">
+          <summary>이 코스, 마음에 드나요? <span>의견 남기기</span></summary>
+          <p className="feedback-question">이 코스로 나가보고 싶은 정도를 골라주세요.</p>
           {feedbackSubmitted ? (
             <p>고마워요. 다음 추천을 다듬는 데 반영할게요.</p>
           ) : (
             <>
               <div className="feedback-score" aria-label="외출 의향 점수">
-                {[1, 2, 3, 4, 5].map((score) => <button className={feedbackScore === score ? 'active' : ''} key={score} type="button" onClick={() => setFeedbackScore(score)}>{score}</button>)}
+                {[1, 2, 3, 4, 5].map((score) => <button className={feedbackScore === score ? 'active' : ''} aria-pressed={feedbackScore===score} aria-label={`${score}점`} key={score} type="button" onClick={() => setFeedbackScore(score)}>{score}</button>)}
               </div>
               <label>가장 불편하거나 못 믿겠던 부분
                 <select value={feedbackConcern} onChange={(event) => setFeedbackConcern(event.target.value)}>
@@ -2031,7 +2031,7 @@ export function ResultScreen() {
               <button className="feedback-submit" disabled={!feedbackScore} type="button" onClick={() => void submitFeedback()}>피드백 보내기</button>
             </>
           )}
-        </section>
+        </details>
       )}
 
       {hasCourse && <div className="m-mobile-only m-result-save"><FavoriteButton item={planFavorite(plan)}/></div>}
