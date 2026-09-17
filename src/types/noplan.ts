@@ -119,6 +119,8 @@ export interface CoursePlace {
   galleryImages?: CoursePlaceImage[];
   menuItems?: CourseMenuItem[];
   catalogPlaceId?: number;
+  catalogRating?: number;
+  catalogReviewCount?: number;
   rating?: number;
   reviewCount?: number;
   businessStatus?: string;

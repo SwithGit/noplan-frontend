@@ -53,6 +53,8 @@ export function normalizeCoursePlace(value: unknown, index: number): CoursePlace
     galleryImages,
     menuItems,
     catalogPlaceId: numberValue(record.catalogPlaceId),
+    catalogRating: record.catalogRating == null ? undefined : numberValue(record.catalogRating),
+    catalogReviewCount: record.catalogReviewCount == null ? undefined : numberValue(record.catalogReviewCount),
     rating: numberValue(record.rating),
     reviewCount: numberValue(record.reviewCount),
     businessStatus: textValue(record, ['businessStatus']) || undefined,

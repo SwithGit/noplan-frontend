@@ -269,10 +269,13 @@ export function PlaceDetailScreen() {
         </div>
       </section>
 
-      {place.rating != null && place.reviewCount != null && (
+      {(place.catalogRating != null || place.catalogReviewCount != null) && (
         <section className="google-quality-panel">
-          <strong>Google 평점 {place.rating.toFixed(1)} · 리뷰 {place.reviewCount.toLocaleString('ko-KR')}개</strong>
-          <span>{place.googleAttribution || 'Google Maps 제공'}</span>
+          <strong>{[
+            place.catalogRating != null ? `저장 평점 ${place.catalogRating.toFixed(1)}` : null,
+            place.catalogReviewCount != null ? `저장 리뷰 ${place.catalogReviewCount.toLocaleString('ko-KR')}개` : null,
+          ].filter(Boolean).join(' · ')}</strong>
+          <span>노플랜 수집 정보</span>
         </section>
       )}
 

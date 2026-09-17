@@ -260,6 +260,8 @@ function normalizePlace(item: Record<string, unknown>, index: number): CoursePla
     galleryImages,
     menuItems,
     catalogPlaceId: numberOf(item.catalogPlaceId),
+    catalogRating: item.catalogRating == null ? undefined : numberOf(item.catalogRating),
+    catalogReviewCount: item.catalogReviewCount == null ? undefined : numberOf(item.catalogReviewCount),
     rating: numberOf(item.rating),
     reviewCount: numberOf(item.reviewCount),
     businessStatus: valueOf(item, ['businessStatus']),
