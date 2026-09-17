@@ -1983,7 +1983,7 @@ export function ResultScreen() {
                   }}>
                     <PlaceVisual alt={place.name} color={place.color} imageUrl={place.imageUrl} type={place.type} detailType={place.detailType} />
                     <div className="result-place-copy">
-                      <small>{place.category || place.detailType || place.type}{place.durationMinutes ? ` · 약 ${place.durationMinutes}분 머물기` : ''}{place.autoAdded ? ' · 일정에 맞춰 추가' : ''}</small>
+                      <small>{place.category || place.detailType || place.type}{place.durationMinutes ? ` · 약 ${Math.max(1, Math.floor(place.durationMinutes))}분 머물기` : ''}{place.autoAdded ? ' · 일정에 맞춰 추가' : ''}</small>
                       {place.scheduledStart && <small>{new Date(place.scheduledStart).toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'numeric',minute:'2-digit'})} 방문</small>}
                       <strong>{place.searchKeyword || place.title || place.name}</strong>
                       <span className={`stop-status ${place.businessStatus==='open'?'is-open':''}`}>{place.businessStatus==='open'?'방문 시간 영업 확인':place.businessStatus==='closed'?'영업 종료':'영업시간 확인 필요'}</span>
@@ -1991,7 +1991,7 @@ export function ResultScreen() {
                     <span className="stop-arrow" aria-hidden="true">›</span>
                   </button>
                   {place.estimatedCost && <p className="stop-price"><span>1인 예상</span><strong>{place.estimatedCost.status==='estimated' ? `${place.estimatedCost.min?.toLocaleString()}~${place.estimatedCost.max?.toLocaleString()}원` : '가격 확인 필요'}</strong></p>}
-                  {place.rating != null && place.reviewCount != null && <p className="stop-rating">★ {place.rating.toFixed(1)} <span>리뷰 {place.reviewCount.toLocaleString('ko-KR')} · Google Maps 제공</span></p>}
+                  {place.type !== 'hotplace' && (place.catalogRating != null || place.catalogReviewCount != null) && <p className="stop-rating">{place.catalogRating != null && <>★ {place.catalogRating.toFixed(1)} </>}<span>{place.catalogReviewCount != null && <>리뷰 {place.catalogReviewCount.toLocaleString('ko-KR')} · </>}노플랜 수집 정보</span></p>}
                   <CrowdingStatus compact snapshot={place.crowding}/>
                   {(Boolean(place.estimatedCost?.menuExamples?.length) || Boolean(place.estimatedCost?.assumptions?.length)) && <details className="result-disclosure stop-evidence"><summary>예산 기준 메뉴·가격 가정</summary>
                     {Boolean(place.estimatedCost?.menuExamples?.length) && <p>{place.estimatedCost?.menuExamples?.slice(0,3).join(' · ')}</p>}

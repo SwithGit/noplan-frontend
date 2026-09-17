@@ -273,7 +273,7 @@ export function PlaceDetailScreen() {
         </div>
       </section>
 
-      {(place.catalogRating != null || place.catalogReviewCount != null) && (
+      {place.type !== 'hotplace' && (place.catalogRating != null || place.catalogReviewCount != null) && (
         <section className="google-quality-panel">
           <strong>{[
             place.catalogRating != null ? `저장 평점 ${place.catalogRating.toFixed(1)}` : null,
