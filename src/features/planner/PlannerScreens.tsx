@@ -1531,7 +1531,7 @@ export function ConditionConfirm() {
               ? '카페에서 가장 하고 싶은 것은 무엇인가요?'
               : `${mainCategoryLabel}에서 가장 중요한 것은 무엇인가요?`}
           </h2>
-          <p>선택하지 않아도 바로 추천할 수 있고, 메인 장소에만 반영해요.</p>
+          <p>선택사항이에요. 맞는 장소를 우선 추천하며, 태그 정보가 부족해도 다른 조건에 맞는 장소를 찾아요.</p>
           <div className="chip-row core-intent-options">
             {coreIntentOptions.map((option) => (
               <Chip
