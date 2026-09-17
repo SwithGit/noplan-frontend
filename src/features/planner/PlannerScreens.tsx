@@ -1,4 +1,5 @@
 import './result-screen.css';
+import { CourseOptionCards } from './CourseOptionCards';
 import { FavoriteButton } from '../mobile/MobileUi';
 import { CourseNearbyEvents } from '../events/CourseNearbyEvents';
 import { planFavorite } from '../mobile/mobileModel';
@@ -1927,24 +1928,14 @@ export function ResultScreen() {
         <div className="result-section-heading"><div><span className="result-eyebrow">나에게 맞는 하루</span><h2>어떤 코스로 떠날까요?</h2></div><span className="result-count">{plan.courseOptions.length}개 코스</span></div>
         <p className="result-intro">마음에 드는 코스를 선택하면 아래에서 일정을 볼 수 있어요.</p>
         {plan.courseOptions.length<3 && plan.comparison?.hoursUnknown && <p>영업시간을 확인하지 못해 제외한 후보가 있어요. 미확인 장소를 포함하려면 조건 수정에서 허용할 수 있어요.</p>}
-        <div className="course-option-grid">
-          {plan.courseOptions.map((option,index)=><button type="button" key={option.id}
-            className={`course-option ${plan.selectedOptionId===option.id?'selected':''}`} aria-pressed={plan.selectedOptionId===option.id}
-            disabled={saveStatus==='saving'} onClick={()=>{
-              if(plan.selectedOptionId===option.id)return;
-              selectPlanOption(option.id);setSaveStatus('idle');setSaveMessage('');setFeedbackScore(0);setFeedbackConcern('');setFeedbackSubmitted(false);
-            }}>
-            <span className="option-heading"><strong>코스 {index+1}</strong>{index===0 && <em>추천</em>}<span className="option-check" aria-hidden="true">{plan.selectedOptionId===option.id?'✓':''}</span></span>
-            <span className="option-route">{option.courseData.map((place,i)=><span key={place.id || i}>{i>0 && <i aria-hidden="true">→</i>}{place.name}</span>)}</span>
-            <small className="option-budget">{option.summary.costKnown?`1인 예상 ${option.summary.estimatedMin?.toLocaleString()}~${option.summary.estimatedMax?.toLocaleString()}원`:'가격 확인 필요'}</small>
-            <small>도보 약 {option.ranking.walkingMinutes}분 · {option.courseData.every(place=>['google_routes','tmap_pedestrian'].includes(place.walkingRouteSource || ''))?'경로 기준':'추정 포함'}</small>
-            {option.courseData.some(place=>place.estimatedCost?.assumptions?.length) && <small>일부 가격 가정 포함</small>}
-          </button>)}
-        </div>
+        <CourseOptionCards options={plan.courseOptions} selectedId={plan.selectedOptionId} disabled={saveStatus==='saving'} onSelect={id=>{
+          if(plan.selectedOptionId===id)return;
+          selectPlanOption(id);setSaveStatus('idle');setSaveMessage('');setFeedbackScore(0);setFeedbackConcern('');setFeedbackSubmitted(false);
+        }}/>
         <details className="result-disclosure"><summary>코스는 어떻게 골랐나요?</summary><p>{plan.comparison?.examinedCourses ?? plan.courseOptions.length}개 조합을 확인했어요. {plan.courseOptions[0]?.ranking.basis} 기준으로 비교했으며 일부 장소는 겹칠 수 있어요. {plan.comparison?.limited ? '확인 한도 내에서 비교한 결과예요.' : ''}</p></details>
       </section>}
 
-      {hasCourse ? (
+      {hasCourse && !plan.courseOptions?.length ? (
         <article className="result-card">
           <span className="rank-pill">{plan.partial ? '부분 추천' : '선택한 코스'}</span>
           <h1>{plan.title}</h1>
@@ -1962,35 +1953,46 @@ export function ResultScreen() {
           </div>}
           {crowding && <CrowdingStatus snapshot={crowding} compact/>}
         </article>
-      ) : (
+      ) : !hasCourse ? (
         <article className="result-card">
           <span className="rank-pill">{failureContent.badge}</span>
           <h1>{failureContent.title}</h1>
           <p>{failureContent.body}</p>
         </article>
-      )}
+      ) : null}
 
       {hasCourse && (
         <section className="screen-section result-itinerary">
-          <div className="result-section-heading"><h2>오늘의 일정</h2><span>{plan.courseData.length}곳</span></div>
+          <div className="result-section-heading"><div><span className="result-eyebrow">선택한 코스 · {plan.durationText}</span><h2>오늘의 일정</h2></div><span>{plan.courseData.length}곳</span></div>
+          {Boolean(plan.courseOptions?.length) && <div className="itinerary-overview" aria-live="polite">
+            <span>{plan.title}</span>
+            {plan.accuracySummary && <details className="result-disclosure"><summary>예상 비용·방문 전 확인사항</summary>
+              <p>선택한 활동 {plan.accuracySummary.fulfilledCount}/{plan.accuracySummary.requiredCount} 포함 · 메뉴 가격과 주문량 기준 예상 비용이에요.</p>
+              {plan.accuracySummary.warnings.map(warning=><p key={warning}>{warning}</p>)}
+            </details>}
+            {crowding && <CrowdingStatus snapshot={crowding} compact/>}
+          </div>}
           <div className="result-place-list">
             {plan.courseData.map((place, index) => (
               <article className="result-stop" key={`${plan.selectedOptionId}-${place.id}-${index}`}>
-                <div className="stop-transfer"><span className="stop-number">{index+1}</span><span>{index===0 ? '출발지에서' : '이전 장소에서'} · {place.moveText || '이동 정보 확인'}</span></div>
+                <div className="stop-transfer"><span className="stop-number">{index+1}</span><div>
+                  <strong className="stop-clock">{place.scheduledStart ? new Date(place.scheduledStart).toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'numeric',minute:'2-digit'}) : place.time || `${index+1}번째 장소`}</strong>
+                  <span>{index===0 ? '출발지에서' : '이전 장소에서'} · {place.moveText || '이동 정보 확인'}</span>
+                </div></div>
                 <div className="stop-card">
                   <button className="stop-open" type="button" aria-label={`${place.name} 상세 보기`} onClick={() => {
                     if (selectCurrentPlan()) navigate(coursePlaceRoute(index));
                   }}>
                     <PlaceVisual alt={place.name} color={place.color} imageUrl={place.imageUrl} type={place.type} detailType={place.detailType} />
                     <div className="result-place-copy">
-                      <small>{place.category || place.detailType || place.type}{place.durationMinutes ? ` · 약 ${Math.max(1, Math.floor(place.durationMinutes))}분 머물기` : ''}{place.autoAdded ? ' · 일정에 맞춰 추가' : ''}</small>
-                      {place.scheduledStart && <small>{new Date(place.scheduledStart).toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'numeric',minute:'2-digit'})} 방문</small>}
+                      <small className="stop-category">{{food:'맛집',cafe:'카페',hotplace:'산책·구경',drink:'술집',activity:'놀거리'}[place.type] || place.detailType || '장소'}{place.autoAdded ? ' · 추가 일정' : ''}</small>
                       <strong>{place.searchKeyword || place.title || place.name}</strong>
+                      {place.durationMinutes ? <small>약 {Math.max(1, Math.floor(place.durationMinutes))}분 머물기</small> : null}
                       <span className={`stop-status ${place.businessStatus==='open'?'is-open':''}`}>{place.businessStatus==='open'?'방문 시간 영업 확인':place.businessStatus==='closed'?'영업 종료':'영업시간 확인 필요'}</span>
                     </div>
                     <span className="stop-arrow" aria-hidden="true">›</span>
                   </button>
-                  {place.estimatedCost && <p className="stop-price"><span>1인 예상</span><strong>{place.estimatedCost.status==='estimated' ? `${place.estimatedCost.min?.toLocaleString()}~${place.estimatedCost.max?.toLocaleString()}원` : '가격 확인 필요'}</strong></p>}
+                  {place.estimatedCost && <p className="stop-price"><span>1인 예상</span><strong>{place.estimatedCost.status==='estimated' ? place.estimatedCost.min===place.estimatedCost.max ? `${place.estimatedCost.min?.toLocaleString()}원` : `${place.estimatedCost.min?.toLocaleString()}~${place.estimatedCost.max?.toLocaleString()}원` : '가격 확인 필요'}</strong></p>}
                   {place.type !== 'hotplace' && (place.catalogRating != null || place.catalogReviewCount != null) && <p className="stop-rating">{place.catalogRating != null && <>★ {place.catalogRating.toFixed(1)} </>}<span>{place.catalogReviewCount != null && <>리뷰 {place.catalogReviewCount.toLocaleString('ko-KR')} · </>}노플랜 수집 정보</span></p>}
                   <CrowdingStatus compact snapshot={place.crowding}/>
                   {(Boolean(place.estimatedCost?.menuExamples?.length) || Boolean(place.estimatedCost?.assumptions?.length)) && <details className="result-disclosure stop-evidence"><summary>예산 기준 메뉴·가격 가정</summary>
