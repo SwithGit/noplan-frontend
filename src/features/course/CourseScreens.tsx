@@ -70,13 +70,17 @@ function openPlaceLink(url?: string) {
   }
 }
 
-function externalMapUrl(place: CoursePlace, provider: 'naver' | 'google') {
+function externalMapUrl(place: CoursePlace, provider: 'naver' | 'kakao') {
   const query = encodeURIComponent([place.searchKeyword || place.name || place.title, place.address].filter(Boolean).join(' '));
   if (provider === 'naver') return `https://map.naver.com/p/search/${query}`;
-  return `https://www.google.com/maps/search/?api=1&query=${query}`;
+  const kakaoPlaceId = place.providerPlaceId?.trim();
+  if (place.provider === 'kakao_local' && kakaoPlaceId) {
+    return `https://place.map.kakao.com/${encodeURIComponent(kakaoPlaceId)}`;
+  }
+  return `https://map.kakao.com/link/search/${query}`;
 }
 
-function openExternalMap(place: CoursePlace, provider: 'naver' | 'google') {
+function openExternalMap(place: CoursePlace, provider: 'naver' | 'kakao') {
   trackPlaceInteraction('external_map_open', place, undefined, { provider }).catch(() => undefined);
   window.open(externalMapUrl(place, provider), '_blank', 'noopener,noreferrer');
 }
@@ -281,7 +285,7 @@ export function PlaceDetailScreen() {
 
       <section className="external-map-links" aria-label="외부 지도에서 장소 보기">
         <button type="button" onClick={() => openExternalMap(place, 'naver')}>네이버지도에서 보기</button>
-        <button type="button" onClick={() => openExternalMap(place, 'google')}>Google Maps에서 보기</button>
+        <button type="button" onClick={() => openExternalMap(place, 'kakao')}>카카오맵에서 보기</button>
         {place.instagramUrl && <button type="button" onClick={() => openPlaceLink(place.instagramUrl)}>인스타그램 보기</button>}
         {place.reservationUrl && <button type="button" onClick={() => openPlaceLink(place.reservationUrl)}>예약하기</button>}
       </section>
