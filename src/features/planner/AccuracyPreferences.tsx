@@ -11,9 +11,9 @@ export function AccuracyPreferences({ condition, onChange }: { condition: Planne
   return <section className="accuracy-preferences screen-section" aria-label="예산과 취향">
     <h2>오늘의 예산과 취향</h2>
     <p>선택한 활동을 중심으로 시간대와 전체 예산에 맞춰 일정을 구성해요.</p>
-    <label className="accuracy-checkbox"><input type="checkbox" checked={value.fillSchedule !== false} onChange={e=>patch({fillSchedule:e.target.checked})}/><span>긴 일정은 식사와 놀거리를 섞어 채우기<small>낮에는 카페·놀거리, 저녁에는 식사와 선택한 술집으로 이어져요. 밤 8시 이후 카페는 자동으로 넣지 않아요.</small></span></label>
+    <label className="accuracy-checkbox"><input type="checkbox" checked={value.fillSchedule !== false} onChange={e=>patch({fillSchedule:e.target.checked})}/><span>남는 시간과 예산에 맞춰 일정 채우기<small>선택한 활동을 먼저 담고, 여유가 있으면 놀거리·카페를 추가해요. 예산이 부족하면 무료 산책을 넣을 수 있어요. 밤 8시 이후 카페는 자동으로 넣지 않아요.</small></span></label>
     {value.fillSchedule !== false && <fieldset><legend>중간에 함께 넣어도 좋은 활동</legend><div className="accuracy-exclusions">
-      {(['activity','cafe','hotplace'] as const).map(type=><button key={type} type="button" className={(value.additionalActivities||['activity','cafe']).includes(type)?'selected':''} aria-pressed={(value.additionalActivities||['activity','cafe']).includes(type)} onClick={()=>{const selected=value.additionalActivities||['activity','cafe'];patch({additionalActivities:selected.includes(type)?selected.filter(item=>item!==type):[...selected,type]});}}>{{activity:'놀거리',cafe:'카페·디저트',hotplace:'산책·구경'}[type]}</button>)}
+      {(['activity','cafe','hotplace'] as const).map(type=><button key={type} type="button" className={(value.additionalActivities||['activity','cafe','hotplace']).includes(type)?'selected':''} aria-pressed={(value.additionalActivities||['activity','cafe','hotplace']).includes(type)} onClick={()=>{const selected=value.additionalActivities||['activity','cafe','hotplace'];patch({additionalActivities:selected.includes(type)?selected.filter(item=>item!==type):[...selected,type]});}}>{{activity:'놀거리',cafe:'카페·디저트',hotplace:'산책·구경'}[type]}</button>)}
     </div><small>추가 활동은 위 버튼으로 조정할 수 있어요. 장소별 방문 시간과 예상 비용은 결과에서 확인해 주세요.</small></fieldset>}
     <div className="accuracy-fields">
       <label>전체 일정의 1인 예산<select value={value.budgetPerPerson ?? ''} onChange={e => patch({ budgetPerPerson: e.target.value === '' ? undefined : Number(e.target.value) })}>
