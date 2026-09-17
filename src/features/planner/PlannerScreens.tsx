@@ -1785,11 +1785,13 @@ export function SearchingScreen() {
 
       {searchFailed ? (
         <section className="search-failure-card" role="alert">
-          <span>검색 실패</span>
-          <h2>이번 조건으로 코스를 완성하지 못했어요</h2>
+          <span>{plan.constraintFailureCode==='walking_service_rate_limited'?'경로 서비스 호출 한도':'검색 실패'}</span>
+          <h2>{plan.constraintFailureCode==='walking_service_rate_limited'?'도보 경로 확인이 일시 중단됐어요':'이번 조건으로 코스를 완성하지 못했어요'}</h2>
           <p>{searchError}</p>
-          <PriceUnknownCandidates places={plan.priceUnknownPlaces}/>
-          <UnverifiedCandidates places={plan.unverifiedPlaces}/>
+          {plan.constraintFailureCode!=='walking_service_rate_limited' && <>
+            <PriceUnknownCandidates places={plan.priceUnknownPlaces}/>
+            <UnverifiedCandidates places={plan.unverifiedPlaces}/>
+          </>}
           {plan.requestedWindow && <p>계산한 일정: {new Date(plan.requestedWindow.startAt).toLocaleString('ko-KR', {timeZone:'Asia/Seoul',month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'})} → {new Date(plan.requestedWindow.endAt).toLocaleString('ko-KR', {timeZone:'Asia/Seoul',month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'})} · {plan.requestedWindow.availableMinutes}분</p>}
           {plan.constraintFailureCode === 'hours_unknown' && !condition.accuracy?.allowUnverifiedHours && <>
             <p>영업 정보가 없는 후보를 포함할 수 있어요. 포함하면 방문 전 직접 확인이 필요하고, 휴무·폐업으로 확인된 곳은 계속 제외해요.</p>
@@ -1797,7 +1799,7 @@ export function SearchingScreen() {
           </>}
           <div>
             <button type="button" onClick={() => navigate(ROUTES.plannerCondition, { replace: true })}>조건 수정</button>
-            <button className="primary" type="button" onClick={() => void retrySearch()}>같은 조건으로 다시 찾기</button>
+            <button className="primary" type="button" onClick={() => void retrySearch()}>{plan.constraintFailureCode==='walking_service_rate_limited'?'경로 서비스 다시 확인':'같은 조건으로 다시 찾기'}</button>
           </div>
         </section>
       ) : (
