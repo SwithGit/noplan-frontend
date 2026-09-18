@@ -2,19 +2,19 @@ import { useState } from 'react';
 import { groupSizeOf, preferenceKey } from './accuracyModel';
 import type { PlannerAccuracy, PlannerCondition } from '../../types/noplan';
 import './accuracy-preferences.css';
+import { normalizeFillPreferences } from '../../utils/fillPreferences';
 
 export function AccuracyPreferences({ condition, onChange }: { condition: PlannerCondition; onChange: (value: PlannerAccuracy) => void }) {
   const [savedMessage, setSavedMessage] = useState('');
   const value = condition.accuracy || {};
+  const fill = normalizeFillPreferences(value);
   const patch = (change: Partial<PlannerAccuracy>) => onChange({ ...value, ...change });
   const hasDrink = /술/.test(condition.mood);
   return <section className="accuracy-preferences screen-section" aria-label="예산과 취향">
     <h2>오늘의 예산과 취향</h2>
     <p>선택한 활동을 중심으로 시간대와 전체 예산에 맞춰 일정을 구성해요.</p>
     <label className="accuracy-checkbox"><input type="checkbox" checked={value.fillSchedule !== false} onChange={e=>patch({fillSchedule:e.target.checked})}/><span>남는 시간과 예산에 맞춰 일정 채우기<small>선택한 활동을 먼저 담고, 여유가 있으면 놀거리·카페를 추가해요. 예산이 부족하면 무료 산책을 넣을 수 있어요. 밤 8시 이후 카페는 자동으로 넣지 않아요.</small></span></label>
-    {value.fillSchedule !== false && <fieldset><legend>추가해도 좋은 활동</legend><div className="accuracy-exclusions">
-      {(['activity','cafe','hotplace'] as const).map(type=><button key={type} type="button" className={(value.additionalActivities||['activity','cafe','hotplace']).includes(type)?'selected':''} aria-pressed={(value.additionalActivities||['activity','cafe','hotplace']).includes(type)} onClick={()=>{const selected=value.additionalActivities||['activity','cafe','hotplace'];patch({additionalActivities:selected.includes(type)?selected.filter(item=>item!==type):[...selected,type]});}}>{{activity:'놀거리',cafe:'카페·디저트',hotplace:'예산 부족 시 무료 산책'}[type]}</button>)}
-    </div><small>무료 산책은 시간이 남고, 남은 예산으로 유료 활동을 추가하기 어려울 때만 넣어요. 시간이 남는다는 이유만으로 추가하지 않아요.</small></fieldset>}
+    {fill.fillSchedule && <label className="accuracy-checkbox"><input type="checkbox" checked={fill.allowBudgetWalk} onChange={e=>patch({allowBudgetWalk:e.target.checked})}/><span>예산이 부족하면 무료 산책도 허용<small>시간이 남고, 남은 예산으로 유료 활동을 추가하기 어려울 때 주변 산책 장소를 찾아요.</small></span></label>}
     <p>예산은 예상 최저·최고 금액의 평균을 기준으로 맞춰요. 실제 주문에 따라 달라질 수 있어요.</p>
     <div className="accuracy-fields">
       <label>전체 일정의 1인 예산<select value={value.budgetPerPerson ?? ''} onChange={e => patch({ budgetPerPerson: e.target.value === '' ? undefined : Number(e.target.value) })}>

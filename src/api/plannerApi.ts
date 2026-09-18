@@ -1,5 +1,6 @@
 import { ApiError, apiJson, getLoggedInUser } from './client';
 import { requestCourse, type CourseProgress } from './courseRequest';
+import { normalizeFillPreferences } from '../utils/fillPreferences';
 import type { CrowdingSnapshot, CoursePlace, CoursePlan, CurrentPosition, PlannerCondition } from '../types/noplan';
 import {
   categoryKeyFromLabel,
@@ -415,7 +416,7 @@ export async function generateCourse(
           allowUnverifiedHours: condition.accuracy?.allowUnverifiedHours !== false,
           avoidCrowds: condition.extras.includes('대기 적게'),
           shortWalking: condition.extras.includes('도보 짧게'),
-          fillSchedule: condition.accuracy?.fillSchedule !== false,
+          ...normalizeFillPreferences(condition.accuracy),
         },
         sourceText: condition.rawText,
         companionContext: inferCompanionContext(condition),

@@ -55,6 +55,7 @@ export interface CourseMenuItem {
 
 export interface PlannerAccuracy {
   fillSchedule?: boolean;
+  allowBudgetWalk?: boolean;
   additionalActivities?: Array<'activity' | 'cafe' | 'hotplace'>;
   budgetPerPerson?: number;
   groupSize?: number;
