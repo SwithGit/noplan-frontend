@@ -6,10 +6,29 @@ export async function listTrips() {
   return result.trips;
 }
 export async function getTrip(id: string) {
-  const result = await apiJson<{ success: boolean; trip: TripRecord }>(`/api/trips/${encodeURIComponent(id)}`);
+  const result = await apiJson<{ success: boolean; trip: TripRecord }>(`/api/trips/${encodeURIComponent(id)}`, { signal: AbortSignal.timeout(15000) });
   return result.trip;
 }
 export async function saveTrip(trip: TripRecord) {
-  const result = await apiJson<{ success: boolean; trip: TripRecord }>(`/api/trips/${encodeURIComponent(trip.id)}`, { method: 'PUT', body: JSON.stringify({ version: trip.version, document: trip.document }) });
+  const result = await apiJson<{ success: boolean; trip: TripRecord }>(`/api/trips/${encodeURIComponent(trip.id)}`, { method: 'PUT', signal: AbortSignal.timeout(15000), body: JSON.stringify({ version: trip.version, document: trip.document }) });
   return result.trip;
+}
+export async function pollTrip(id: string, version: number) {
+  return apiJson<{ trip: TripRecord | null; collaboration: TripRecord['collaboration'] }>(`/api/trips/${encodeURIComponent(id)}?since=${version}`, { signal: AbortSignal.timeout(15000) });
+}
+export interface TripMember { userId: string; nickname: string; role: 'owner' | 'editor' }
+export async function getTripMembers(id: string) {
+  return (await apiJson<{ members: TripMember[] }>(`/api/trips/${encodeURIComponent(id)}/members`)).members;
+}
+export function createTripInvite(id: string) {
+  return apiJson<{ token: string; expiresAt: string }>(`/api/trips/${encodeURIComponent(id)}/invite`, { method: 'POST' });
+}
+export function revokeTripInvite(id: string) {
+  return apiJson(`/api/trips/${encodeURIComponent(id)}/invite`, { method: 'DELETE' });
+}
+export function removeTripMember(id: string, memberId: string) {
+  return apiJson(`/api/trips/${encodeURIComponent(id)}/members/${encodeURIComponent(memberId)}`, { method: 'DELETE' });
+}
+export async function joinTrip(token: string) {
+  return (await apiJson<{ trip: TripRecord }>('/api/trips/join', { method: 'POST', body: JSON.stringify({ token }) })).trip;
 }

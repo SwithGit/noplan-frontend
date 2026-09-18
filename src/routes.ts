@@ -5,6 +5,7 @@ export const ROUTES = {
   quickHome: '/app/quick',
   trips: '/app/trips',
   newTrip: '/app/trips/new',
+  tripJoin: '/app/trips/join',
   events: '/app/events',
   plannerChat: '/app/planner/chat',
   plannerCondition: '/app/planner/condition',

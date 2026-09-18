@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ApiError } from '../../api/client';
-import { getTrip, saveTrip } from '../../api/tripsApi';
+import { useTripSync } from './useTripSync';
+import { TripSharing } from './TripSharing';
 import MapBoard from '../../components/MapBoard';
 import nopi from '../../assets/nopi/nopi-icon.png';
 import type { UserSession } from '../../types/noplan';
@@ -23,17 +23,14 @@ export function TripWorkspace({ user }: { user: UserSession | null }) {
     const draft = readDrafts(user?.userId).find(item => item.id === id);
     return draft || (fromNavigation?.id === id ? fromNavigation : null);
   });
-  const [trip, setTrip] = useState(seed);
   const [undo, setUndo] = useState<TripDocument[]>([]);
-  const [remote, setRemote] = useState<TripRecord | null>(null);
-  const [loading, setLoading] = useState(Boolean(user));
-  const [notice, setNotice] = useState('');
   const [storageError, setStorageError] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [conflict, setConflict] = useState(false);
   const [dayId, setDayId] = useState((location.state as {focusDayId?:string}|null)?.focusDayId || seed?.document.days[0]?.id || '');
   const [blockId, setBlockId] = useState((location.state as {focusBlockId?:string}|null)?.focusBlockId || seed?.document.days[0]?.blocks[0]?.id || '');
-  const [dialog, setDialog] = useState<'place' | 'block' | 'settings' | 'tourism' | null>(null);
+  const [dialog, setDialog] = useState<'place' | 'block' | 'settings' | 'tourism' | 'sharing' | null>(null);
+  const clearUndo = useCallback(() => setUndo([]), []);
+  const { trip, setTrip, remote, loading, saving: networkSaving, notice, setNotice, conflict, dirty, connected, save, openLatest } = useTripSync(id, user?.userId, seed, dialog !== null, clearUndo);
+  const saving = networkSaving || loading;
   const [editingPlace, setEditingPlace] = useState<TripPlace | undefined>();
   const [addingBlock, setAddingBlock] = useState<TripBlock | null>(null);
   const [detailTab, setDetailTab] = useState<'recommend' | 'map'>('recommend');
@@ -43,22 +40,11 @@ export function TripWorkspace({ user }: { user: UserSession | null }) {
     if (mobileDetail && window.matchMedia('(max-width: 1023px)').matches) inspector.current?.scrollIntoView({ block: 'start' });
   }, [mobileDetail, blockId]);
   useEffect(() => {
-    if (!user?.userId) return;
-    let cancelled = false;
-    getTrip(id).then(result => {
-      if (cancelled) return;
-      setRemote(result);
-      if (!seed) { setTrip(result); setDayId(result.document.days[0]?.id || ''); setBlockId(result.document.days[0]?.blocks[0]?.id || ''); }
-      else if (seed.version !== result.version) setNotice('다른 기기에서 저장한 여행이 있어요. 최신 여행을 열거나 이 작업본을 새 여행으로 저장해 주세요.');
-    }).catch(cause => { if (!cancelled && !(seed?.version === 0 && cause instanceof ApiError && cause.status === 404)) setNotice(cause instanceof Error ? cause.message : '여행을 불러오지 못했어요.'); }).finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, [id, user?.userId, seed]);
-  useEffect(() => {
     if (!trip) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Report the result of writing to the external draft store.
     try { writeDraft(trip, user?.userId); setStorageError(''); }
     catch { setStorageError('이 브라우저에 초안을 보관하지 못했어요. 창을 닫기 전에 계정에 저장해 주세요.'); }
   }, [trip, user?.userId]);
-  const dirty = trip && (!remote || JSON.stringify(trip.document) !== JSON.stringify(remote.document));
   useEffect(() => {
     if (!storageError && (!user || !dirty)) return;
     const prevent = (event: BeforeUnloadEvent) => { event.preventDefault(); };
@@ -83,22 +69,8 @@ export function TripWorkspace({ user }: { user: UserSession | null }) {
     if (!block || !block.places[index + offset] || block.places[index].fixed || block.places[index + offset].fixed) return;
     const places = [...block.places]; [places[index], places[index + offset]] = [places[index + offset], places[index]]; updatePlaces(places);
   };
-  const save = async () => {
-    if (!user) { setNotice('초안은 이 브라우저에 보관됩니다. 로그인 후 내 여행에서 초안을 열면 계정에 저장할 수 있어요.'); return; }
-    setSaving(true); setNotice('');
-    try { const result = await saveTrip(trip); setTrip(result); setRemote(result); setConflict(false); setNotice('계정에 저장했어요. 다른 기기에서도 같은 여행을 열 수 있어요.'); }
-    catch (cause) { if (cause instanceof ApiError && cause.status === 409) setConflict(true); setNotice(cause instanceof Error ? cause.message : '저장하지 못했어요. 작성 내용은 유지됩니다.'); }
-    finally { setSaving(false); }
-  };
-  const openLatest = async () => {
-    if (!window.confirm('현재 작업본을 최신 저장 내용으로 바꿀까요? 작업본을 남기려면 먼저 새 여행으로 복사해 주세요.')) return;
-    setSaving(true);
-    try { const result = await getTrip(id); setTrip(result); setRemote(result); setConflict(false); setUndo([]); setNotice('최신 여행을 열었어요.'); }
-    catch (cause) { setNotice(cause instanceof Error ? cause.message : '최신 여행을 불러오지 못했어요. 현재 작업본은 유지됩니다.'); }
-    finally { setSaving(false); }
-  };
   const copy = () => {
-    const copied = { ...trip, id: newId(), version: 0, document: { ...document, title: `${document.title.slice(0, 93)} (사본)` } };
+    const copied = { ...trip, id: newId(), version: 0, collaboration: undefined, baseDocument: undefined, document: { ...document, title: `${document.title.slice(0, 93)} (사본)` } };
     navigate(tripRoute(copied.id), { state: { initialTrip: copied } });
   };
   const addBlock = () => {
@@ -109,7 +81,7 @@ export function TripWorkspace({ user }: { user: UserSession | null }) {
   const mappedPlaces = (block?.places || []).filter(place => place.lat != null && place.lng != null).map(place => ({ title: place.name, lat: place.lat!, lng: place.lng! }));
   const isConflict = conflict || (remote && remote.version !== trip.version);
   return <div className="trip-workspace">
-    <div className="trip-workspace-bar"><div className="trip-breadcrumb"><Link to={ROUTES.trips}>내 여행</Link><span>/</span><span>{document.destination}</span></div><div className="trip-save-tools"><span className="trip-save-state"><span className={dirty ? 'pending' : ''} />{saving ? '저장 중…' : !user ? '이 브라우저의 초안' : dirty ? '저장할 변경사항 있음' : '계정에 저장됨'}</span><button className="trip-button" disabled={!undo.length || saving} onClick={() => { const previous = undo.at(-1); if (previous) { setTrip({ ...trip, document: previous }); setUndo(undo.slice(0, -1)); } }} type="button">되돌리기</button><button className="trip-button primary" disabled={saving} onClick={() => void save()} type="button"><TripIcon name="save" />{user ? '여행 저장' : '저장 안내'}</button></div></div>
+    <div className="trip-workspace-bar"><div className="trip-breadcrumb"><Link to={ROUTES.trips}>내 여행</Link><span>/</span><span>{document.destination}</span></div><div className="trip-save-tools"><button className="trip-button" type="button" disabled={saving || conflict} onClick={async () => { if (!user) { setNotice('로그인 후 여행을 저장하면 친구를 초대할 수 있어요.'); return; } if ((!trip.version || dirty) && !await save()) return; setDialog('sharing'); }}>친구와 함께{trip.collaboration?.enabled ? ` · ${trip.collaboration.memberCount}명` : ''}</button><span className="trip-save-state"><span className={dirty ? 'pending' : ''} />{saving ? '저장 중…' : !user ? '이 브라우저의 초안' : conflict ? '수정 충돌 · 작업본 보관 중' : !connected ? '연결 확인 필요' : dirty ? trip.collaboration?.enabled ? '친구에게 반영 중…' : '저장할 변경사항 있음' : trip.collaboration?.enabled ? '함께 편집 · 자동 저장됨' : '계정에 저장됨'}</span><button className="trip-button" disabled={!undo.length || saving} onClick={() => { const previous = undo.at(-1); if (previous) { setTrip({ ...trip, document: previous }); setUndo(undo.slice(0, -1)); } }} type="button">되돌리기</button><button className="trip-button primary" disabled={saving} onClick={() => void save()} type="button"><TripIcon name="save" />{user ? '여행 저장' : '저장 안내'}</button></div></div>
     <header className="trip-workspace-heading"><div><span className="trip-eyebrow">MY TRAVEL NOTE</span><h1>{document.title}</h1><div className="trip-meta"><span><TripIcon name="calendar" />{document.startDate} — {document.endDate}</span><span>{tripLength(document)}</span><span>{transportLabels[document.transport]}</span><span>{document.companion === '혼자' ? '나만의 여행' : `${document.companion}와 함께`}</span></div></div><button type="button" className="trip-button" onClick={() => setDialog('settings')} disabled={saving}>여행 정보 수정</button></header>
     {(notice || storageError) && <div className="trip-alert" role="status"><span>{storageError || notice}</span>{!user && <Link to={ROUTES.login}>로그인</Link>}{isConflict && <><button type="button" disabled={saving} onClick={() => void openLatest()}>최신 여행 열기</button><button type="button" disabled={saving} onClick={copy}>새 여행으로 복사</button></>}</div>}
     <div className="trip-editor-layout">
@@ -139,6 +111,7 @@ export function TripWorkspace({ user }: { user: UserSession | null }) {
         </div> : <div className="trip-inspector-body"><p className="trip-muted">일정 구간을 추가하면 노피가 도와드릴게요.</p></div>}
       </aside>
     </div>
+    {dialog === 'sharing' && <TripSharing trip={trip} onClose={() => setDialog(null)} />}
     {dialog === 'tourism' && block && <TourismPicker destination={document.destination} initial={tourismAnchor ? attractionFromPlace(tourismAnchor) : undefined} initialDuration={tourismAnchor?.durationMinutes} context={`${shortDate(day.date)} · ${block.title}`} onClose={() => setDialog(null)} onSelect={(place, duration) => { if (saving) return; change(setTourismAnchor(document, day.id, block.id, place, duration)); setDialog(null); setDetailTab('recommend'); setMobileDetail(true); setNotice('중심 관광지를 담았어요. 기존 장소는 유지됩니다. 관광지와 각 장소 사이의 이동·운영시간을 확인해 주세요.'); }} />}
     {dialog === 'place' && block && <PlaceForm place={editingPlace} onClose={() => setDialog(null)} onAdd={place => { if (!editingPlace && block.places.length >= 15) { setNotice('한 구간에는 최대 15개 장소를 담을 수 있어요.'); return; } updatePlaces(editingPlace ? block.places.map(item => item.id === editingPlace.id ? place : item) : [...block.places, place]); setDialog(null); }} />}
     {dialog === 'block' && (addingBlock || block) && <BlockForm block={addingBlock || block} day={day} days={document.days} onClose={() => { setDialog(null); setAddingBlock(null); }} onSave={(next, targetDay) => { change({ ...document, days: document.days.map(item => ({ ...item, blocks: [...item.blocks.filter(segment => segment.id !== next.id), ...(item.id === targetDay ? [next] : [])].sort((a, b) => a.startTime.localeCompare(b.startTime)) })) }); setDayId(targetDay); setBlockId(next.id); setDialog(null); setAddingBlock(null); }} />}

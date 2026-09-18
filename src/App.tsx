@@ -27,6 +27,7 @@ import { ROUTES, coursePlaceRoute, courseReplaceRoute } from './routes';
 import { HomeEntry } from './features/trips/HomeEntry';
 import { TripHome } from './features/trips/TripHome';
 import { TripWorkspace } from './features/trips/TripWorkspace';
+import { PENDING_TRIP_INVITE, TripJoin } from './features/trips/TripSharing';
 import { EventsPage } from './features/events/EventsPage';
 import { EventDetail } from './features/events/EventDetail';
 import type { UserSession } from './types/noplan';
@@ -91,6 +92,14 @@ function AppRoutes() {
   const navigate = useNavigate();
   const { loadPlan } = usePlanner();
   const [user, setUser] = useState<UserSession | null>(() => readUserSession());
+
+  useEffect(() => {
+    if (!user || location.pathname !== ROUTES.appHome) return;
+    try {
+      const token = sessionStorage.getItem(PENDING_TRIP_INVITE);
+      if (token && /^[a-zA-Z0-9_-]{43}$/.test(token)) navigate(`${ROUTES.tripJoin}#${token}`, { replace: true });
+    } catch { /* A user can reopen the original invitation if session storage is unavailable. */ }
+  }, [user, location.pathname, navigate]);
 
   useEffect(() => {
     const syncUser = () => setUser(readUserSession());
@@ -174,6 +183,7 @@ function AppRoutes() {
       <Route path={ROUTES.events} element={<EventsPage />} />
       <Route path="/app/events/:id" element={<EventDetail user={user} />} />
       <Route path="/app/trips/:id" element={<TripRouteEntry user={user} />} />
+      <Route path={ROUTES.tripJoin} element={<TripJoin user={user} />} />
       <Route path={ROUTES.plannerChat} element={<ChatStart />} />
       <Route path={ROUTES.plannerCondition} element={<ConditionConfirm />} />
       <Route path={ROUTES.plannerSearching} element={<SearchingScreen />} />

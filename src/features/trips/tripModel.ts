@@ -24,7 +24,8 @@ export interface TripDocument {
   outbound: 'undecided' | 'train' | 'bus' | 'flight' | 'car' | 'local';
   transport: 'walk' | 'transit' | 'car'; companion: string; days: TripDay[];
 }
-export interface TripRecord { id: string; version: number; updatedAt: string; document: TripDocument }
+export interface TripCollaboration { enabled: boolean; role: 'owner' | 'editor'; memberCount: number }
+export interface TripRecord { id: string; version: number; updatedAt: string; document: TripDocument; collaboration?: TripCollaboration; baseDocument?: TripDocument }
 export const transportLabels = { walk: '도보', transit: '대중교통', car: '자가용·렌터카' };
 export const outboundLabels = { undecided: '아직 미정', local: '여행지에서 시작', train: '기차', bus: '버스', flight: '항공', car: '자가용' };
 export const newId = () => crypto.randomUUID();

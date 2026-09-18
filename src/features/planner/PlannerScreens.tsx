@@ -46,8 +46,9 @@ const placeDetailOptions: Record<string, string[]> = {
 };
 const MAX_PLACE_SELECTIONS = 3;
 const durationOptions = ['2시간', '4시간', '저녁까지', '밤까지'];
-const durationOptionLabel = (value: string) => value === '밤까지' ? '밤까지 (00:30)' : value;
+const durationOptionLabel = (value: string) => value === '밤까지' ? '밤까지 (00:30)' : value === '저녁까지' ? '저녁까지 (20:30 전후)' : value;
 function endTimeHint(value: string) {
+  if (value === '저녁까지') return '20:30을 목표로 하되, 늦게 출발하면 이동과 선택한 활동의 최소 체류 시간을 확보해 종료 시각을 조정해요.';
   const match = value.match(/^종료 (\d{2}):(\d{2})$/);
   if (!match) return '출발 시각보다 이른 종료 시각은 다음 날로 계산해요.';
   const hour = Number(match[1]);
@@ -741,7 +742,7 @@ export function ChatStart() {
           ))}
         </QuickQuestion>}
 
-        {activeStep === 4 && <QuickQuestion title="언제까지 즐길까요?" subtitle="선택한 시간 안에 필수 활동과 이동이 모두 들어가는 코스를 찾아요.">
+        {activeStep === 4 && <QuickQuestion title="언제까지 즐길까요?" subtitle="이동과 선택한 활동의 체류 시간을 함께 고려해 코스를 찾아요.">
           <div className="option-grid duration-grid">
             {durationOptions.map((option) => (
               <button

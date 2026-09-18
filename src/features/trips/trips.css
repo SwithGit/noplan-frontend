@@ -316,3 +316,12 @@
 .tourism-anchor-panel strong { line-height: 1.5; }
 .tourism-anchor-panel .trip-muted { margin: 0; }
 .trip-segment-footer { flex-wrap: wrap; gap: 12px; }
+.trip-sharing-dialog .trip-muted { line-height: 1.8; }
+.trip-sharing-dialog h3 { margin: 24px 0 12px; font-size: 16px; }
+.trip-member-list { list-style: none; margin: 0; padding: 0; max-height: 240px; overflow: auto; }
+.trip-member-list li { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #eee8f5; }
+.trip-member-list li span { display: grid; gap: 4px; }
+.trip-member-list small, .trip-invite-controls > small { font-size: 12px; color: #8b7b99; }
+.trip-invite-controls { display: grid; gap: 12px; margin-top: 20px; }
+.trip-invite-controls input { width: 100%; margin-top: 8px; padding: 12px; border: 1px solid #ddcfea; border-radius: 8px; }
+.trip-join > .trip-text-link { display: block; margin-top: 24px; }
