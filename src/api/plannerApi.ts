@@ -245,6 +245,7 @@ function normalizePlace(item: Record<string, unknown>, index: number): CoursePla
     type,
     detailType: valueOf(item, ['detailType']),
     autoAdded: Boolean(item.autoAdded),
+    mealRole: item.mealRole === 'dinner' ? 'dinner' : undefined,
     flowRole: valueOf(item, ['flowRole']) === 'connector' ? 'connector' : valueOf(item, ['flowRole']) === 'suggested' ? 'suggested' : 'requested',
     isFranchise: Boolean(item.isFranchise),
     brandName: valueOf(item, ['brandName']) || undefined,

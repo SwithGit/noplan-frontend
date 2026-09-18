@@ -1988,7 +1988,7 @@ export function ResultScreen() {
                   }}>
                     <PlaceVisual alt={place.name} color={place.color} imageUrl={place.imageUrl} type={place.type} detailType={place.detailType} />
                     <div className="result-place-copy">
-                      <small className="stop-category">{{food:'맛집',cafe:'카페',hotplace:'산책·구경',drink:'술집',activity:'놀거리'}[place.type] || place.detailType || '장소'}{place.autoAdded ? ' · 추가 일정' : ''}</small>
+                      <small className="stop-category">{place.mealRole === 'dinner' ? '저녁 식사·반주' : {food:'맛집',cafe:'카페',hotplace:'산책·구경',drink:'술집',activity:'놀거리'}[place.type] || place.detailType || '장소'}{place.autoAdded ? ' · 추가 일정' : ''}</small>
                       <strong>{place.searchKeyword || place.title || place.name}</strong>
                       {place.durationMinutes ? <small>약 {Math.max(1, Math.floor(place.durationMinutes))}분 머물기</small> : null}
                       <span className={`stop-status ${place.businessStatus==='open'?'is-open':''}`}>{place.businessStatus==='open'?'방문 시간 영업 확인':place.businessStatus==='closed'?'영업 종료':'영업시간 확인 필요'}</span>

@@ -109,6 +109,7 @@ export interface CoursePlace {
   type: string;
   detailType?: string;
   autoAdded?: boolean;
+  mealRole?: 'dinner';
   flowRole?: 'requested' | 'connector' | 'suggested';
   isFranchise?: boolean;
   brandName?: string;
