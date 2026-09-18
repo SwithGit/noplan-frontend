@@ -1,3 +1,4 @@
+import { SignupDemographics } from '../../components/SignupDemographics';
 // NaverSignup.tsx
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -11,6 +12,8 @@ function NaverSignup() {
   const registrationToken = location.state?.registrationToken;
 
   const [nickname, setNickname] = useState(() => naverInfo?.nickname || '');
+  const [birthdate, setBirthdate] = useState('');
+  const [gender, setGender] = useState('');
   const [phone, setPhone] = useState(() => naverInfo?.phone || '');
   const [travelStyle, setTravelStyle] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
@@ -42,7 +45,7 @@ function NaverSignup() {
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          registrationToken,
+          registrationToken, birthdate, gender,
           nickname,
           phone,
           travelStyle,
@@ -81,6 +84,7 @@ function NaverSignup() {
     <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '30px', paddingBottom: '50px' }}>
       <div style={{ padding: '40px', backgroundColor: 'white', borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', width: '400px', display: 'flex', flexDirection: 'column' }}>
         <h2 style={{ color: '#000000', textAlign: 'center', marginBottom: '10px' }}>추가 정보 입력</h2>
+        <SignupDemographics birthdate={birthdate} gender={gender} onBirthdate={setBirthdate} onGender={setGender} />
         <p style={{ textAlign: 'center', color: '#666', marginBottom: '30px', fontSize: '14px' }}>
           안전한 서비스 이용을 위해 추가 정보를 입력해주세요.
         </p>

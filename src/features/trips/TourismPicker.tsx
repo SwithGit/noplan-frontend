@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { searchTourism, type TourismAttraction, type TourismSearchResult } from '../../api/tourismApi';
+import { searchTourism, type TourismAttraction, type TourismSearchResult, type TourismRankingOptions } from '../../api/tourismApi';
 import { TripDialog } from './TripDialog';
 import { TripIcon } from './TripIcon';
 import './tourismPicker.css';
 
 const categories = [{ id: '12', name: '관광지' }, { id: '14', name: '문화시설' }, { id: '28', name: '레포츠' }] as const;
-type SearchQuery = { keyword: string; type: TourismAttraction['contentTypeId']; page: number };
+type SearchQuery = TourismRankingOptions & { keyword: string; type: TourismAttraction['contentTypeId'] | 'all'; page: number };
 
 function AttractionPhoto({ place, large = false }: { place: TourismAttraction; large?: boolean }) {
   const [failedUrl, setFailedUrl] = useState('');
@@ -20,8 +20,10 @@ export function TourismPicker({ destination, initial, initialDuration = 90, cont
   destination: string; initial?: TourismAttraction; initialDuration?: number; context: string;
   onClose: () => void; onSelect: (place: TourismAttraction, duration: number) => void;
 }) {
+  const ulsan = /울산|울주/.test(destination) || Boolean(initial?.address.startsWith('울산'));
+  const categoryOptions = ulsan ? [{ id: 'all', name: '전체' }, ...categories] : categories;
   const [keyword, setKeyword] = useState(initial?.name || destination);
-  const [query, setQuery] = useState<SearchQuery>({ keyword: (initial?.name || destination).trim(), type: initial?.contentTypeId || '12', page: 1 });
+  const [query, setQuery] = useState<SearchQuery>({ keyword: (initial?.name || destination).trim(), type: ulsan ? 'all' : initial?.contentTypeId || '12', page: 1, ...(ulsan ? { region: 'ulsan', sort: 'recommended', profile: 'member' } : {}) });
   const [response, setResponse] = useState<{ query: SearchQuery; data?: TourismSearchResult; error?: string }>();
   const [selected, setSelected] = useState(initial);
   const [duration, setDuration] = useState(initialDuration);
@@ -29,21 +31,22 @@ export function TourismPicker({ destination, initial, initialDuration = 90, cont
   const resultsPane = useRef<HTMLDivElement>(null);
   const result = response?.query === query ? response.data : undefined;
   const searchError = response?.query === query ? response.error : '';
+  const periodLabel = result?.period ? `${result.period.start.replace('-', '.')}–${result.period.end.replace('-', '.')}` : '';
   const loading = Boolean(query.keyword) && response?.query !== query;
   const current = result?.items.find(item => item.contentId === selected?.contentId) || selected;
 
   useEffect(() => {
     if (!query.keyword) return;
     const request = new AbortController();
-    searchTourism(query.keyword, query.type, query.page, request.signal)
+    searchTourism(query.keyword, query.type, query.page, request.signal, ulsan ? { region: query.region, sort: query.sort, profile: query.profile, ageBand: query.ageBand, gender: query.gender } : {})
       .then(data => { if (!request.signal.aborted) { setResponse({ query, data }); resultsPane.current?.scrollTo({ top: 0 }); } })
       .catch(cause => { if (!request.signal.aborted) setResponse({ query, error: cause instanceof Error ? cause.message : '검색을 불러오지 못했어요. 다시 시도해 주세요.' }); });
     return () => request.abort();
-  }, [query]);
+  }, [query, ulsan]);
 
   const search = (event: FormEvent) => {
     event.preventDefault();
-    if (keyword.trim()) setQuery({ keyword: keyword.trim(), type: query.type, page: 1 });
+    if (keyword.trim()) setQuery({ ...query, keyword: keyword.trim(), page: 1 });
   };
   const apply = (event: FormEvent) => {
     event.preventDefault(); if (!current) return;
@@ -55,10 +58,22 @@ export function TourismPicker({ destination, initial, initialDuration = 90, cont
     <div className="tourism-workbench">
       <section className="tourism-discovery" aria-label="관광지 찾아보기">
         <form className="tourism-search-bar" onSubmit={search}><TripIcon name="pin" /><input aria-label="관광지 이름 또는 지역" autoFocus required maxLength={80} placeholder="어디가 궁금하세요? 지역이나 관광지를 검색해 보세요" value={keyword} onChange={e => setKeyword(e.target.value)} /><button className="trip-button primary" type="submit">검색</button></form>
-        <div className="tourism-discovery-toolbar"><div className="tourism-categories" aria-label="관광지 종류">{categories.map(category => <button type="button" key={category.id} aria-pressed={query.type === category.id} onClick={() => setQuery({ keyword: keyword.trim() || query.keyword, type: category.id, page: 1 })}>{category.name}</button>)}</div><span className="tourism-source">한국관광공사 제공</span></div>
+        <div className="tourism-discovery-toolbar"><div className="tourism-categories" aria-label="관광지 종류">{categoryOptions.map(category => <button type="button" key={category.id} aria-pressed={query.type === category.id} onClick={() => setQuery({ ...query, keyword: keyword.trim() || query.keyword, type: category.id as SearchQuery['type'], page: 1 })}>{category.name}</button>)}</div><span className="tourism-source">한국관광공사 제공</span></div>
+        {ulsan && <div className="tourism-ranking-panel">
+          <div className="tourism-sort-tabs" aria-label="관광지 정렬">{([{ id: 'recommended', label: '맞춤 추천순' }, { id: 'popular', label: '인기순' }, { id: 'name', label: '이름순' }] as const).map(sort => <button key={sort.id} type="button" aria-pressed={query.sort === sort.id} onClick={() => setQuery({ ...query, sort: sort.id, page: 1 })}>{sort.label}</button>)}</div>
+          {query.sort === 'recommended' && <div className="tourism-profile-controls">
+            <label>추천 연령대<select aria-label="추천 연령대" value={query.profile === 'custom' ? query.ageBand : result?.profile?.ageBand || ''} onChange={e => setQuery({ ...query, profile: 'custom', ageBand: e.target.value, gender: query.gender || result?.profile?.gender || 'all', page: 1 })}>
+              <option value="" disabled>연령대 선택</option>{['10', '20', '30', '40', '50', '60', '70'].map(band => <option key={band} value={band}>{band === '10' ? '10대 이하' : band === '70' ? '70대 이상' : `${band}대`}</option>)}
+            </select></label>
+            <label>성별<select aria-label="추천 성별" disabled={!query.ageBand && !result?.profile?.ageBand} value={query.profile === 'custom' ? query.gender : result?.profile?.gender || 'all'} onChange={e => setQuery({ ...query, profile: 'custom', ageBand: query.ageBand || result?.profile?.ageBand || '20', gender: e.target.value as 'all' | 'male' | 'female', page: 1 })}><option value="all">전체</option><option value="male">남성</option><option value="female">여성</option></select></label>
+            <button type="button" className="trip-text-link" onClick={() => setQuery({ ...query, profile: 'member', ageBand: undefined, gender: undefined, page: 1 })}>내 회원정보 적용</button>
+          </div>}
+          <p className="tourism-ranking-explanation" role="status">{loading ? '추천 기준을 확인하고 있어요…' : result?.fallbackReason || (query.sort === 'recommended' ? `${result?.profile?.source === 'member' ? '회원정보 기준' : '직접 선택한 기준'} · ${result?.rankingNote || ''}` : query.sort === 'popular' ? result?.rankingNote : '관광지 이름의 가나다순으로 보여드려요.')}</p>
+          <small>울산 시범 서비스 · 한국관광 데이터랩{periodLabel && ` · ${periodLabel}`}{query.profile === 'custom' && query.sort === 'recommended' ? ' · 회원정보는 변경되지 않아요.' : ''}</small>
+        </div>}
         <div className="tourism-results-pane" ref={resultsPane} aria-busy={loading}>
-          <div className="tourism-results-heading" role="status"><h3>{query.keyword ? `‘${query.keyword}’ 둘러보기` : '가고 싶은 곳을 찾아보세요'}</h3><span>{loading ? '관광지를 찾고 있어요' : result ? `${result.items.length}곳 · ${result.page}페이지` : ''}</span></div>
-          {loading ? <div className="tourism-card-grid tourism-skeletons" aria-hidden="true">{[0, 1, 2, 3].map(i => <div className="tourism-skeleton" key={i}><div /><span /><small /></div>)}</div> : searchError ? <div className="tourism-empty" role="alert"><TripIcon name="map" /><h3>잠시 연결이 어려워요</h3><p>{searchError}</p><button className="trip-button" type="button" onClick={() => setQuery({ ...query })}>다시 불러오기</button></div> : result?.items.length ? <div className="tourism-card-grid">{result.items.map(item => <button className={`tourism-card ${current?.contentId === item.contentId ? 'selected' : ''}`} aria-pressed={current?.contentId === item.contentId} type="button" key={item.contentId} onClick={() => { setSelected(item); setApplyError(''); }}><div className="tourism-card-media"><AttractionPhoto place={item} /><span className="tourism-card-select"><TripIcon name={current?.contentId === item.contentId ? 'check' : 'plus'} /></span></div><div className="tourism-card-copy"><span className="tourism-card-type">{item.type}</span><h4>{item.name}</h4><p><TripIcon name="pin" />{item.address || '주소 정보 없음'}</p><span className="tourism-card-action">{current?.contentId === item.contentId ? '선택한 관광지' : '이곳 살펴보기'}<TripIcon name="arrow" /></span></div></button>)}</div> : <div className="tourism-empty"><TripIcon name="map" /><h3>{query.keyword ? '아직 찾는 곳이 없네요' : '이번 여행에서 꼭 가고 싶은 곳은?'}</h3><p>‘첨성대’, ‘태화강’처럼 관광지 이름을 검색하거나<br />다른 종류를 선택해 보세요.</p></div>}
+          <div className="tourism-results-heading" role="status"><h3>{query.keyword ? `‘${query.keyword}’ 둘러보기` : '가고 싶은 곳을 찾아보세요'}</h3><span>{loading ? '관광지를 찾고 있어요' : result ? `${result.total ?? result.items.length}곳 · ${result.page}페이지` : ''}</span></div>
+          {loading ? <div className="tourism-card-grid tourism-skeletons" aria-hidden="true">{[0, 1, 2, 3].map(i => <div className="tourism-skeleton" key={i}><div /><span /><small /></div>)}</div> : searchError ? <div className="tourism-empty" role="alert"><TripIcon name="map" /><h3>잠시 연결이 어려워요</h3><p>{searchError}</p><button className="trip-button" type="button" onClick={() => setQuery({ ...query })}>다시 불러오기</button></div> : result?.items.length ? <div className="tourism-card-grid">{result.items.map(item => <button className={`tourism-card ${current?.contentId === item.contentId ? 'selected' : ''}`} aria-pressed={current?.contentId === item.contentId} type="button" key={item.contentId} onClick={() => { setSelected(item); setApplyError(''); }}><div className="tourism-card-media"><AttractionPhoto place={item} /><span className="tourism-card-select"><TripIcon name={current?.contentId === item.contentId ? 'check' : 'plus'} /></span></div><div className="tourism-card-copy"><span className="tourism-card-type">{item.type}</span><h4>{item.name}</h4>{ulsan && <span className="tourism-ranking-badge">{result?.effectiveSort === 'recommended' ? item.demographicShare != null ? `${result.profile?.label} 방문 비중 ${item.demographicShare.toFixed(1)}%` : '성·연령 방문 자료 없음' : item.searchCount != null ? `관광지 검색 ${item.searchCount.toLocaleString()}건` : '검색건수 자료 없음'}</span>}<p><TripIcon name="pin" />{item.address || '주소 정보 없음'}</p><span className="tourism-card-action">{current?.contentId === item.contentId ? '선택한 관광지' : '이곳 살펴보기'}<TripIcon name="arrow" /></span></div></button>)}</div> : <div className="tourism-empty"><TripIcon name="map" /><h3>{query.keyword ? '아직 찾는 곳이 없네요' : '이번 여행에서 꼭 가고 싶은 곳은?'}</h3><p>‘첨성대’, ‘태화강’처럼 관광지 이름을 검색하거나<br />다른 종류를 선택해 보세요.</p></div>}
           {result && (result.page > 1 || result.hasMore) && <nav className="tourism-pagination" aria-label="검색 결과 페이지"><button className="trip-button" type="button" disabled={result.page <= 1} onClick={() => setQuery({ ...query, page: result.page - 1 })}>이전</button><span>{result.page} 페이지</span><button className="trip-button" type="button" disabled={!result.hasMore} onClick={() => setQuery({ ...query, page: result.page + 1 })}>다음 <TripIcon name="arrow" /></button></nav>}
         </div>
       </section>
@@ -66,6 +81,6 @@ export function TourismPicker({ destination, initial, initialDuration = 90, cont
         {current ? <form onSubmit={apply} className="tourism-detail-form"><div className="tourism-detail-scroll"><span className="trip-eyebrow">이번 구간의 중심</span><AttractionPhoto place={current} large /><span className="tourism-detail-type">{current.type}</span><h3>{current.name}</h3><p className="tourism-detail-address">{current.address}</p><a className="trip-text-link" href={`https://map.kakao.com/link/map/${encodeURIComponent(current.name)},${current.lat},${current.lng}`} target="_blank" rel="noreferrer">지도에서 위치 확인 <TripIcon name="arrow" /></a><div className="tourism-next-step"><TripIcon name="spark" /><p>관람 후 남는 시간에는<br /><strong>주변 맛집·카페 코스</strong>를 더해보세요.</p></div><p className="tourism-detail-note">입장료·운영시간·휴무는 방문 전에 확인해 주세요.</p></div><div className="tourism-apply"><div className="tourism-duration"><label htmlFor="tourism-duration">얼마나 머무를까요?<span><input id="tourism-duration" type="number" required min={10} max={600} step={5} value={duration} onChange={e => { setDuration(Number(e.target.value)); setApplyError(''); }} />분</span></label><div className="tourism-duration-options">{[60, 90, 120].map(value => <button type="button" aria-pressed={duration === value} key={value} onClick={() => { setDuration(value); setApplyError(''); }}>{value === 60 ? '1시간' : value === 90 ? '1시간 30분' : '2시간'}</button>)}</div></div>{applyError && <p className="trip-alert" role="alert">{applyError}</p>}<button className="trip-button primary" type="submit">{initial ? '이 관광지로 변경하기' : '이 관광지 일정에 담기'}<TripIcon name="arrow" /></button><small>선택한 구간의 첫 일정으로 고정돼요.</small></div></form> : <div className="tourism-detail-empty"><span className="tourism-empty-orbit"><TripIcon name="pin" /></span><span className="trip-eyebrow">A PLACE TO START</span><h3>여행의 중심이 될<br />한 곳을 골라보세요.</h3><p>왼쪽에서 관광지를 선택하면<br />관람시간을 정하고 일정에 담을 수 있어요.</p><div><span>01</span> 마음에 드는 관광지 선택</div><div><span>02</span> 머무는 시간 정하기</div><div><span>03</span> 내 여행에 담기</div></div>}
       </aside>
     </div>
-    <footer className="tourism-dialog-footer"><span>전국 관광지 · 문화시설 · 레포츠</span><a href="https://www.data.go.kr/data/15101578/openapi.do" target="_blank" rel="noreferrer">관광정보·사진 출처: 한국관광공사 TourAPI ↗</a></footer>
+    <footer className="tourism-dialog-footer"><span>{ulsan ? '울산' : '전국'} 관광지 · 문화시설 · 레포츠</span><a href="https://www.data.go.kr/data/15101578/openapi.do" target="_blank" rel="noreferrer">관광정보·사진 출처: 한국관광공사 TourAPI ↗</a></footer>
   </TripDialog>;
 }

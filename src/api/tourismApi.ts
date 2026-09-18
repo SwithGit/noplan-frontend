@@ -12,8 +12,20 @@ export interface TourismAttraction {
   sourceLabel: string;
   imageUrl?: string;
   imageLicense?: string;
+  searchCount?: number | null;
+  demographicShare?: number | null;
+  district?: string;
 }
-export interface TourismSearchResult { items: TourismAttraction[]; page: number; hasMore: boolean }
-export function searchTourism(keyword: string, type: TourismAttraction['contentTypeId'], page: number, signal?: AbortSignal) {
-  return apiJson<TourismSearchResult>(`/api/tourism/search?${new URLSearchParams({ keyword, type, page: String(page) })}`, { signal });
+export type TourismSort = 'recommended' | 'popular' | 'name';
+export interface TourismRankingOptions { region?: 'ulsan'; sort?: TourismSort; profile?: 'member' | 'custom'; ageBand?: string; gender?: 'all' | 'male' | 'female' }
+export interface TourismSearchResult {
+  items: TourismAttraction[]; page: number; hasMore: boolean; total?: number;
+  effectiveSort?: TourismSort; rankingNote?: string; fallbackReason?: string | null;
+  profile?: { ageBand: string | null; gender: 'male' | 'female' | null; source: 'member' | 'custom' | 'missing'; label: string | null };
+  period?: { start: string; end: string };
+}
+export function searchTourism(keyword: string, type: TourismAttraction['contentTypeId'] | 'all', page: number, signal?: AbortSignal, ranking: TourismRankingOptions = {}) {
+  const params = new URLSearchParams({ keyword, type, page: String(page) });
+  Object.entries(ranking).forEach(([key, value]) => { if (value !== undefined) params.set(key, value); });
+  return apiJson<TourismSearchResult>(`/api/tourism/search?${params}`, { signal });
 }

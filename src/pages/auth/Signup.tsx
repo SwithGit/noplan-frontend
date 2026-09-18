@@ -1,3 +1,4 @@
+import { SignupDemographics } from '../../components/SignupDemographics';
 // Signup.tsx
 import { useState } from 'react';
 
@@ -75,15 +76,7 @@ function Signup({ onGoToLogin }: SignupProps) {
 
         <input type="text" placeholder="이름" value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} />
         
-        <input type="date" value={birthdate} onChange={(e) => setBirthdate(e.target.value)} style={inputStyle} />
-        
-        {/* 성별 선택 드롭다운! */}
-        <select value={gender} onChange={(e) => setGender(e.target.value)} style={inputStyle}>
-          <option value="">성별을 선택해주세요</option>
-          <option value="male">남자</option>
-          <option value="female">여자</option>
-          <option value="none">선택 안 함</option>
-        </select>
+        <SignupDemographics birthdate={birthdate} gender={gender} onBirthdate={setBirthdate} onGender={setGender} />
 
         <input type="tel" placeholder="핸드폰 번호 (예: 010-1234-5678)" value={phone} onChange={(e) => setPhone(e.target.value)} style={inputStyle} />
         <input type="email" placeholder="이메일 주소" value={email} onChange={(e) => setEmail(e.target.value)} style={inputStyle} />
