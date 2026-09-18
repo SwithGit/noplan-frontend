@@ -6,6 +6,9 @@ import type { UserSession } from '../../types/noplan';
 import { ROUTES, tripRoute } from '../../routes';
 import { createTrip, dayCount, outboundLabels, readDrafts, shortDate, tomorrow, transportLabels, tripLength, writeDraft, type TripDocument, type TripRecord } from './tripModel';
 import { TripIcon } from './TripIcon';
+import { TourismPicker } from './TourismPicker';
+import { setTourismAnchor } from './tourismModel';
+import type { TourismAttraction } from '../../api/tourismApi';
 import './trips.css';
 
 export function TripHome({ user, libraryOnly=false }: { user: UserSession | null; libraryOnly?:boolean }) {
@@ -22,6 +25,11 @@ export function TripHome({ user, libraryOnly=false }: { user: UserSession | null
   const [loading, setLoading] = useState(Boolean(user));
   const [error, setError] = useState('');
   const [reload, setReload] = useState(0);
+  const [pickingTourism, setPickingTourism] = useState(false);
+  const [attraction, setAttraction] = useState<TourismAttraction>();
+  const [visitDuration, setVisitDuration] = useState(90);
+  const [visitDate, setVisitDate] = useState('');
+  const [visitSlot, setVisitSlot] = useState(0);
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
@@ -32,9 +40,15 @@ export function TripHome({ user, libraryOnly=false }: { user: UserSession | null
     event.preventDefault();
     try {
       const trip = createTrip({ title: `${destination.trim()}에서 보내는 ${dayCount(startDate, endDate) === 1 ? '하루' : `${dayCount(startDate, endDate)}일`}`.slice(0, 100), destination: destination.trim(), startDate, endDate, transport, outbound, companion });
+      const targetDay = trip.document.days.find(day => day.date === (visitDate || startDate));
+      const targetBlock = targetDay?.blocks[visitSlot];
+      if (attraction) {
+        if (!targetDay || !targetBlock) throw new Error('관광지를 방문할 날짜를 여행 기간 안에서 다시 선택해 주세요.');
+        trip.document = setTourismAnchor(trip.document, targetDay.id, targetBlock.id, attraction, visitDuration);
+      }
       // Navigation state keeps creation usable even when browser storage is full.
       try { writeDraft(trip, user?.userId); } catch { /* editor shows persistence status */ }
-      navigate(tripRoute(trip.id), { state: { initialTrip: trip } });
+      navigate(tripRoute(trip.id), { state: { initialTrip: trip, ...(attraction ? { focusDayId: targetDay?.id, focusBlockId: targetBlock?.id } : {}) } });
     } catch (cause) { setError(cause instanceof Error ? cause.message : '여행 조건을 확인해 주세요.'); }
   };
   const count = dayCount(startDate, endDate);
@@ -57,8 +71,10 @@ export function TripHome({ user, libraryOnly=false }: { user: UserSession | null
         <label>여행지까지<select aria-label="여행지까지 이동" value={outbound} onChange={e => setOutbound(e.target.value as TripDocument['outbound'])}>{Object.entries(outboundLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
         <label>여행지 안에서<select aria-label="현지 이동 방식" value={transport} onChange={e => setTransport(e.target.value as TripDocument['transport'])}>{Object.entries(transportLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
       </div>
+      <div className="trip-home-tourism"><div><span className="trip-eyebrow">여행의 중심이 될 곳</span><h3>{attraction?.name || '꼭 가고 싶은 관광지가 있나요?'}</h3><p>{attraction ? `${attraction.address} · 관람 ${visitDuration}분` : '관광지를 고르면 오전·오후·저녁의 중심 일정으로 담아드려요.'}</p></div><div className="tourism-home-actions"><button className="trip-button" type="button" onClick={() => setPickingTourism(true)}><TripIcon name="pin" />{attraction ? '관광지 변경' : '관광지부터 고르기'}</button>{attraction && <button className="trip-text-link" type="button" onClick={() => setAttraction(undefined)}>선택 해제</button>}</div>{attraction && <div className="trip-form-row tourism-home-schedule"><label className="trip-field">방문 날짜<input type="date" required min={startDate} max={endDate} value={visitDate || startDate} onChange={e => setVisitDate(e.target.value)} /></label><label className="trip-field">방문 구간<select value={visitSlot} onChange={e => setVisitSlot(Number(e.target.value))}><option value={0}>오전 · 09:00–12:00</option><option value={1}>오후 · 13:00–17:00</option><option value={2}>저녁 · 18:00–21:00</option></select></label></div>}</div>
     </form>
-    <div className="trip-home-caption"><span>계획은 어디든 자유롭게. AI 주변 코스 추천은 현재 서울·도보 기준이에요.</span><Link to={ROUTES.quickHome}>지금 주변 코스만 찾기 <TripIcon name="arrow" /></Link></div>
+    {pickingTourism && <TourismPicker destination={destination} initial={attraction} initialDuration={visitDuration} context="선택할 여행 구간" onClose={() => setPickingTourism(false)} onSelect={(place, duration) => { setAttraction(place); setVisitDuration(duration); setPickingTourism(false); }} />}
+    <div className="trip-home-caption"><span>주변 코스는 도보 기준이에요. 등록된 장소가 없는 지역은 실시간 검색으로 찾으며 가격·리뷰 확인이 필요해요.</span><Link to={ROUTES.quickHome}>지금 주변 코스만 찾기 <TripIcon name="arrow" /></Link></div>
     {!libraryOnly&&<div className="m-desktop-only"><Link className="pc-event-entry" to={ROUTES.events}><TripIcon name="calendar"/><div><strong>여행 날짜에 어떤 축제·전시가 열릴까요?</strong><small>가고 싶은 경험을 먼저 고르고, 내 여행에 담아보세요.</small></div><TripIcon name="arrow"/></Link></div>}
     {error && <div className="trip-alert" role="alert">{error}{user && <button onClick={() => { setLoading(true); setReload(value => value + 1); }} type="button">다시 불러오기</button>}</div>}
     <section className="trip-library"><header><div><span className="trip-eyebrow">MY JOURNEYS</span><h2>다음 여행이 기다리고 있어요</h2></div>{libraryOnly?<><Link className="trip-button primary m-desktop-only" to={ROUTES.newTrip}>새 여행 만들기</Link><span className="trip-muted m-mobile-only">{user ? `${user.userNick}님의 여행` : '나만의 여행 노트'}</span></>:<span className="trip-muted">{user ? `${user.userNick}님의 여행` : '나만의 여행 노트'}</span>}</header>

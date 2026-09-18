@@ -31,6 +31,8 @@ export function normalizeCoursePlace(value: unknown, index: number): CoursePlace
 
   return {
     id: textValue(record, ['id'], `course-place-${index}`),
+    candidateSource: record.candidateSource === 'live' ? 'live' : record.candidateSource === 'catalog' ? 'catalog' : undefined,
+    estimatedCost: record.estimatedCost as CoursePlace['estimatedCost'],
     time: textValue(record, ['time'], String(index + 1)),
     durationMinutes: numberValue(record.durationMinutes),
     scheduledStart: textValue(record, ['scheduledStart']) || undefined,

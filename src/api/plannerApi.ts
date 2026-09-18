@@ -236,6 +236,7 @@ function normalizePlace(item: Record<string, unknown>, index: number): CoursePla
 
   return {
     id: valueOf(item, ['catalogPlaceId', 'id'], `place-${index}-${keyword}`),
+    candidateSource: item.candidateSource === 'live' ? 'live' : item.candidateSource === 'catalog' ? 'catalog' : undefined,
     hoursSource: typeof item.hoursSource==='string'?item.hoursSource:undefined,
     hoursCheckedAt: typeof item.hoursCheckedAt==='string'?item.hoursCheckedAt:undefined,
     estimatedCost: item.estimatedCost as CoursePlace['estimatedCost'],

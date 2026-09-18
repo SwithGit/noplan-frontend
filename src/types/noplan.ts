@@ -96,6 +96,7 @@ export interface CrowdingSnapshot {
 }
 
 export interface CoursePlace {
+  candidateSource?: 'catalog' | 'live';
   estimatedCost?: { status: 'estimated' | 'unknown'; min: number | null; max: number | null; basis: string; assumptions?: string[]; menuExamples?: string[] };
   hoursSource?: string;
   hoursCheckedAt?: string;

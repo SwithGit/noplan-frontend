@@ -22,7 +22,7 @@ export function AccuracyPreferences({ condition, onChange }: { condition: Planne
       </select></label>
       <label>정확한 인원<input type="number" min="1" max="30" inputMode="numeric" placeholder="인원" value={groupSizeOf(condition) ?? ''} onChange={e => patch({ groupSize: e.target.value ? Number(e.target.value) : undefined })} /></label>
     </div>
-    <small>식사·주류·활동비를 합친 예상 금액이에요. 예산을 정하면 가격을 계산할 수 없는 장소는 제외해요.</small>
+    <small>식사·주류·활동비를 합친 예상 금액이에요. 등록된 장소는 메뉴 가격으로 예산을 확인해요. 주변에 등록된 장소가 없어 실시간 검색을 사용하면 가격 미확인 장소도 포함되며 총예산은 미검증으로 안내해요.</small>
     <label>한 구간 최대 도보 거리<select value={value.maxWalkingDistanceMeters ?? ''} onChange={e=>patch({maxWalkingDistanceMeters:e.target.value?Number(e.target.value):undefined})}>
       <option value="">제한 없음 · 이동 시간 보고 선택</option><option value="500">최대 500m</option><option value="800">최대 800m</option><option value="1000">최대 1km</option><option value="1500">최대 1.5km</option>
     </select></label>

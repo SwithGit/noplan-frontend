@@ -9,8 +9,11 @@ export interface TripPlace {
   lng: number | null;
   durationMinutes: number;
   fixed: boolean;
-  source: 'manual' | 'recommendation';
+  source: 'manual' | 'recommendation' | 'tourism';
   sourceUrl: string;
+  candidateSource?: 'catalog' | 'live';
+  priceNeedsCheck?: boolean;
+  tourism?: { contentId: string; contentTypeId: '12' | '14' | '28' };
   event?: {id: string; startDate: string; endDate: string; hours: string};
 }
 export interface TripBlock { id: string; title: string; area: string; startTime: string; endTime: string; notes: string; places: TripPlace[] }
@@ -50,7 +53,7 @@ export function endLimit(day: TripDay, block: TripBlock) {
 export function toTripPlace(place: CoursePlace): TripPlace {
   const lat = Number(place.lat), lng = Number(place.lng);
   const hasCoordinates = place.lat != null && place.lng != null && Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
-  return { id: newId(), name: place.name || place.title, address: place.address || '', type: place.category || place.type, lat: hasCoordinates ? lat : null, lng: hasCoordinates ? lng : null, durationMinutes: Math.min(600, Math.max(10, Math.round(place.durationMinutes || 60))), fixed: false, source: 'recommendation', sourceUrl: place.sourceUrl || '' };
+  return { id: newId(), name: place.name || place.title, address: place.address || '', type: place.category || place.type, lat: hasCoordinates ? lat : null, lng: hasCoordinates ? lng : null, durationMinutes: Math.min(600, Math.max(10, Math.round(place.durationMinutes || 60))), fixed: false, source: 'recommendation', sourceUrl: place.sourceUrl || '', candidateSource: place.candidateSource, priceNeedsCheck: place.estimatedCost?.status === 'unknown' };
 }
 export function draftKey(userId?: string) { return `noplan.trip.draft.v1:${userId || 'guest'}`; }
 export function readDrafts(userId?: string): TripRecord[] {

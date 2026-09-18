@@ -22,7 +22,7 @@ export function TripRecommendations({ trip, day, block, disabled = false, onAppl
   const start = minutes(block.startTime) + usedMinutes(block) + (block.places.length ? 15 : 0);
   const available = limit - start;
   const location = block.places.at(-1)?.address || block.places.at(-1)?.name || block.area || trip.destination;
-  const supported = /서울|성수|연남|홍대|강남|종로|잠실|건대|한남|용산|여의도|망원/.test(`${trip.destination} ${block.area}`) && trip.transport === 'walk';
+  const supported = trip.transport === 'walk';
   const hour = Math.floor(start / 60);
   const condition: PlannerCondition = { rawText: '', location, locationLabel: location, time: `${day.date} ${hour >= 12 ? 'PM' : 'AM'} ${String(hour % 12 || 12).padStart(2, '0')} : ${String(start % 60).padStart(2, '0')}`, companion: trip.companion, mood: purpose, mainCategory: '', supportingCategories: [], coreIntent: '', coreIntentSkipped: true, atmosphereTags: [], duration: `종료 ${clock(limit)}`, extras: ['도보 짧게'], accuracy };
   const recommend = async () => {
@@ -64,7 +64,7 @@ export function TripRecommendations({ trip, day, block, disabled = false, onAppl
     <label className="trip-field">어떤 시간을 보내고 싶나요?<select value={purpose} onChange={event => { setPurpose(event.target.value); setPreview([]); setState('idle'); setMessage(''); }} disabled={disabled || state === 'loading'}><option>카페/디저트</option><option>맛집</option><option>산책/구경</option><option>놀거리</option><option>맛집 · 카페/디저트</option><option>술/야간</option><option>맛집 · 술/야간</option></select></label>
     <p className="trip-muted">아래 예산은 이번에 추가로 추천받는 일정만 기준으로 해요.</p>
     <fieldset className="trip-accuracy-wrapper" disabled={disabled || state === 'loading'}><AccuracyPreferences condition={condition} onChange={value => { setAccuracy(value); setPreview([]); setState('idle'); setMessage(''); }} /></fieldset>
-    {!supported && <p className="trip-muted">AI 주변 추천은 서울·도보 일정에서 사용할 수 있어요. 이 여행에는 장소를 직접 담아주세요.</p>}
+    {!supported && <p className="trip-muted">AI 주변 추천은 도보 일정에서 사용할 수 있어요. 이 여행에는 장소를 직접 담아주세요.</p>}
     <button className="trip-button primary" disabled={disabled || !supported || available < 30 || state === 'loading'} onClick={() => void recommend()} type="button"><TripIcon name="spark" />{state === 'loading' ? '코스를 찾고 있어요…' : '이 구간 추천받기'}</button>
     {message && <p className={state === 'error' ? 'trip-alert' : 'trip-ai-message'} role={state === 'error' ? 'alert' : 'status'}>{message}</p>}
     {state === 'ready' && <div className="trip-suggestions"><span className="trip-eyebrow">변경 미리보기</span>{preview.map(place => <article key={place.id}><span className="trip-place-marker"><TripIcon name="pin" /></span><div><strong>{place.name}</strong><small>{place.type} · {place.durationMinutes}분</small></div><TripIcon name="plus" /></article>)}<button className="trip-button primary" disabled={disabled || snapshot !== fingerprint} onClick={() => { onApply(preview, snapshot); setPreview([]); setState('idle'); setMessage('선택한 구간에 담았어요.'); }} type="button">이 구간에 담기 <TripIcon name="check" /></button>{snapshot !== fingerprint && <p className="trip-alert">일정이 바뀌어 다시 추천이 필요해요.</p>}</div>}

@@ -303,3 +303,31 @@
 }
 
 .trip-inspector { scroll-margin-top: 20px; }
+.trip-home-tourism { margin-top: 22px; padding-top: 22px; border-top: 1px solid #e8e4ef; display: flex; align-items: center; flex-wrap: wrap; gap: 18px; }
+.trip-home-tourism > div:first-child { flex: 1; min-width: 220px; }
+.trip-home-tourism h3 { margin: 7px 0; font-size: 18px; }
+.trip-home-tourism p { margin: 0; font-size: 13px; color: #716d80; line-height: 1.65; }
+.tourism-home-actions { display: flex; align-items: center; gap: 14px; }
+.tourism-home-schedule { width: 100%; }
+.tourism-search { display: grid; gap: 12px; margin: 22px 0 16px; }
+.tourism-search .trip-field, .tourism-home-schedule .trip-field { margin: 0; }
+.tourism-search input, .tourism-home-schedule input { width: 100%; min-width: 0; height: 42px; padding: 10px 12px; border: 1px solid #e8ddef; border-radius: 9px; background: #fefcff; color: #685171; font: inherit; font-size: 14px; }
+.tourism-search button:disabled, .tourism-pagination button:disabled { opacity: .5; cursor: not-allowed; }
+.tourism-search-controls { display: flex; align-items: end; gap: 12px; }
+.tourism-search-controls label { flex: 1; }
+.tourism-search-controls button { min-height: 43px; }
+.tourism-results { margin: 12px 0; max-height: 310px; overflow-y: auto; overscroll-behavior: contain; }
+.tourism-result { display: flex; align-items: center; gap: 12px; padding: 14px 12px; border: 1px solid #e8e4ef; border-radius: 12px; width: 100%; margin-bottom: 8px; text-align: left; background: white; color: #30293e; cursor: pointer; }
+.tourism-result > span:nth-child(2) { flex: 1; min-width: 0; }
+.tourism-result strong, .tourism-result small { display: block; overflow-wrap: anywhere; }
+.tourism-result strong { font-size: 14px; line-height: 1.5; }
+.tourism-result small { margin-top: 4px; font-size: 12px; line-height: 1.5; color: #777181; }
+.tourism-result.selected { border-color: #9074c0; background: #f6f1fc; }
+.tourism-pagination { display: flex; justify-content: space-between; gap: 12px; }
+.tourism-selection { padding: 18px; margin-top: 20px; background: #f8f5fc; border: 1px solid #e8e0f0; border-radius: 14px; }
+.tourism-selection h3 { margin: 8px 0; }
+.tourism-anchor-label { margin: -3px 0 12px; color: #8466b1; font-size: 12px; font-weight: 600; }
+.tourism-anchor-panel { display: grid; gap: 12px; background: #f8f5fc; border: 1px solid #e8e0f0; padding: 16px; border-radius: 14px; margin-bottom: 20px; }
+.tourism-anchor-panel strong { line-height: 1.5; }
+.tourism-anchor-panel .trip-muted { margin: 0; }
+.trip-segment-footer { flex-wrap: wrap; gap: 12px; }

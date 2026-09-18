@@ -375,7 +375,9 @@ export function ReplacementCandidates() {
         {!loading && candidates.length === 0 && (
           <section className="replacement-empty">
             <p className="inline-message warning" role="status">{!canSearch
-              ? '이 코스에는 처음 추천받은 조건이 저장되어 있지 않아요. 조건을 입력해 코스를 다시 찾으면 장소를 바꿀 수 있어요.'
+              ? plan?.courseData.some(place => place.candidateSource === 'live')
+                ? '실시간 검색 코스는 개별 장소 교체를 아직 지원하지 않아요. 조건을 수정해 코스를 다시 추천받아 주세요.'
+                : '이 코스에는 처음 추천받은 조건이 저장되어 있지 않아요. 조건을 입력해 코스를 다시 찾으면 장소를 바꿀 수 있어요.'
               : result?.message || '현재 코스의 조건을 모두 확인한 교체 후보를 찾지 못했어요. 현재 장소는 유지했어요.'}</p>
             {canSearch && <button type="button" onClick={() => setAttempt(value => value + 1)}>후보 다시 찾기</button>}
             <button type="button" onClick={() => navigate(ROUTES.plannerCondition)}>조건 수정하기</button>

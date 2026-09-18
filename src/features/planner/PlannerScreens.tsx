@@ -180,9 +180,6 @@ function compactLocationLabel(location: string) {
 function displayLocationLabel(condition: { location: string; locationLabel?: string }) {
   return condition.locationLabel || compactLocationLabel(condition.location);
 }
-function isSeoulPlannerLocation(location: string) {
-  return /서울(?:특별시|시)?|종로구|중구|용산구|성동구|광진구|동대문구|중랑구|성북구|강북구|도봉구|노원구|은평구|서대문구|마포구|양천구|강서구|구로구|금천구|영등포구|동작구|관악구|서초구|강남구|송파구|강동구/u.test(location);
-}
 
 function displayConditionValue(value: unknown) {
   const normalized = String(value ?? '').trim();
@@ -381,7 +378,7 @@ export function PlannerHome({ active = true }: { active?: boolean }) {
 
       <p className="home-service-area-note">
         <span aria-hidden="true">i</span>
-        현재 서비스는 서울 전역에서 제공 중이에요.
+        등록된 주변 장소가 없으면 실시간 검색으로 코스를 찾아요. 도보 기준이며 가격·리뷰 확인이 필요할 수 있어요.
       </p>
 
       {locationMessage && <p className="home-location-note">{locationMessage}</p>}
@@ -475,12 +472,6 @@ export function ChatStart() {
   const applyCurrentLocation = async () => {
     try {
       const location = await detectCurrentLocation();
-      if (!isSeoulPlannerLocation(`${location.address} ${location.label}`)) {
-        setCondition({ location: '', locationLabel: '' });
-        setLocationSelectionSource(null);
-        setStatusMessage('현재 서비스는 서울 전역에서 제공 중이에요. 서울 내 출발지를 직접 입력해 주세요.');
-        return;
-      }
       const nextCondition = { ...condition, location: location.address, locationLabel: location.label };
       setCondition({ location: location.address, locationLabel: location.label, rawText: buildHomePrompt(nextCondition) });
       setLocationSelectionSource('current');
@@ -655,7 +646,7 @@ export function ChatStart() {
           </button>
           {(locationStatus === 'error' || statusMessage) && (
             <div className="location-fallback-options">
-              <p>{statusMessage || '현재 위치를 못 찾았어요. 서울 지역을 직접 입력해 주세요.'}</p>
+              <p>{statusMessage || '현재 위치를 못 찾았어요. 관광지·역 이름이나 주소를 직접 입력해 주세요.'}</p>
               <div>{['건대입구역', '강남역', '잠실역', '종로'].map((area) => (
                 <button aria-pressed={condition.location === area} key={area} onClick={() => chooseFallbackArea(area)} type="button">{area}</button>
               ))}</div>
@@ -910,12 +901,6 @@ function ConditionEditSheet({
       setLocationBusy(true);
       const location = await onDetectCurrentLocation();
 
-      if (!isSeoulPlannerLocation(`${location.address} ${location.label}`)) {
-        setDraftLocation('');
-        setDraftLocationLabel('');
-        setLocationError('현재 서비스는 서울 전역에서 제공 중이에요. 서울 내 출발지를 직접 입력해 주세요.');
-        return;
-      }
 
       setDraftLocation(location.address);
       setDraftLocationLabel(location.label);
@@ -1328,7 +1313,7 @@ function AddressInputSheet({ onChange, onClose, onConfirm, value }: AddressInput
           onConfirm();
         }}
       >
-        <h2>서울 출발지를 입력해주세요</h2>
+        <h2>출발지를 입력해주세요</h2>
         <label className="address-field">
           <span>주소 또는 장소</span>
           <input
@@ -1480,12 +1465,7 @@ export function ConditionConfirm() {
 
   const retryCurrentLocation = async () => {
     try {
-      const location = await detectCurrentLocation();
-      if (!isSeoulPlannerLocation(`${location.address} ${location.label}`)) {
-        setCondition({ location: '', locationLabel: '' });
-        setLocationMessage('현재 서비스는 서울 전역에서 제공 중이에요. 서울 내 출발지를 직접 수정해 주세요.');
-        return;
-      }
+      await detectCurrentLocation();
       setLocationMessage('현재 위치를 새로 반영했어요.');
     } catch (error) {
       setLocationMessage(error instanceof Error ? error.message : '현재 위치를 다시 확인하지 못했어요.');

@@ -13,3 +13,8 @@ test('DB 평점이 없으면 Google 값을 카카오·저장 평점으로 재표
     assert.equal(place.catalogRating,undefined);assert.equal(place.catalogReviewCount,undefined);
   }
 });
+test('저장 코스를 다시 열어도 실시간 검색 출처와 가격 미확인 상태를 보존한다',()=>{
+  const place=normalize({id:'kakao:101',name:'주변 식당',candidateSource:'live',provider:'kakao_local',providerPlaceId:'101',estimatedCost:{status:'unknown',min:null,max:null,basis:'계산 가능한 메뉴 가격 부족'}},0);
+  assert.equal(place.id,'kakao:101');assert.equal(place.candidateSource,'live');
+  assert.equal(place.providerPlaceId,'101');assert.equal(place.estimatedCost.status,'unknown');assert.equal(place.catalogPlaceId,undefined);
+});
