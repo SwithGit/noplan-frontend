@@ -22,7 +22,7 @@ export function groupSizeOf(condition: PlannerCondition) {
 }
 export function accuracyMissing(condition: PlannerCondition) {
   const maxWalk=condition.accuracy?.maxWalkingDistanceMeters;
-  if(maxWalk!=null && (!Number.isInteger(maxWalk)||maxWalk<100||maxWalk>5000))return '최대 도보 거리를 다시 선택해 주세요.';
+  if(condition.transportMode!=='car' && maxWalk!=null && (!Number.isInteger(maxWalk)||maxWalk<100||maxWalk>5000))return '최대 도보 거리를 다시 선택해 주세요.';
   if (condition.accuracy?.budgetPerPerson == null) return '1인당 전체 예산을 선택해 주세요. 제한 없음도 선택할 수 있어요.';
   const size = groupSizeOf(condition);
   if (!Number.isInteger(size) || !size || size < 1 || size > 30) return '이번 모임의 정확한 인원을 1~30명 사이로 입력해 주세요.';

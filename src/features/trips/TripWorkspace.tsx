@@ -12,6 +12,7 @@ import { TripRecommendations } from './TripRecommendations';
 import { TourismPicker } from './TourismPicker';
 import { attractionFromPlace, setTourismAnchor } from './tourismModel';
 import { makeBlock, minutes, newId, readDrafts, shortDate, transportLabels, tripLength, usedMinutes, writeDraft, type TripBlock, type TripDocument, type TripPlace, type TripRecord } from './tripModel';
+import { resetChangedTravel } from './tripModel';
 import './trips.css';
 
 export function TripWorkspace({ user }: { user: UserSession | null }) {
@@ -73,7 +74,7 @@ export function TripWorkspace({ user }: { user: UserSession | null }) {
   const change = (next: TripDocument) => {
     if (saving) return;
     setUndo(previous => [...previous.slice(-19), document]);
-    setTrip({ ...trip, document: next, updatedAt: new Date().toISOString() });
+    setTrip({ ...trip, document: resetChangedTravel(document, next), updatedAt: new Date().toISOString() });
     if (!conflict) setNotice('');
   };
   const updateBlock = (next: TripBlock) => change({ ...document, days: document.days.map(item => item.id === day.id ? { ...item, blocks: item.blocks.map(segment => segment.id === next.id ? next : segment) } : item) });
@@ -126,7 +127,7 @@ export function TripWorkspace({ user }: { user: UserSession | null }) {
           </div>
         </article>)}</div>
         {!day.blocks.length && <div className="trip-library-empty"><h3>여유로운 하루의 첫 구간을 만들어보세요.</h3><button className="trip-button primary" type="button" onClick={addBlock}>구간 추가</button></div>}
-        <p className="trip-footnote">이동 여유는 장소 사이 15분으로 임시 계산해요. 실제 교통과 예약 시간에 맞춰 구간을 조정해 주세요.</p>
+        <p className="trip-footnote">추천 코스는 조회한 이동·대기 시간을 반영하고, 직접 편집한 장소 사이는 15분으로 임시 계산해요. 실제 교통과 예약 시간에 맞춰 구간을 조정해 주세요.</p>
       </section>
       <aside ref={inspector} className={`trip-inspector ${mobileDetail ? 'mobile-open' : ''}`} aria-label="선택 구간 상세"><div className="trip-inspector-top"><img src={nopi} alt="" /><div><span>작은 계획, 좋은 여행</span><strong>노피와 함께 채워요</strong></div><button className="trip-icon-button trip-mobile-close" aria-label="구간 상세 접기" type="button" onClick={() => setMobileDetail(false)}><TripIcon name="close" /></button></div>
         <div className="trip-inspector-tabs"><button type="button" aria-pressed={detailTab === 'recommend'} onClick={() => setDetailTab('recommend')}>일정 도우미</button><button type="button" aria-pressed={detailTab === 'map'} onClick={() => setDetailTab('map')}><TripIcon name="map" />지도</button></div>

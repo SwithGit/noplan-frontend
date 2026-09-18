@@ -8,6 +8,7 @@ export interface TripPlace {
   lat: number | null;
   lng: number | null;
   durationMinutes: number;
+  travelMinutes?: number;
   fixed: boolean;
   source: 'manual' | 'recommendation' | 'tourism';
   sourceUrl: string;
@@ -45,7 +46,46 @@ export function createTrip(input: Omit<TripDocument, 'days'>): TripRecord {
     blocks: [makeBlock('오전의 여행', '09:00', '12:00', input.destination), makeBlock('오후의 발견', '13:00', '17:00', input.destination), makeBlock('저녁의 여유', '18:00', '21:00', input.destination)],
   })) } };
 }
-export function usedMinutes(block: TripBlock) { return block.places.reduce((sum, place) => sum + place.durationMinutes, 0) + Math.max(0, block.places.length - 1) * 15; }
+export function usedMinutes(block: TripBlock) { return block.places.reduce((sum, place, index) => sum + place.durationMinutes + (place.travelMinutes ?? (index ? 15 : 0)), 0); }
+
+// Editing an earlier stop invalidates the saved arrival/waiting times after it.
+export function resetChangedTravel(previous: TripDocument, next: TripDocument): TripDocument {
+  const signature = (places: TripPlace[]) => JSON.stringify(places.map(p => [p.id, p.name, p.lat, p.lng, p.durationMinutes]));
+  return { ...next, days: next.days.map(day => {
+    const oldDay = previous.days.find(item => item.id === day.id);
+    return { ...day, blocks: day.blocks.map(block => {
+      const oldBlock = oldDay?.blocks.find(item => item.id === block.id);
+      return { ...block, places: block.places.map((place, index) => {
+        if (place.travelMinutes == null || !oldBlock?.places.some(p => p.id === place.id)) return place;
+        const changed = previous.transport !== next.transport || oldDay?.date !== day.date
+          || oldBlock.startTime !== block.startTime || oldBlock.area !== block.area
+          || signature(oldBlock.places.slice(0, index + 1)) !== signature(block.places.slice(0, index + 1));
+        return changed ? { ...place, travelMinutes: undefined } : place;
+      }) };
+    }) };
+  }) };
+}
+
+// Preserve the server schedule, including incoming travel/waiting time, once.
+export function recommendationPlaces(candidates: CoursePlace[], day: TripDay, block: TripBlock): TripPlace[] {
+  const midnight = Date.parse(`${day.date}T00:00:00+09:00`);
+  let previousEnd = midnight + (minutes(block.startTime) + usedMinutes(block)) * 60000;
+  const end = midnight + endLimit(day, block) * 60000;
+  const names = new Set(block.places.map(place => place.name.replace(/\s/g, '')));
+  if (block.places.length + candidates.length > 15) throw new Error('한 구간에는 최대 15개 장소를 담을 수 있어요.');
+  return candidates.map(candidate => {
+    const place = toTripPlace(candidate), name = place.name.replace(/\s/g, '');
+    const startAt = Date.parse(candidate.scheduledStart || ''), endAt = Date.parse(candidate.scheduledEnd || '');
+    const travelMinutes = (startAt - previousEnd) / 60000;
+    if (names.has(name) || !Number.isFinite(startAt) || !Number.isFinite(endAt) || endAt > end
+      || !Number.isInteger(travelMinutes) || travelMinutes < 0 || travelMinutes > 1440
+      || endAt - startAt !== place.durationMinutes * 60000) {
+      throw new Error('추천 일정의 시간 또는 중복 장소를 확인할 수 없어요. 다시 추천받아 주세요.');
+    }
+    previousEnd = endAt; names.add(name);
+    return { ...place, travelMinutes };
+  });
+}
 export function endLimit(day: TripDay, block: TripBlock) {
   const nextStart = day.blocks.filter(b => b.id !== block.id && minutes(b.startTime) > minutes(block.startTime)).map(b => minutes(b.startTime));
   return Math.min(minutes(block.endTime), ...nextStart);

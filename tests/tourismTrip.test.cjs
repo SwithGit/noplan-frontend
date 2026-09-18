@@ -10,7 +10,7 @@ test('선택한 날짜·구간에 관광지를 첫 고정 일정으로 담고 �
  const next=setTourismAnchor(doc,day.id,block.id,attraction,90),place=next.days[1].blocks[1].places[0];
  assert.equal(doc.days[1].blocks[1].places.length,0);assert.equal(next.days[0],doc.days[0]);
  assert.equal(place.fixed,true);assert.equal(place.source,'tourism');assert.equal(place.tourism.contentId,'126207');assert.equal(place.lat,attraction.lat);assert.equal(place.priceNeedsCheck,true);
- assert.equal(model.minutes(block.startTime)+model.usedMinutes(next.days[1].blocks[1])+15,14*60+45);
+ assert.equal(model.minutes(block.startTime)+model.usedMinutes(next.days[1].blocks[1]),14*60+30);
  assert.equal(attractionFromPlace(place).contentId,attraction.contentId);
 });
 test('관광지 교체는 한 곳만 바꾸고 소주제 장소와 기존 식별자를 유지한다',()=>{

@@ -399,6 +399,7 @@ export async function generateCourse(
         streamProgress: Boolean(options.onProgress),
         replacement: options.replacement,
         location: condition.location,
+        transportMode: condition.transportMode || 'walk',
         locationLabel: condition.locationLabel || null,
         origin: currentOrigin,
         startTime: condition.time,

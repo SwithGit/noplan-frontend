@@ -12,6 +12,7 @@ export interface UserSession {
 }
 
 export interface PlannerCondition {
+  transportMode?: 'walk' | 'car';
   accuracy?: PlannerAccuracy;
   rawText: string;
   location: string;
