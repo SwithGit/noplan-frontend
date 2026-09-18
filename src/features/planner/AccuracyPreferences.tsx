@@ -37,7 +37,8 @@ export function AccuracyPreferences({ condition, onChange }: { condition: Planne
     <fieldset><legend>피하고 싶은 음식 업종</legend><div className="chip-row">
       {['고기', '해산물', '일식', '중식', '양식', '분식'].map(detail => <button type="button" key={detail} className={`chip-button ${value.excludedDetails?.includes(detail) ? 'selected' : ''}`} aria-pressed={Boolean(value.excludedDetails?.includes(detail))} onClick={() => patch({ excludedDetails: value.excludedDetails?.includes(detail) ? value.excludedDetails.filter(x => x !== detail) : [...(value.excludedDetails || []), detail] })}>{detail}</button>)}
     </div><small>해산물은 다른 식사·안주 메뉴가 있으면 장소를 유지하고 그 메뉴로 예산을 계산해요. 다른 선택은 업종 기준이에요.</small></fieldset>
-    <label className="accuracy-checkbox"><input type="checkbox" checked={Boolean(value.allowUnverifiedHours)} onChange={e => patch({ allowUnverifiedHours: e.target.checked })} /><span>영업시간을 확인하지 못한 장소도 포함하기<small>저장 정보와 Google 지도에서 확인해요. 그래도 확인되지 않은 장소를 포함하며, 결과에 ‘영업시간 확인 필요’로 표시해요.</small></span></label>
+    <p>카페는 기본 2시간으로 구성해요. 영업시간 미확인 장소도 포함하며, 방문 전 확인 안내를 표시해요. 휴무·영업 종료로 확인된 장소는 제외해요.</p>
+    <label className="accuracy-checkbox"><input type="checkbox" checked={value.allowUnverifiedHours === false} onChange={e => patch({ allowUnverifiedHours: !e.target.checked })} /><span>영업시간이 확인된 장소만 추천받기<small>체크하면 영업시간 자료가 없는 장소는 추천에서 제외해요.</small></span></label>
     {preferenceKey() && <><button type="button" className="text-link" onClick={() => {
       const key = preferenceKey();
       if (!key) return;

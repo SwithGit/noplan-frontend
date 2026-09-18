@@ -1,5 +1,6 @@
 import './result-screen.css';
 import { CourseOptionCards } from './CourseOptionCards';
+import { kakaoPlaceUrl } from '../../utils/placeMap';
 import { FavoriteButton } from '../mobile/MobileUi';
 import { CourseNearbyEvents } from '../events/CourseNearbyEvents';
 import { planFavorite } from '../mobile/mobileModel';
@@ -1793,7 +1794,7 @@ export function SearchingScreen() {
             <UnverifiedCandidates places={plan.unverifiedPlaces}/>
           </>}
           {plan.requestedWindow && <p>계산한 일정: {new Date(plan.requestedWindow.startAt).toLocaleString('ko-KR', {timeZone:'Asia/Seoul',month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'})} → {new Date(plan.requestedWindow.endAt).toLocaleString('ko-KR', {timeZone:'Asia/Seoul',month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'})} · {plan.requestedWindow.availableMinutes}분</p>}
-          {plan.constraintFailureCode === 'hours_unknown' && !condition.accuracy?.allowUnverifiedHours && <>
+          {plan.constraintFailureCode === 'hours_unknown' && condition.accuracy?.allowUnverifiedHours === false && <>
             <p>영업 정보가 없는 후보를 포함할 수 있어요. 포함하면 방문 전 직접 확인이 필요하고, 휴무·폐업으로 확인된 곳은 계속 제외해요.</p>
             <button className="primary" type="button" onClick={() => void retryIncludingUnknown()}>영업 미확인 후보 포함해 다시 찾기</button>
           </>}
@@ -1994,6 +1995,10 @@ export function ResultScreen() {
                     </div>
                     <span className="stop-arrow" aria-hidden="true">›</span>
                   </button>
+                  {place.businessStatus !== 'open' && place.businessStatus !== 'closed' && <p className="stop-hours-warning">
+                    영업시간 미확인 · 방문 전 확인해 주세요.
+                    <a href={kakaoPlaceUrl(place)} target="_blank" rel="noopener noreferrer">카카오맵에서 영업시간 확인 ↗</a>
+                  </p>}
                   {place.estimatedCost && <p className="stop-price"><span>1인 예상</span><strong>{place.estimatedCost.status==='estimated' ? place.estimatedCost.min===place.estimatedCost.max ? `${place.estimatedCost.min?.toLocaleString()}원` : `${place.estimatedCost.min?.toLocaleString()}~${place.estimatedCost.max?.toLocaleString()}원` : '가격 확인 필요'}</strong></p>}
                   {place.type !== 'hotplace' && (place.catalogRating != null || place.catalogReviewCount != null) && <p className="stop-rating">{place.catalogRating != null && <>★ {place.catalogRating.toFixed(1)} </>}<span>{place.catalogReviewCount != null && <>리뷰 {place.catalogReviewCount.toLocaleString('ko-KR')} · </>}노플랜 수집 정보</span></p>}
                   <CrowdingStatus compact snapshot={place.crowding}/>

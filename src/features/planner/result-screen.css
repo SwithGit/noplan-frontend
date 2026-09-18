@@ -49,6 +49,8 @@
 .result-screen .result-place-copy small { color:var(--result-muted); font-weight:400; font-size:11px; }
 .result-screen .stop-status { font-size:10px; color:#ad762b; }
 .result-screen .stop-status.is-open { color:#488575; }
+.result-screen .stop-hours-warning { margin:12px 0 0; padding:10px; border-radius:10px; background:#fff6e7; color:#8b5e1d; font-size:11px; line-height:1.7; }
+.result-screen .stop-hours-warning a { display:block; padding:6px 0; color:#785320; text-decoration:underline; text-underline-offset:3px; }
 .result-screen .stop-arrow { color:#a59bb4; font-size:22px; }
 .result-screen .stop-price { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding-top:14px; margin:14px 0 8px; border-top:1px solid #f0edf4; }
 .result-screen .stop-price > span { color:var(--result-muted); font-size:11px; }

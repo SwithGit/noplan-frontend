@@ -8,6 +8,7 @@ import MapBoard from '../../components/MapBoard';
 import { NopiBubble } from '../../components/ui/NopiBubble';
 import { PlaceVisual } from '../../components/ui/PlaceVisual';
 import { CrowdingStatus } from '../../components/ui/CrowdingStatus';
+import { kakaoPlaceUrl } from '../../utils/placeMap';
 import { usePlanner } from '../planner/PlannerContext';
 import type { CoursePlace, CoursePlan } from '../../types/noplan';
 import { generateCourse, trackPlaceInteraction } from '../../api/plannerApi';
@@ -73,11 +74,7 @@ function openPlaceLink(url?: string) {
 function externalMapUrl(place: CoursePlace, provider: 'naver' | 'kakao') {
   const query = encodeURIComponent([place.searchKeyword || place.name || place.title, place.address].filter(Boolean).join(' '));
   if (provider === 'naver') return `https://map.naver.com/p/search/${query}`;
-  const kakaoPlaceId = place.providerPlaceId?.trim();
-  if (place.provider === 'kakao_local' && kakaoPlaceId) {
-    return `https://place.map.kakao.com/${encodeURIComponent(kakaoPlaceId)}`;
-  }
-  return `https://map.kakao.com/link/search/${query}`;
+  return kakaoPlaceUrl(place);
 }
 
 function openExternalMap(place: CoursePlace, provider: 'naver' | 'kakao') {
@@ -283,6 +280,9 @@ export function PlaceDetailScreen() {
         </section>
       )}
 
+      {place.businessStatus !== 'open' && place.businessStatus !== 'closed' && (
+        <p className="inline-message">영업시간을 확인하지 못한 장소예요. 방문 전 아래 카카오맵에서 영업시간과 라스트오더를 확인해 주세요.</p>
+      )}
       <section className="external-map-links" aria-label="외부 지도에서 장소 보기">
         <button type="button" onClick={() => openExternalMap(place, 'naver')}>네이버지도에서 보기</button>
         <button type="button" onClick={() => openExternalMap(place, 'kakao')}>카카오맵에서 보기</button>
