@@ -71,6 +71,8 @@ export interface AccuracySummary {
   costKnown: boolean;
   estimatedMin: number | null;
   estimatedMax: number | null;
+  estimatedAverage?: number | null;
+  budgetBasis?: 'range_midpoint';
   budgetPerPerson: number;
   endAt: string;
   warnings: string[];

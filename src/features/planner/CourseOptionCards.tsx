@@ -38,6 +38,7 @@ export function CourseOptionCards({ options, selectedId, disabled, onSelect }: {
               ? `${option.summary.estimatedMin?.toLocaleString()}~${option.summary.estimatedMax?.toLocaleString()}원` : '가격 확인 필요'}</strong></span>
               <span className="story-walk">도보 약 {Math.round(option.ranking.walkingMinutes)}분</span></span>
             <span className="story-note">{option.courseData.some(p => p.estimatedCost?.assumptions?.length) ? '일부 가격 가정 포함 · ' : ''}{option.courseData.every(p => ['google_routes', 'tmap_pedestrian'].includes(p.walkingRouteSource || '')) ? '실제 도보 경로 기준' : '추정 이동 시간 포함'}</span>
+            {option.summary.budgetBasis === 'range_midpoint' && option.summary.estimatedAverage != null && <span className="story-note">예산 판정 기준 · 1인 평균 {Math.round(option.summary.estimatedAverage).toLocaleString()}원</span>}
           </span>
         </button>;
       })}
