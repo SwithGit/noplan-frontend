@@ -10,6 +10,8 @@ export interface TourismAttraction {
   lng: number;
   sourceUrl: string;
   sourceLabel: string;
+  imageUrl?: string;
+  imageLicense?: string;
 }
 export interface TourismSearchResult { items: TourismAttraction[]; page: number; hasMore: boolean }
 export function searchTourism(keyword: string, type: TourismAttraction['contentTypeId'], page: number, signal?: AbortSignal) {
