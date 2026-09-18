@@ -414,7 +414,8 @@ export async function generateCourse(
         vibe: condition.extras.filter(Boolean).join(', '),
         preferences: {
           ...condition.accuracy,
-          allowUnverifiedHours: condition.accuracy?.allowUnverifiedHours !== false,
+          // Override strict-hours values retained in older saved conditions.
+          allowUnverifiedHours: true,
           avoidCrowds: condition.extras.includes('대기 적게'),
           shortWalking: condition.extras.includes('도보 짧게'),
           ...normalizeFillPreferences(condition.accuracy),

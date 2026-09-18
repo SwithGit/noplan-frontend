@@ -1658,7 +1658,7 @@ function UnverifiedCandidates({places}: {places: CoursePlan['unverifiedPlaces']}
 
 export function SearchingScreen() {
   const navigate = useNavigate();
-  const { condition, plan, isSearching, searchProgress, runSearch, searchError, setCondition } = usePlanner();
+  const { condition, plan, isSearching, searchProgress, runSearch, searchError } = usePlanner();
   const [searchTakingLong, setSearchTakingLong] = useState(false);
   const locationText = condition.location ? displayLocationLabel(condition) : '출발지 미입력';
   const searchSteps = useMemo(
@@ -1718,12 +1718,6 @@ export function SearchingScreen() {
   };
 
   const searchFailed = Boolean(searchError && !isSearching);
-  const retryIncludingUnknown = async () => {
-    const nextCondition = { ...condition, accuracy: { ...condition.accuracy, allowUnverifiedHours: true } };
-    setCondition({ accuracy: nextCondition.accuracy });
-    const succeeded = await runSearch(nextCondition);
-    if (succeeded) navigate(ROUTES.plannerResult, { replace: true });
-  };
 
   return (
     <div className="searching-screen non-home-screen">
@@ -1794,10 +1788,6 @@ export function SearchingScreen() {
             <UnverifiedCandidates places={plan.unverifiedPlaces}/>
           </>}
           {plan.requestedWindow && <p>계산한 일정: {new Date(plan.requestedWindow.startAt).toLocaleString('ko-KR', {timeZone:'Asia/Seoul',month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'})} → {new Date(plan.requestedWindow.endAt).toLocaleString('ko-KR', {timeZone:'Asia/Seoul',month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'})} · {plan.requestedWindow.availableMinutes}분</p>}
-          {plan.constraintFailureCode === 'hours_unknown' && condition.accuracy?.allowUnverifiedHours === false && <>
-            <p>영업 정보가 없는 후보를 포함할 수 있어요. 포함하면 방문 전 직접 확인이 필요하고, 휴무·폐업으로 확인된 곳은 계속 제외해요.</p>
-            <button className="primary" type="button" onClick={() => void retryIncludingUnknown()}>영업 미확인 후보 포함해 다시 찾기</button>
-          </>}
           <div>
             <button type="button" onClick={() => navigate(ROUTES.plannerCondition, { replace: true })}>조건 수정</button>
             <button className="primary" type="button" onClick={() => void retrySearch()}>{plan.constraintFailureCode==='walking_service_rate_limited'?'경로 서비스 다시 확인':'같은 조건으로 다시 찾기'}</button>

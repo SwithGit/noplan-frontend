@@ -13,7 +13,7 @@ export function AccuracyPreferences({ condition, onChange }: { condition: Planne
   return <section className="accuracy-preferences screen-section" aria-label="예산과 취향">
     <h2>오늘의 예산과 취향</h2>
     <p>선택한 활동을 중심으로 시간대와 전체 예산에 맞춰 일정을 구성해요.</p>
-    <label className="accuracy-checkbox"><input type="checkbox" checked={value.fillSchedule !== false} onChange={e=>patch({fillSchedule:e.target.checked})}/><span>남는 시간과 예산에 맞춰 일정 채우기<small>선택한 활동을 먼저 담고, 여유가 있으면 놀거리·카페를 추가해요. 예산이 부족하면 무료 산책을 넣을 수 있어요. 밤 8시 이후 카페는 자동으로 넣지 않아요.</small></span></label>
+    <label className="accuracy-checkbox"><input type="checkbox" checked={value.fillSchedule !== false} onChange={e=>patch({fillSchedule:e.target.checked})}/><span>남는 시간과 예산에 맞춰 일정 채우기<small>선택한 활동을 먼저 담고, 여유가 있으면 놀거리·카페를 추가해요. 술집을 선택했다면 2차·3차도 이어갈 수 있어요. 예산이 부족하면 무료 산책을 넣을 수 있어요. 밤 8시 이후 카페는 자동으로 넣지 않아요.</small></span></label>
     {fill.fillSchedule && <label className="accuracy-checkbox"><input type="checkbox" checked={fill.allowBudgetWalk} onChange={e=>patch({allowBudgetWalk:e.target.checked})}/><span>예산이 부족하면 무료 산책도 허용<small>시간이 남고, 남은 예산으로 유료 활동을 추가하기 어려울 때 주변 산책 장소를 찾아요.</small></span></label>}
     <p>예산은 예상 최저·최고 금액의 평균을 기준으로 맞춰요. 실제 주문에 따라 달라질 수 있어요.</p>
     <div className="accuracy-fields">
@@ -39,7 +39,6 @@ export function AccuracyPreferences({ condition, onChange }: { condition: Planne
       {['고기', '해산물', '일식', '중식', '양식', '분식'].map(detail => <button type="button" key={detail} className={`chip-button ${value.excludedDetails?.includes(detail) ? 'selected' : ''}`} aria-pressed={Boolean(value.excludedDetails?.includes(detail))} onClick={() => patch({ excludedDetails: value.excludedDetails?.includes(detail) ? value.excludedDetails.filter(x => x !== detail) : [...(value.excludedDetails || []), detail] })}>{detail}</button>)}
     </div><small>해산물은 다른 식사·안주 메뉴가 있으면 장소를 유지하고 그 메뉴로 예산을 계산해요. 다른 선택은 업종 기준이에요.</small></fieldset>
     <p>카페는 기본 2시간으로 구성해요. 영업시간 미확인 장소도 포함하며, 방문 전 확인 안내를 표시해요. 휴무·영업 종료로 확인된 장소는 제외해요.</p>
-    <label className="accuracy-checkbox"><input type="checkbox" checked={value.allowUnverifiedHours === false} onChange={e => patch({ allowUnverifiedHours: !e.target.checked })} /><span>영업시간이 확인된 장소만 추천받기<small>체크하면 영업시간 자료가 없는 장소는 추천에서 제외해요.</small></span></label>
     {preferenceKey() && <><button type="button" className="text-link" onClick={() => {
       const key = preferenceKey();
       if (!key) return;
