@@ -12,6 +12,8 @@ export const appNavigationItems = [
 export type NavigationIconName = (typeof appNavigationItems)[number]['icon'] | 'route';
 
 export const desktopNavigationItems = [
+  { to: ROUTES.explore, label: '여행 탐색', icon: 'compass', end: false },
   { to: ROUTES.events, label: '축제·전시', icon: 'compass', end: false },
   { to: ROUTES.trips, label: '내 여행', icon: 'route', end: false },
+  { to: ROUTES.favorites, label: '찜', icon: 'heart', end: false },
 ] as const;

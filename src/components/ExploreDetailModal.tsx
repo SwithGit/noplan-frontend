@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { CoursePlace, ExploreCourse } from '../types/noplan';
 import { PlaceVisual } from './ui/PlaceVisual';
+import { useDesktop } from '../features/mobile/useDesktop';
 
 interface ExploreDetailModalProps {
   course: ExploreCourse;
@@ -16,6 +17,7 @@ function expectedMinutes(places: CoursePlace[]) {
 }
 
 export default function ExploreDetailModal({ course, places, onClose, onLike, onUseCourse }: ExploreDetailModalProps) {
+  const desktop = useDesktop();
   const dialogRef = useRef<HTMLElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
 
@@ -96,7 +98,7 @@ export default function ExploreDetailModal({ course, places, onClose, onLike, on
 
         <div className="explore-preview-actions">
           <button type="button" onClick={onLike}>좋아요 {course.likes || 0}</button>
-          <button className="primary" type="button" onClick={onUseCourse}>이 코스로 출발</button>
+          {!desktop && <button className="primary" type="button" onClick={onUseCourse}>이 코스로 출발</button>}
         </div>
       </section>
     </div>

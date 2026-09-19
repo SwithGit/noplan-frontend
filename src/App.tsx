@@ -186,6 +186,8 @@ function AppRoutes() {
       <Route path="/app/events/:id" element={<EventDetail user={user} />} />
       <Route path="/app/trips/:id" element={<TripRouteEntry user={user} />} />
       <Route path={ROUTES.tripJoin} element={<TripJoin user={user} />} />
+      <Route path={ROUTES.explore} element={<ExploreEntry />} />
+      <Route path={ROUTES.favorites} element={<MobileFavorites />} />
       <Route element={<MobileRoute />}>
         <Route path={ROUTES.quickHome} element={<PlannerHome />} />
         <Route path={ROUTES.plannerChat} element={<ChatStart />} />
@@ -195,8 +197,6 @@ function AppRoutes() {
         <Route path={ROUTES.courseMap} element={<CourseMapScreen />} />
         <Route path="/app/course/place/:index" element={<PlaceDetailScreen />} />
         <Route path="/app/course/replace/:index" element={<ReplacementCandidates />} />
-        <Route path={ROUTES.explore} element={<ExploreEntry />} />
-        <Route path={ROUTES.favorites} element={<MobileFavorites />} />
         <Route path={ROUTES.myCourses} element={<MyPageView user={user} onLogout={() => {void logoutSession().finally(()=>{setUser(null);navigate(ROUTES.appHome);});}}/>}/>
       </Route>
       <Route path={ROUTES.myPage} element={<MyEntry onLogout={() => {
