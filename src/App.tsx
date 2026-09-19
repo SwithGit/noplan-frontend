@@ -6,6 +6,8 @@ import { AppFrame } from './components/ui/AppFrame';
 import { CourseMapScreen, PlaceDetailScreen, ReplacementCandidates } from './features/course/CourseScreens';
 import { ExploreEntry, MyEntry } from './features/mobile/MobileEntries';
 import { MobileFavorites } from './features/mobile/MobileFavorites';
+import { MobileRoute } from './features/mobile/MobileRoute';
+import { useDesktop } from './features/mobile/useDesktop';
 import { FavoritesProvider } from './features/mobile/FavoritesProvider';
 import { MyPageView } from './features/my/MyPageView';
 import { PlannerProvider, usePlanner } from './features/planner/PlannerContext';
@@ -88,6 +90,7 @@ function TripRouteEntry({ user }: { user: UserSession | null }) {
 }
 
 function AppRoutes() {
+  const desktop = useDesktop();
   const location = useLocation();
   const navigate = useNavigate();
   const { loadPlan } = usePlanner();
@@ -121,7 +124,7 @@ function AppRoutes() {
   }, []);
 
   useEffect(() => {
-    if (location.pathname !== ROUTES.courseMap) return;
+    if (desktop || location.pathname !== ROUTES.courseMap) return;
 
     const params = new URLSearchParams(location.search);
     const seq = Number(params.get('seq') || 0);
@@ -159,7 +162,7 @@ function AppRoutes() {
     return () => {
       cancelled = true;
     };
-  }, [loadPlan, location.pathname, location.search, navigate]);
+  }, [desktop, loadPlan, location.pathname, location.search, navigate]);
 
   const hideNav = useMemo(
     () =>
@@ -177,23 +180,25 @@ function AppRoutes() {
       {import.meta.env.DEV && <Route path={ROUTES.landingPreview} element={<LandingPage />} />}
 
       <Route path={ROUTES.appHome} element={<HomeEntry user={user} />} />
-      <Route path={ROUTES.quickHome} element={<PlannerHome />} />
       <Route path={ROUTES.trips} element={<TripHome key={user?.userId || 'guest'} user={user} libraryOnly />} />
       <Route path={ROUTES.newTrip} element={<TripHome key={user?.userId || 'guest'} user={user} />} />
       <Route path={ROUTES.events} element={<EventsPage />} />
       <Route path="/app/events/:id" element={<EventDetail user={user} />} />
       <Route path="/app/trips/:id" element={<TripRouteEntry user={user} />} />
       <Route path={ROUTES.tripJoin} element={<TripJoin user={user} />} />
-      <Route path={ROUTES.plannerChat} element={<ChatStart />} />
-      <Route path={ROUTES.plannerCondition} element={<ConditionConfirm />} />
-      <Route path={ROUTES.plannerSearching} element={<SearchingScreen />} />
-      <Route path={ROUTES.plannerResult} element={<ResultScreen />} />
-      <Route path={ROUTES.courseMap} element={<CourseMapScreen />} />
-      <Route path="/app/course/place/:index" element={<PlaceDetailScreen />} />
-      <Route path="/app/course/replace/:index" element={<ReplacementCandidates />} />
-      <Route path={ROUTES.explore} element={<ExploreEntry />} />
-      <Route path={ROUTES.favorites} element={<MobileFavorites />} />
-      <Route path={ROUTES.myCourses} element={<MyPageView user={user} onLogout={() => {void logoutSession().finally(()=>{setUser(null);navigate(ROUTES.appHome);});}}/>}/>
+      <Route element={<MobileRoute />}>
+        <Route path={ROUTES.quickHome} element={<PlannerHome />} />
+        <Route path={ROUTES.plannerChat} element={<ChatStart />} />
+        <Route path={ROUTES.plannerCondition} element={<ConditionConfirm />} />
+        <Route path={ROUTES.plannerSearching} element={<SearchingScreen />} />
+        <Route path={ROUTES.plannerResult} element={<ResultScreen />} />
+        <Route path={ROUTES.courseMap} element={<CourseMapScreen />} />
+        <Route path="/app/course/place/:index" element={<PlaceDetailScreen />} />
+        <Route path="/app/course/replace/:index" element={<ReplacementCandidates />} />
+        <Route path={ROUTES.explore} element={<ExploreEntry />} />
+        <Route path={ROUTES.favorites} element={<MobileFavorites />} />
+        <Route path={ROUTES.myCourses} element={<MyPageView user={user} onLogout={() => {void logoutSession().finally(()=>{setUser(null);navigate(ROUTES.appHome);});}}/>}/>
+      </Route>
       <Route path={ROUTES.myPage} element={<MyEntry onLogout={() => {
         void logoutSession().finally(() => {
           setUser(null);

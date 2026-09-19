@@ -3,8 +3,8 @@ import { getDayRoutes, type DayRouteResult } from '../../api/dayRouteApi';
 import { DayRouteMap } from './DayRouteMap';
 import { dayRouteLegs, moveDayOuting, orderedBlocks, routePoint, type RoutePoint } from './dayRouteModel';
 import { tripExclusions } from './nopiModel';
-import { TourismPicker } from './TourismPicker';
-import { attractionFromPlace, setTourismAnchor } from './tourismModel';
+import { PlacePicker } from './PlacePicker';
+import { putTripPlace } from './placeIdentity';
 import { TripDialog } from './TripDialog';
 import { TripIcon } from './TripIcon';
 import { minutes, shortDate, transportLabels, usedMinutes, type TripDay, type TripDocument } from './tripModel';
@@ -36,7 +36,7 @@ export function DayRouteDialog({ document, dayId, disabled, onClose, onApply }: 
     return point ? [{ ...point, id: block.id, number: index + 1, name: anchor.name }] : [];
   }), [draft]);
   const pickerBlock = draft.blocks.find(block => block.id === pickerId);
-  const pickerAnchor = pickerBlock?.places.find(place => place.tourism);
+  const pickerAnchor = pickerBlock?.places.find(place => place.tourism) || pickerBlock?.places[0];
   const changed = transport !== (document.days.find(day => day.id === dayId)?.transport || document.transport) || baseline !== JSON.stringify({ ...document, days: document.days.map(day => day.id === dayId ? draft : day) });
 
   useEffect(() => {
@@ -95,7 +95,7 @@ export function DayRouteDialog({ document, dayId, disabled, onClose, onApply }: 
                 <button className="day-route-place-title" type="button" onClick={() => setActiveId(block.id)}><small>{block.title}</small><h3>{anchor?.name || '가고 싶은 장소를 담아보세요'}</h3></button>
                 {anchor && <><p className="day-route-address">{anchor.address || '주소 정보 없음'}</p><div className="day-route-stops">{block.places.map(place => <span key={place.id}>{place.name}<small>{place.durationMinutes}분</small></span>)}</div></>}
                 {overrun > 0 && <p className="trip-alert">체류·구간 내 이동이 시간대를 {durationText(overrun)} 넘어요. 일정 화면에서 시간을 조정해 주세요.</p>}
-                <div className="day-route-card-footer"><button type="button" className="trip-text-link" disabled={disabled} onClick={() => setPickerId(block.id)}><TripIcon name="pin" />{anchor?.tourism ? '장소 교체' : '중심 장소 담기'}</button>{anchor && <a className="trip-text-link" href={`https://map.kakao.com/link/search/${encodeURIComponent(`${anchor.name} ${anchor.address}`)}`} target="_blank" rel="noreferrer">장소 지도 ↗</a>}</div>
+                <div className="day-route-card-footer"><button type="button" className="trip-text-link" disabled={disabled} onClick={() => setPickerId(block.id)}><TripIcon name="pin" />{anchor ? '장소 교체' : '중심 장소 담기'}</button>{anchor && <a className="trip-text-link" href={`https://map.kakao.com/link/search/${encodeURIComponent(`${anchor.name} ${anchor.address}`)}`} target="_blank" rel="noreferrer">장소 지도 ↗</a>}</div>
               </article>
             </div>;
           })}
@@ -104,8 +104,8 @@ export function DayRouteDialog({ document, dayId, disabled, onClose, onApply }: 
       </div>
       <footer className="day-route-footer">{applyError && <p className="trip-alert" role="alert">{applyError}</p>}<div><strong>{changed ? '바꾼 동선을 일정에 반영할까요?' : '하루 동선을 확인했어요'}</strong><span>{transport !== (draft.transport || document.transport) ? '이동수단 변경은 이날 일정에 적용돼요.' : '장소 순서와 교체 내용은 반영 버튼을 눌러야 저장돼요.'}</span></div><button className="trip-button" type="button" onClick={close}>닫기</button><button className="trip-button primary" type="button" disabled={disabled} onClick={() => { try { onApply(draft, transport, baseline); } catch (cause) { setApplyError(cause instanceof Error ? cause.message : '일정을 반영하지 못했어요. 다시 시도해 주세요.'); } }}>{changed ? '변경한 동선 반영' : '확인하고 돌아가기'}<TripIcon name="check" /></button></footer>
     </TripDialog>
-    {pickerBlock && <TourismPicker destination={document.destination} initial={pickerAnchor ? attractionFromPlace(pickerAnchor) : undefined} initialDuration={pickerAnchor?.durationMinutes} disabledPlaces={tripExclusions({ ...document, days: document.days.map(day => day.id === draft.id ? draft : day) }, undefined, pickerAnchor?.id)} context={`${shortDate(draft.date)} · ${pickerBlock.title}`} onClose={() => setPickerId(null)} onSelect={(place, duration) => {
-      const next = setTourismAnchor({ ...document, days: document.days.map(day => day.id === draft.id ? draft : day) }, draft.id, pickerBlock.id, place, duration);
+    {pickerBlock && <PlacePicker destination={document.destination} initial={pickerAnchor} excluded={tripExclusions({ ...document, days: document.days.map(day => day.id === draft.id ? draft : day) }, undefined, pickerAnchor?.id)} context={`${shortDate(draft.date)} · ${pickerBlock.title}`} onClose={() => setPickerId(null)} onSelect={place => {
+      const next = putTripPlace({ ...document, days: document.days.map(day => day.id === draft.id ? draft : day) }, draft.id, pickerBlock.id, place, pickerAnchor?.id);
       const changedDay = next.days.find(day => day.id === draft.id)!;
       setDraft({ ...changedDay, blocks: changedDay.blocks.map(block => block.id === pickerBlock.id ? { ...block, places: block.places.map(item => ({ ...item, travelMinutes: undefined })) } : block) });
       setActiveId(pickerBlock.id); setPickerId(null);

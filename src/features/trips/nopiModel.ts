@@ -1,12 +1,14 @@
 import type { TourismAttraction } from '../../api/tourismApi';
 import type { DayRouteResult } from '../../api/dayRouteApi';
 import { clock, minutes, newId, type TripDay, type TripDocument, type TripPlace } from './tripModel';
+import { courseDistanceLabel, courseDistanceLimit } from './coursePolicy';
+import { excludedPlace, placeKeys } from './placeIdentity';
 
 export type Purpose = '발견' | '데이트' | '친구모임' | '가족여행' | '자연산책' | '문화여행';
 export interface PlanningFacts { menu: string; hours: string; closed: string }
 export interface NopiAttraction extends TourismAttraction { planning?: PlanningFacts | null }
 export interface CourseNode { place: TripPlace; imageUrl?: string; imageLicense?: string; reason?: string; planning?: PlanningFacts | null; notBefore?: number; initialNotBefore?: number; originalNotes?: string }
-export interface NopiOptions { date: string; start: string; end: string; transport: 'walk' | 'car'; purpose: Purpose; district: string }
+export interface NopiOptions { date: string; start: string; end: string; transport: TripDocument['transport']; purpose: Purpose; district: string }
 
 export function tourismNode(place: NopiAttraction, duration = 90): CourseNode {
   return { place: { id: newId(), name: place.name, address: place.address, type: place.type, lat: place.lat, lng: place.lng, durationMinutes: duration, fixed: true, source: 'tourism', sourceUrl: place.sourceUrl, priceNeedsCheck: true, tourism: { contentId: place.contentId, contentTypeId: place.contentTypeId } }, imageUrl: place.imageUrl, imageLicense: place.imageLicense, planning: place.planning };
@@ -16,7 +18,7 @@ export function dayNodes(day: TripDay): CourseNode[] {
 }
 export function tripExclusions(document: TripDocument, exceptDayId?: string, exceptPlaceId?: string): Record<string, string> {
   const result: Record<string, string> = {};
-  document.days.forEach((day, index) => { if (day.id !== exceptDayId) day.blocks.forEach(block => block.places.forEach(place => { if (place.tourism && place.id !== exceptPlaceId) result[place.tourism.contentId] = `DAY ${index + 1}에 담음`; })); });
+  document.days.forEach((day, index) => { if (day.id !== exceptDayId) day.blocks.forEach(block => block.places.forEach(place => { if (place.id !== exceptPlaceId) placeKeys(place).forEach(key => { result[key] = `DAY ${index + 1}에 담음`; }); })); });
   return result;
 }
 export function distance(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
@@ -76,54 +78,91 @@ function preference(place: NopiAttraction, purpose: Purpose) {
 }
 export const edgeId = (from: string, to: string) => `${from}:${to}`;
 
-// Beam search balances statistical relevance with distance, instead of routing
-// the first names in the API response. Actual travel is checked separately.
-export function suggestCourse(catalog: NopiAttraction[], options: NopiOptions, excluded: Record<string, string>, rejectedEdges = new Set<string>(), variant = 0): CourseNode[] {
+// Search nearby clusters with flexible visit/café order. Meal windows remain fixed.
+export function targetCourseCount(options: NopiOptions) {
   const available = minutes(options.end) - minutes(options.start);
+  return (available >= 480 ? 5 : available >= 360 ? 4 : 3) + (available >= 660 && minutes(options.end) >= 1140 ? 1 : 0);
+}
+export function suggestCourse(catalog: NopiAttraction[], options: NopiOptions, excluded: Record<string, string>, rejectedEdges = new Set<string>(), variant = 0): CourseNode[] {
+  const available = minutes(options.end) - minutes(options.start), limit = courseDistanceLimit(options.transport);
+  if (!limit) throw Error('대중교통 자동 코스는 아직 지원하지 않아요. 이동수단을 도보 또는 차량으로 변경해 주세요.');
   if (available < 180 || available > 840) throw Error('노피 코스는 하루 3~14시간으로 설정해 주세요.');
-  const pool = catalog.filter(place => !excluded[place.contentId] && place.contentTypeId !== '25' && (!options.district || place.district === options.district) && !closedOn(place, options.date)
+  const pool = catalog.filter(place => !excludedPlace({ ...place, tourism: { contentId: place.contentId, contentTypeId: place.contentTypeId } }, excluded) && place.contentTypeId !== '25' && (!options.district || place.district === options.district) && !closedOn(place, options.date)
     && !/캠핑|야영|골프|컨트리클럽|스키|썰매|물놀이장|수영장|등산|산$|산\(울산\)/.test(place.name) && Number.isFinite(place.lat) && Number.isFinite(place.lng));
-  const mealInWindow = minutes(options.start) <= 13 * 60 && minutes(options.end) >= 14 * 60;
-  const roles: ('visit' | 'meal' | 'cafe')[] = available >= 480 ? ['visit', mealInWindow ? 'meal' : 'cafe', 'visit', 'cafe', 'visit'] : available >= 360 ? ['visit', mealInWindow ? 'meal' : 'cafe', 'visit', 'cafe'] : ['visit', 'cafe', 'visit'];
-  if (available >= 660 && minutes(options.end) >= 19 * 60) roles.push('meal');
   const maxCount = Math.max(1, ...pool.map(p => p.searchCount || 0)), maxShare = Math.max(1, ...pool.map(p => p.demographicShare || 0));
   const score = (p: NopiAttraction) => 1.4 * preference(p, options.purpose) + 1.6 * (p.demographicShare || 0) / maxShare + Math.log1p(p.searchCount || 0) / Math.log1p(maxCount);
-  const ranked = pool.toSorted((a, b) => score(b) - score(a) || a.contentId.localeCompare(b.contentId));
+  const pairDistances = new Map<string, number>();
+  const metersBetween = (a: NopiAttraction, b: NopiAttraction) => {
+    const key = edgeId(a.contentId, b.contentId);
+    let meters = pairDistances.get(key);
+    if (meters == null) { meters = distance(a, b); pairDistances.set(key, meters); pairDistances.set(edgeId(b.contentId, a.contentId), meters); }
+    return meters;
+  };
+  const density = new Map(pool.map(p => [p.contentId, Math.min(10, pool.filter(other => other.contentId !== p.contentId && metersBetween(p, other) <= limit * .7).length) / 10]));
+  const ranked = pool.toSorted((a, b) => score(b) + density.get(b.contentId)! - score(a) - density.get(a.contentId)! || a.contentId.localeCompare(b.contentId));
   const durationFor = (p: NopiAttraction) => foodKind(p) === 'meal' ? 60 : foodKind(p) === 'cafe' ? 40 : p.contentTypeId === '38' ? 60 : available < 360 ? 45 : 75;
-  const notBefore = (index: number) => roles[index] === 'meal' ? index === roles.length - 1 ? 17 * 60 + 30 : 11 * 60 + 30 : 0;
-  type Path = { items: NopiAttraction[]; value: number; meters: number; cursor: number };
-  let beam: Path[] = [{ items: [], value: 0, meters: 0, cursor: minutes(options.start) }];
-  const radius = options.transport === 'walk' ? 1600 : 16000;
-  for (let index = 0; index < roles.length; index++) {
-    const role = roles[index];
-    const matching = ranked.filter(p => role === 'visit' ? ['12', '14', '28', '38'].includes(p.contentTypeId) : foodKind(p) === role);
-    // Missing cafés may be replaced by another visit; meals are never invented.
-    const choices = matching.length ? matching : role === 'cafe' ? ranked.filter(p => ['12', '14', '38'].includes(p.contentTypeId)) : [];
-    const next: Path[] = [];
-    for (const path of beam) {
-      const last = path.items.at(-1);
-      const candidates = choices.filter(p => !path.items.some(t => t.contentId === p.contentId) && (p.contentTypeId !== '38' || index > 0 && !path.items.some(t => t.contentTypeId === '38')) && (!last || !rejectedEdges.has(edgeId(last.contentId, p.contentId))));
-      const scored = candidates.map(p => ({ p, meters: last ? distance(last, p) : 0 })).filter(p => p.meters <= radius)
-        .map(item => ({ ...item, timing: visitTime(Math.max(path.cursor + (last ? Math.ceil(item.meters / (options.transport === 'walk' ? 65 : 400)) + (options.transport === 'car' ? 5 : 0) : 0), notBefore(index)), durationFor(item.p), item.p.planning, options.date) }))
-        .filter(item => item.timing.fits && item.timing.arrival + durationFor(item.p) <= minutes(options.end) && (role !== 'meal' || item.timing.arrival <= (index === roles.length - 1 ? 20 * 60 : 14 * 60)))
-        .map(item => ({ ...item, value: score(item.p) - item.meters / radius * 3 - Math.max(0, item.timing.arrival - path.cursor - 60) / 120 } )).sort((a, b) => b.value - a.value);
-      const selected = !index ? scored.slice((variant % 3) * 3, (variant % 3) * 3 + 60) : scored.slice(0, 12);
-      selected.forEach(item => next.push({ items: [...path.items, item.p], value: path.value + item.value, meters: path.meters + item.meters, cursor: item.timing.arrival + durationFor(item.p) }));
+  const roleOf = (p: NopiAttraction) => foodKind(p) === 'meal' ? 'meal' : foodKind(p) === 'cafe' ? 'cafe' : ['12', '14', '28', '38'].includes(p.contentTypeId) ? 'visit' : 'other';
+  const lunch = minutes(options.start) <= 780 && minutes(options.end) >= 840;
+  const mealTimes = [...(lunch ? [690] : []), ...(available >= 660 && minutes(options.end) >= 1140 ? [1050] : [])];
+  type Path = { items: NopiAttraction[]; mealStarts: number[]; value: number; meters: number; cursor: number; visits: number; meals: number; cafes: number };
+  // Prefer fewer close stops over filling the requested count with a remote place.
+  for (let target = targetCourseCount(options); target >= 3; target--) {
+    const wantedMeals = mealTimes.length, wantedCafes = 1, wantedVisits = target - wantedMeals - wantedCafes;
+    if (wantedVisits < 1) continue;
+    let beam: Path[] = [{ items: [], mealStarts: [], value: 0, meters: 0, cursor: minutes(options.start), visits: 0, meals: 0, cafes: 0 }];
+    for (let index = 0; index < target; index++) {
+      const next: Path[] = [];
+      for (const path of beam) {
+        const last = path.items.at(-1);
+        const candidates = ranked.filter(p => {
+          const role = roleOf(p);
+          if (role === 'other' || (!index && role !== 'visit') || role === 'visit' && path.visits >= wantedVisits || role === 'meal' && path.meals >= wantedMeals || role === 'cafe' && path.cafes >= wantedCafes) return false;
+          if (path.items.some(t => t.contentId === p.contentId) || p.contentTypeId === '38' && path.items.some(t => t.contentTypeId === '38')) return false;
+          // Stay in one compact group, avoiding gradual drift toward an isolated node.
+          if (path.items.some(t => metersBetween(t, p) > limit)) return false;
+          return !last || !rejectedEdges.has(edgeId(last.contentId, p.contentId));
+        });
+        const scored = candidates.map(p => {
+          const meters = last ? metersBetween(last, p) : 0, role = roleOf(p);
+          const mealStart = role === 'meal' ? mealTimes[path.meals] : 0;
+          const timing = visitTime(Math.max(path.cursor + (last ? Math.ceil(meters / (options.transport === 'walk' ? 65 : 400)) + (options.transport === 'car' ? 5 : 0) : 0), mealStart), durationFor(p), p.planning, options.date);
+          return { p, meters, role, mealStart, timing, value: score(p) + density.get(p.contentId)! * .7 - meters / limit * 7 - Math.max(0, timing.arrival - path.cursor - 30) / 90 };
+        }).filter(item => item.timing.fits && item.timing.arrival + durationFor(item.p) <= minutes(options.end) && (item.role !== 'meal' || item.timing.arrival <= (item.mealStart < 900 ? 840 : 1200)))
+          .sort((a, b) => b.value - a.value);
+        const startOffset = Math.min((variant % 3) * 2, Math.max(0, scored.length - 1));
+        const selected = !index ? scored.slice(startOffset, startOffset + 60) : scored.slice(0, 16);
+        selected.forEach(item => next.push({ items: [...path.items, item.p], mealStarts: [...path.mealStarts, item.mealStart], value: path.value + item.value, meters: path.meters + item.meters, cursor: item.timing.arrival + durationFor(item.p), visits: path.visits + Number(item.role === 'visit'), meals: path.meals + Number(item.role === 'meal'), cafes: path.cafes + Number(item.role === 'cafe') }));
+      }
+      const perStart = new Map<string, number>();
+      beam = next.sort((a, b) => b.value - a.value || a.meters - b.meters).filter(path => {
+        const id = path.items[0].contentId, count = perStart.get(id) || 0;
+        perStart.set(id, count + 1); return count < 8;
+      }).slice(0, 200);
+      if (!beam.length) break;
     }
-    // Keep several starting areas alive. Otherwise a popular but disconnected
-    // cluster can crowd out feasible routes elsewhere in the city.
-    const perStart = new Map<string, number>();
-    beam = next.sort((a, b) => b.value - a.value || a.meters - b.meters).filter(path => {
-      const id = path.items[0].contentId, count = perStart.get(id) || 0;
-      perStart.set(id, count + 1); return count < 5;
-    }).slice(0, 160);
-    if (!beam.length) throw Error('이 조건으로 가까운 장소와 음식점을 연결하기 어려워요. 다른 권역이나 차량을 선택하거나 직접 장소를 담아 주세요.');
+    if (beam.length) return beam[0].items.map((p, index) => ({ ...tourismNode(p, durationFor(p)), reason: preference(p, options.purpose) ? `${options.purpose}에 어울리는 장소` : '가까운 동선으로 연결', ...(beam[0].mealStarts[index] ? { notBefore: beam[0].mealStarts[index] } : {}) }));
   }
-  return beam[0].items.map((p, index) => {
-    const node = tourismNode(p, durationFor(p));
-    const reasons = [preference(p, options.purpose) ? `${options.purpose}에 어울리는 장소` : '가까운 동선으로 연결'];
-    return { ...node, reason: reasons.join(' · '), ...(notBefore(index) ? { notBefore: notBefore(index) } : {}) };
-  });
+  throw Error(`${courseDistanceLabel(options.transport)} 이내에서 연결할 가까운 장소가 부족해요. 거리를 넓히지 않았어요. 다른 권역을 선택하거나 직접 장소를 담아 주세요.`);
+}
+
+// Keep the starting place; compare up to three short, time-feasible orders.
+// Only the selected set (at most six places) is permuted, bounding route API use.
+export function courseOrderOptions(nodes: CourseNode[], options: NopiOptions): CourseNode[][] {
+  if (nodes.length < 3 || nodes.length > 6) return [nodes];
+  const choices: { nodes: CourseNode[]; meters: number }[] = [];
+  const visit = (ordered: CourseNode[], remaining: CourseNode[]) => {
+    if (!remaining.length) {
+      const legs = courseLegs(ordered);
+      const estimated = legs.map(leg => { const meters = distance(leg.from, leg.to); return { id: leg.id, status: 'ok' as const, distanceMeters: meters, durationMinutes: Math.ceil(meters / (options.transport === 'walk' ? 65 : 400)) + (options.transport === 'car' ? 5 : 0) }; });
+      if (estimated.some(leg => leg.distanceMeters > courseDistanceLimit(options.transport)) || scheduleCourse(ordered, options.start, options.end, estimated, {}, options.date).errors.length) return;
+      choices.push({ nodes: ordered, meters: estimated.reduce((sum, leg) => sum + leg.distanceMeters, 0) }); return;
+    }
+    remaining.forEach((node, i) => visit([...ordered, node], remaining.filter((_, j) => i !== j)));
+  };
+  visit([nodes[0]], nodes.slice(1));
+  const ordered = choices.sort((a, b) => a.meters - b.meters).slice(0, 2).map(c => c.nodes);
+  if (!ordered.some(order => order.every((node, i) => node.place.id === nodes[i].place.id))) ordered.push(nodes);
+  return ordered.length ? ordered : [nodes];
 }
 export function courseLegs(nodes: CourseNode[]) {
   return nodes.slice(1).flatMap((node, index) => {
@@ -147,6 +186,7 @@ export function scheduleCourse(nodes: CourseNode[], start: string, end: string, 
     if (node.notBefore && cursor > (node.notBefore < 900 ? 14 * 60 : 20 * 60)) errors.push('식사 시간이 너무 늦어요. 앞의 장소나 체류시간을 조정해 주세요.');
     const arrival = cursor;
     if (!Number.isInteger(node.place.durationMinutes) || node.place.durationMinutes < 10 || node.place.durationMinutes > 600) errors.push('머무는 시간은 10~600분으로 입력해 주세요.');
+    if (node.place.type === '카페' && node.place.durationMinutes < 30) errors.push('카페는 최소 30분으로 잡아 주세요.');
     cursor += node.place.durationMinutes;
     return { node, arrival, departure: cursor, wait, travel, route, manual: index > 0 && !route && travel != null };
   });
@@ -156,8 +196,11 @@ export function scheduleCourse(nodes: CourseNode[], start: string, end: string, 
 }
 export function courseDay(day: TripDay, nodes: CourseNode[], start: string, end: string, routes: DayRouteResult[], exclusions: Record<string, string>, manualTravel: Record<string, number> = {}): TripDay {
   if (!nodes.length || nodes.length > 12) throw Error('하루에 1~12개 장소를 담아 주세요.');
-  const ids = nodes.flatMap(n => n.place.tourism ? [n.place.tourism.contentId] : []);
-  if (new Set(ids).size !== ids.length || ids.some(id => exclusions[id])) throw Error('여행에 이미 담은 장소가 있어요. 중복 장소를 바꿔 주세요.');
+  const used = { ...exclusions };
+  for (const node of nodes) {
+    if (excludedPlace(node.place, used)) throw Error('여행에 이미 담은 장소가 있어요. 중복 장소를 바꿔 주세요.');
+    placeKeys(node.place).forEach(key => { used[key] = '이날 담음'; });
+  }
   const schedule = scheduleCourse(nodes, start, end, routes, manualTravel, day.date);
   if (schedule.errors.length) throw Error(schedule.errors[0]);
   return { ...day, blocks: schedule.stops.map(({ node, arrival, departure, route, travel, manual }, index) => ({ id: newId(), title: arrival < 720 ? '오전의 여행' : arrival < 1080 ? '오후의 발견' : '저녁의 여유', area: node.place.address.slice(0, 160), startTime: clock(arrival), endTime: clock(departure), notes: [node.originalNotes?.split('\n').filter(line => !/^(조회한 이동|직접 입력한 이동|운영 안내:|휴무 안내:|운영시간 확인 필요|방문일 운영 여부)/.test(line)).join('\n'), index ? `${manual ? '직접 입력한' : '조회한'} 이동 ${travel}분${route?.parkingMinutes ? ` (주차 여유 ${route.parkingMinutes}분 포함)` : ''}` : '', node.reason, node.planning?.hours ? `운영 안내: ${node.planning.hours}` : '운영시간 확인 필요', node.planning?.closed ? `휴무 안내: ${node.planning.closed}` : '', '방문일 운영 여부와 예약을 확인해 주세요.'].filter(Boolean).join('\n').slice(0, 1000), places: [{ ...node.place, travelMinutes: undefined }] })) };

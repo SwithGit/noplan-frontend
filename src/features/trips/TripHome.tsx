@@ -1,3 +1,4 @@
+import { useDesktop } from '../mobile/useDesktop';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { listTrips } from '../../api/tripsApi';
@@ -9,14 +10,22 @@ import { TripIcon } from './TripIcon';
 import { TourismPicker } from './TourismPicker';
 import { setTourismAnchor } from './tourismModel';
 import type { TourismAttraction } from '../../api/tourismApi';
+import { courseDistanceLabel } from './coursePolicy';
 import './trips.css';
 
+function readTransport(key: string): TripDocument['transport'] {
+  try { const value = localStorage.getItem(key); return value === 'car' || value === 'transit' ? value : 'walk'; } catch { return 'walk'; }
+}
+
 export function TripHome({ user, libraryOnly=false }: { user: UserSession | null; libraryOnly?:boolean }) {
+  const desktop = useDesktop();
   const navigate = useNavigate();
   const [destination, setDestination] = useState('서울');
   const [startDate, setStartDate] = useState(tomorrow);
   const [endDate, setEndDate] = useState(tomorrow);
-  const [transport, setTransport] = useState<TripDocument['transport']>('walk');
+  const transportKey = `noplan.trip.transport:${user?.userId || 'guest'}`;
+  const [transport, setTransport] = useState<TripDocument['transport']>(() => readTransport(transportKey));
+  const selectTransport = (value: TripDocument['transport']) => { setTransport(value); try { localStorage.setItem(transportKey, value); } catch { /* Trip creation still works without browser storage. */ } };
   const [outbound, setOutbound] = useState<TripDocument['outbound']>('local');
   const [companion, setCompanion] = useState('친구');
   const [trips, setTrips] = useState<TripRecord[]>([]);
@@ -64,17 +73,17 @@ export function TripHome({ user, libraryOnly=false }: { user: UserSession | null
         <label><span><TripIcon name="pin" /> 어디로 떠날까요?</span><input aria-label="여행 목적지" maxLength={100} required value={destination} onChange={event => setDestination(event.target.value)} placeholder="도시 또는 지역" /></label>
         <label><span>가는 날</span><input aria-label="여행 시작일" type="date" required value={startDate} onChange={event => { setStartDate(event.target.value); if (event.target.value > endDate) setEndDate(event.target.value); }} /></label>
         <label><span>오는 날</span><input aria-label="여행 종료일" type="date" required min={startDate} value={endDate} onChange={event => setEndDate(event.target.value)} /></label>
-        <button className="trip-button primary" type="submit">여행 만들기 <TripIcon name="arrow" /></button>
       </div>
       <div className="trip-create-options">
         <label>함께하는 사람<select aria-label="여행 동행" value={companion} onChange={e => setCompanion(e.target.value)}>{['혼자', '친구', '연인', '가족', '동료'].map(value => <option key={value}>{value}</option>)}</select></label>
         <label>여행지까지<select aria-label="여행지까지 이동" value={outbound} onChange={e => setOutbound(e.target.value as TripDocument['outbound'])}>{Object.entries(outboundLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
-        <label>여행지 안에서<select aria-label="현지 이동 방식" value={transport} onChange={e => setTransport(e.target.value as TripDocument['transport'])}>{Object.entries(transportLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
       </div>
+      <fieldset className="trip-transport-choice"><legend>여행지에서는 어떻게 이동할까요?</legend><p>이 선택으로 노피가 코스를 만들어요. 일정에서도 그대로 이어져요.</p><div role="radiogroup" aria-label="현지 이동 방식">{(['walk', 'car', 'transit'] as const).map(value => <button type="button" role="radio" aria-checked={transport === value} key={value} onClick={() => selectTransport(value)}><span className="trip-transport-check"><TripIcon name="check" /></span><strong>{transportLabels[value]}</strong><small>{value === 'walk' ? '가까운 곳을 천천히 · 이동 최대 1km' : value === 'car' ? '자가용 또는 렌터카 · 이동 최대 7km' : '대중교통으로 이동 · 코스 직접 편집'}</small></button>)}</div></fieldset>
       <div className="trip-home-tourism"><div><span className="trip-eyebrow">여행의 중심이 될 곳</span><h3>{attraction?.name || '꼭 가고 싶은 관광지가 있나요?'}</h3><p>{attraction ? `${attraction.address} · 관람 ${visitDuration}분` : '관광지를 고르면 오전·오후·저녁의 중심 일정으로 담아드려요.'}</p></div><div className="tourism-home-actions"><button className="trip-button" type="button" onClick={() => setPickingTourism(true)}><TripIcon name="pin" />{attraction ? '관광지 변경' : '관광지부터 고르기'}</button>{attraction && <button className="trip-text-link" type="button" onClick={() => setAttraction(undefined)}>선택 해제</button>}</div>{attraction && <div className="trip-form-row tourism-home-schedule"><label className="trip-field">방문 날짜<input type="date" required min={startDate} max={endDate} value={visitDate || startDate} onChange={e => setVisitDate(e.target.value)} /></label><label className="trip-field">방문 구간<select value={visitSlot} onChange={e => setVisitSlot(Number(e.target.value))}><option value={0}>오전 · 09:00–12:00</option><option value={1}>오후 · 13:00–17:00</option><option value={2}>저녁 · 18:00–21:00</option></select></label></div>}</div>
+      <div className="trip-create-submit"><span><b>{transportLabels[transport]}</b>로 여행해요<small>{transport === 'transit' ? '대중교통 자동 추천은 준비 중이에요.' : `자동 코스는 장소 사이 실제 이동 ${courseDistanceLabel(transport)} 이내로 연결해요.`}</small></span><button className="trip-button primary" type="submit">여행 만들기 <TripIcon name="arrow" /></button></div>
     </form>
     {pickingTourism && <TourismPicker destination={destination} initial={attraction} initialDuration={visitDuration} context="선택할 여행 구간" onClose={() => setPickingTourism(false)} onSelect={(place, duration) => { setAttraction(place); setVisitDuration(duration); setPickingTourism(false); }} />}
-    <div className="trip-home-caption"><span>주변 코스는 도보 1.5km, 자가용·렌터카 10km 범위에서 찾아요. 등록된 장소가 없는 지역은 실시간 검색으로 찾으며 가격·리뷰 확인이 필요해요.</span><Link to={ROUTES.quickHome}>지금 주변 코스만 찾기 <TripIcon name="arrow" /></Link></div>
+    <div className="trip-home-caption"><span>울산 노피 코스는 도보 1km·차량 7km 이내의 실제 경로로 연결해요. 가까운 후보가 부족하면 거리를 자동으로 늘리지 않고 안내해요.</span>{!desktop && <Link to={ROUTES.quickHome}>지금 주변 코스만 찾기 <TripIcon name="arrow" /></Link>}</div>
     {!libraryOnly&&<div className="m-desktop-only"><Link className="pc-event-entry" to={ROUTES.events}><TripIcon name="calendar"/><div><strong>여행 날짜에 어떤 축제·전시가 열릴까요?</strong><small>가고 싶은 경험을 먼저 고르고, 내 여행에 담아보세요.</small></div><TripIcon name="arrow"/></Link></div>}
     {error && <div className="trip-alert" role="alert">{error}{user && <button onClick={() => { setLoading(true); setReload(value => value + 1); }} type="button">다시 불러오기</button>}</div>}
     <section className="trip-library"><header><div><span className="trip-eyebrow">MY JOURNEYS</span><h2>다음 여행이 기다리고 있어요</h2></div>{libraryOnly?<><Link className="trip-button primary m-desktop-only" to={ROUTES.newTrip}>새 여행 만들기</Link><span className="trip-muted m-mobile-only">{user ? `${user.userNick}님의 여행` : '나만의 여행 노트'}</span></>:<span className="trip-muted">{user ? `${user.userNick}님의 여행` : '나만의 여행 노트'}</span>}</header>
