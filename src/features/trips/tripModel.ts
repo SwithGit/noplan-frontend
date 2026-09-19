@@ -107,6 +107,10 @@ export function readDrafts(userId?: string): TripRecord[] {
   } catch { return []; }
 }
 export function readDraft(userId?: string) { return readDrafts(userId)[0] || null; }
+export function removeDraft(id: string, userId?: string) {
+  const remaining = readDrafts(userId).filter(trip => trip.id !== id);
+  localStorage.setItem(draftKey(userId), JSON.stringify(remaining));
+}
 export function writeDraft(trip: TripRecord, userId?: string) {
   const previous = readDrafts(userId).filter(item => item.id !== trip.id);
   if (previous.length >= 30) throw new Error('브라우저에 보관할 수 있는 초안 수를 초과했어요.');

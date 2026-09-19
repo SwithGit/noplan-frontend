@@ -5,6 +5,11 @@ export async function listTrips() {
   const result = await apiJson<{ success: boolean; trips: TripRecord[] }>('/api/trips');
   return result.trips;
 }
+export function deleteTrip(trip: TripRecord) {
+  return apiJson<{ success: boolean; action: 'deleted' | 'left' }>(`/api/trips/${encodeURIComponent(trip.id)}`, {
+    method: 'DELETE', signal: AbortSignal.timeout(15000), body: JSON.stringify({ version: trip.version }),
+  });
+}
 export async function getTrip(id: string) {
   const result = await apiJson<{ success: boolean; trip: TripRecord }>(`/api/trips/${encodeURIComponent(id)}`, { signal: AbortSignal.timeout(15000) });
   return result.trip;
