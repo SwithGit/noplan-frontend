@@ -84,6 +84,58 @@ test('real road comparisons can select a different order from straight-line rank
   assert.equal(result.meters, 600); assert.deepEqual(Array.from(result.nodes, n => n.place.name), ['출발 명소', '커피집', '백화점']);
 });
 
+test('one unroutable place is replaced and all remaining legs still pass real distance checks', async () => {
+  for (const transport of ['walk', 'car']) {
+    const opts = { ...options, transport };
+    const blocked = model.suggestCourse(catalog, opts, {})[0].place.lat;
+    let calls = 0;
+    const query = async (_, legs) => {
+      calls++;
+      return { legs: legs.map(leg => leg.from.lat === blocked || leg.to.lat === blocked
+        ? { id: leg.id, status: 'unavailable', reason: 'no_route', providerResultCode: leg.from.lat === blocked ? 102 : 103 }
+        : { id: leg.id, status: 'ok', durationMinutes: 5, distanceMeters: 300 }) };
+    };
+    const result = await routing.generateNearbyCourse(catalog, opts, {}, query, new AbortController().signal);
+    assert.ok(result.nodes.every(node => node.place.lat !== blocked));
+    assert.equal(result.routes.length, result.nodes.length - 1);
+    assert.ok(result.routes.every(route => routing.routeWithinLimit(route, transport)));
+    assert.match(result.notice, /경로.*제외/);
+    assert.ok(calls > 1 && calls <= 9);
+  }
+});
+
+test('a missing directed route is not retried when trying another order or nearby candidates', async () => {
+  let blocked;
+  const seen = new Set();
+  const query = async (_, legs) => ({ legs: legs.map(leg => {
+    const key = JSON.stringify([leg.from, leg.to]);
+    blocked ||= key;
+    assert.ok(!seen.has(key), 'cached routes should not make duplicate provider requests');
+    seen.add(key);
+    return key === blocked ? { id: leg.id, status: 'unavailable', reason: 'no_route', providerResultCode: 104 }
+      : { id: leg.id, status: 'ok', durationMinutes: 5, distanceMeters: 300 };
+  }) });
+  const result = await routing.generateNearbyCourse(catalog, options, {}, query, new AbortController().signal);
+  assert.ok(result.routes.every(route => route.status === 'ok'));
+  assert.ok(model.courseLegs(result.nodes).every(leg => JSON.stringify([leg.from, leg.to]) !== blocked));
+});
+
+test('provider outages, quota errors, missing legs and malformed results do not trigger place replacement', async () => {
+  for (const failure of [{ status: 'unavailable', reason: 'rate_limited' }, { status: 'unavailable', reason: 'service_unavailable' }, { status: 'unavailable', reason: 'provider_unavailable' }, { status: 'unavailable', reason: 'route_unavailable' }, { status: 'ok', durationMinutes: 5 }, null]) {
+    let calls = 0;
+    const query = async (_, legs) => { calls++; return { legs: failure ? legs.map(leg => ({ id: leg.id, ...failure })) : [] }; };
+    await assert.rejects(routing.generateNearbyCourse(catalog, options, {}, query, new AbortController().signal), /확인|한도/);
+    assert.equal(calls, 1);
+  }
+});
+
+test('route replacement is bounded even when every candidate has no route', async () => {
+  let calls = 0;
+  const query = async (_, legs) => { calls++; return { legs: legs.map(leg => ({ id: leg.id, status: 'unavailable', reason: 'no_route', providerResultCode: 1 })) }; };
+  await assert.rejects(routing.generateNearbyCourse(catalog, options, {}, query, new AbortController().signal), /이내|가까운/);
+  assert.ok(calls <= 9);
+});
+
 test('saved transport is inherited, explicit per-day changes persist, transit is not silently converted', () => {
   const doc = make(); doc.transport = 'walk';
   assert.equal(policy.effectiveTransport(doc, doc.days[0]), 'walk');

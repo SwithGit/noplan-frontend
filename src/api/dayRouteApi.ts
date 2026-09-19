@@ -10,6 +10,7 @@ export interface DayRouteResult {
   parkingMinutes?: number;
   source?: string;
   reason?: string;
+  providerResultCode?: number;
 }
 export async function getDayRoutes(transport: TripDocument['transport'], legs: { id: string; from: RoutePoint; to: RoutePoint }[], signal: AbortSignal, operationId?: string) {
   return apiJson<{ legs: DayRouteResult[] }>('/api/tourism/day-route', {
