@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { getDayRoutes, type DayRouteResult } from '../../api/dayRouteApi';
 import { DayRouteMap } from './DayRouteMap';
 import { dayRouteLegs, moveDayOuting, orderedBlocks, routePoint, type RoutePoint } from './dayRouteModel';
+import { tripExclusions } from './nopiModel';
 import { TourismPicker } from './TourismPicker';
 import { attractionFromPlace, setTourismAnchor } from './tourismModel';
 import { TripDialog } from './TripDialog';
@@ -16,7 +17,7 @@ export function DayRouteDialog({ document, dayId, disabled, onClose, onApply }: 
   onApply: (day: TripDay, transport: TripDocument['transport'], baseline: string) => void;
 }) {
   const [draft, setDraft] = useState(() => document.days.find(day => day.id === dayId)!);
-  const [transport, setTransport] = useState(document.transport);
+  const [transport, setTransport] = useState(draft.transport || document.transport);
   const [baseline] = useState(() => JSON.stringify(document));
   const [activeId, setActiveId] = useState(draft.blocks[0]?.id || '');
   const [pickerId, setPickerId] = useState<string | null>(null);
@@ -36,7 +37,7 @@ export function DayRouteDialog({ document, dayId, disabled, onClose, onApply }: 
   }), [draft]);
   const pickerBlock = draft.blocks.find(block => block.id === pickerId);
   const pickerAnchor = pickerBlock?.places.find(place => place.tourism);
-  const changed = baseline !== JSON.stringify({ ...document, transport, days: document.days.map(day => day.id === dayId ? draft : day) });
+  const changed = transport !== (document.days.find(day => day.id === dayId)?.transport || document.transport) || baseline !== JSON.stringify({ ...document, days: document.days.map(day => day.id === dayId ? draft : day) });
 
   useEffect(() => {
     const payload = JSON.parse(request) as { transport: TripDocument['transport']; legs: { id: string; from: RoutePoint; to: RoutePoint }[] };
@@ -101,11 +102,12 @@ export function DayRouteDialog({ document, dayId, disabled, onClose, onApply }: 
           <p className="day-route-list-note">이동 여유는 앞 구간 종료부터 다음 구간 시작까지 계산해요. 구간 내 미확인 이동은 기존 일정의 임시 시간(15분)을 사용하며, 영업시간과 방문일 교통 상황은 별도 확인이 필요해요.</p>
         </section>
       </div>
-      <footer className="day-route-footer">{applyError && <p className="trip-alert" role="alert">{applyError}</p>}<div><strong>{changed ? '바꾼 동선을 일정에 반영할까요?' : '하루 동선을 확인했어요'}</strong><span>{transport !== document.transport ? '이동수단 변경은 여행 전체에 적용돼요.' : '장소 순서와 교체 내용은 반영 버튼을 눌러야 저장돼요.'}</span></div><button className="trip-button" type="button" onClick={close}>닫기</button><button className="trip-button primary" type="button" disabled={disabled} onClick={() => { try { onApply(draft, transport, baseline); } catch (cause) { setApplyError(cause instanceof Error ? cause.message : '일정을 반영하지 못했어요. 다시 시도해 주세요.'); } }}>{changed ? '변경한 동선 반영' : '확인하고 돌아가기'}<TripIcon name="check" /></button></footer>
+      <footer className="day-route-footer">{applyError && <p className="trip-alert" role="alert">{applyError}</p>}<div><strong>{changed ? '바꾼 동선을 일정에 반영할까요?' : '하루 동선을 확인했어요'}</strong><span>{transport !== (draft.transport || document.transport) ? '이동수단 변경은 이날 일정에 적용돼요.' : '장소 순서와 교체 내용은 반영 버튼을 눌러야 저장돼요.'}</span></div><button className="trip-button" type="button" onClick={close}>닫기</button><button className="trip-button primary" type="button" disabled={disabled} onClick={() => { try { onApply(draft, transport, baseline); } catch (cause) { setApplyError(cause instanceof Error ? cause.message : '일정을 반영하지 못했어요. 다시 시도해 주세요.'); } }}>{changed ? '변경한 동선 반영' : '확인하고 돌아가기'}<TripIcon name="check" /></button></footer>
     </TripDialog>
-    {pickerBlock && <TourismPicker destination={document.destination} initial={pickerAnchor ? attractionFromPlace(pickerAnchor) : undefined} initialDuration={pickerAnchor?.durationMinutes} context={`${shortDate(draft.date)} · ${pickerBlock.title}`} onClose={() => setPickerId(null)} onSelect={(place, duration) => {
-      const next = setTourismAnchor({ ...document, days: [draft] }, draft.id, pickerBlock.id, place, duration);
-      setDraft({ ...next.days[0], blocks: next.days[0].blocks.map(block => block.id === pickerBlock.id ? { ...block, places: block.places.map(item => ({ ...item, travelMinutes: undefined })) } : block) });
+    {pickerBlock && <TourismPicker destination={document.destination} initial={pickerAnchor ? attractionFromPlace(pickerAnchor) : undefined} initialDuration={pickerAnchor?.durationMinutes} disabledPlaces={tripExclusions({ ...document, days: document.days.map(day => day.id === draft.id ? draft : day) }, undefined, pickerAnchor?.id)} context={`${shortDate(draft.date)} · ${pickerBlock.title}`} onClose={() => setPickerId(null)} onSelect={(place, duration) => {
+      const next = setTourismAnchor({ ...document, days: document.days.map(day => day.id === draft.id ? draft : day) }, draft.id, pickerBlock.id, place, duration);
+      const changedDay = next.days.find(day => day.id === draft.id)!;
+      setDraft({ ...changedDay, blocks: changedDay.blocks.map(block => block.id === pickerBlock.id ? { ...block, places: block.places.map(item => ({ ...item, travelMinutes: undefined })) } : block) });
       setActiveId(pickerBlock.id); setPickerId(null);
     }} />}
   </>;

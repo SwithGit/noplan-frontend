@@ -2,7 +2,7 @@ import { apiJson } from './client';
 
 export interface TourismAttraction {
   contentId: string;
-  contentTypeId: '12' | '14' | '28' | '25' | '38';
+  contentTypeId: '12' | '14' | '28' | '25' | '38' | '39';
   name: string;
   type: string;
   address: string;

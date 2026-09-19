@@ -14,11 +14,11 @@ export interface TripPlace {
   sourceUrl: string;
   candidateSource?: 'catalog' | 'live';
   priceNeedsCheck?: boolean;
-  tourism?: { contentId: string; contentTypeId: '12' | '14' | '28' | '25' | '38' };
+  tourism?: { contentId: string; contentTypeId: '12' | '14' | '28' | '25' | '38' | '39' };
   event?: {id: string; startDate: string; endDate: string; hours: string};
 }
 export interface TripBlock { id: string; title: string; area: string; startTime: string; endTime: string; notes: string; places: TripPlace[] }
-export interface TripDay { id: string; date: string; blocks: TripBlock[] }
+export interface TripDay { id: string; date: string; transport?: 'walk' | 'transit' | 'car'; blocks: TripBlock[] }
 export interface TripDocument {
   title: string; destination: string; startDate: string; endDate: string;
   outbound: 'undecided' | 'train' | 'bus' | 'flight' | 'car' | 'local';
@@ -58,7 +58,7 @@ export function resetChangedTravel(previous: TripDocument, next: TripDocument): 
       const oldBlock = oldDay?.blocks.find(item => item.id === block.id);
       return { ...block, places: block.places.map((place, index) => {
         if (place.travelMinutes == null || !oldBlock?.places.some(p => p.id === place.id)) return place;
-        const changed = previous.transport !== next.transport || oldDay?.date !== day.date
+        const changed = (oldDay?.transport || previous.transport) !== (day.transport || next.transport) || oldDay?.date !== day.date
           || oldBlock.startTime !== block.startTime || oldBlock.area !== block.area
           || signature(oldBlock.places.slice(0, index + 1)) !== signature(block.places.slice(0, index + 1));
         return changed ? { ...place, travelMinutes: undefined } : place;

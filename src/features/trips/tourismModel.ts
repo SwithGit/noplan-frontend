@@ -5,8 +5,8 @@ export function setTourismAnchor(document: TripDocument, dayId: string, blockId:
   const day = document.days.find(item => item.id === dayId), block = day?.blocks.find(item => item.id === blockId);
   if (!day || !block) throw new Error('관광지를 담을 날짜와 구간을 다시 선택해 주세요.');
   if (!Number.isInteger(durationMinutes) || durationMinutes < 10 || durationMinutes > 600) throw new Error('관람시간은 10~600분으로 입력해 주세요.');
-  if (!/^\d{1,20}$/.test(attraction.contentId) || !['12', '14', '28', '25', '38'].includes(attraction.contentTypeId) || !attraction.name || !Number.isFinite(attraction.lat) || !Number.isFinite(attraction.lng) || attraction.lat < 33 || attraction.lat > 39 || attraction.lng < 124 || attraction.lng > 132) throw new Error('관광지 위치를 확인할 수 없어요. 다시 검색해 주세요.');
-  if (day.blocks.some(item => item.id !== blockId && item.places.some(place => place.tourism?.contentId === attraction.contentId))) throw new Error('이 날짜의 다른 구간에 이미 담은 관광지예요.');
+  if (!/^\d{1,20}$/.test(attraction.contentId) || !['12', '14', '28', '25', '38', '39'].includes(attraction.contentTypeId) || !attraction.name || !Number.isFinite(attraction.lat) || !Number.isFinite(attraction.lng) || attraction.lat < 33 || attraction.lat > 39 || attraction.lng < 124 || attraction.lng > 132) throw new Error('관광지 위치를 확인할 수 없어요. 다시 검색해 주세요.');
+  if (document.days.some(item => item.blocks.some(segment => segment.id !== blockId && segment.places.some(place => place.tourism?.contentId === attraction.contentId)))) throw new Error('이 여행의 다른 일정에 이미 담은 장소예요.');
   const previous = block.places.find(place => place.tourism);
   const anchor: TripPlace = { id: previous?.id || newId(), name: attraction.name, type: attraction.type, address: attraction.address, lat: attraction.lat, lng: attraction.lng, durationMinutes, fixed: true, source: 'tourism', sourceUrl: attraction.sourceUrl, priceNeedsCheck: true, tourism: { contentId: attraction.contentId, contentTypeId: attraction.contentTypeId } };
   const next = { ...block, area: attraction.address.slice(0, 160) || attraction.name, places: [anchor, ...block.places.filter(place => !place.tourism)] };

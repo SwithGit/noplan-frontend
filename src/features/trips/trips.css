@@ -311,7 +311,7 @@
 .tourism-home-schedule { width: 100%; }
 .tourism-home-schedule .trip-field { margin: 0; }
 .tourism-home-schedule input { width: 100%; min-width: 0; height: 42px; padding: 10px 12px; border: 1px solid #e8ddef; border-radius: 9px; background: #fefcff; color: #685171; font: inherit; font-size: 14px; }
-.tourism-anchor-label { margin: -3px 0 12px; color: #8466b1; font-size: 12px; font-weight: 600; }
+.tourism-anchor-label { margin: 0 21px 12px; color: #8466b1; font-size: 12px; font-weight: 600; }
 .tourism-anchor-panel { display: grid; gap: 12px; background: #f8f5fc; border: 1px solid #e8e0f0; padding: 16px; border-radius: 14px; margin-bottom: 20px; }
 .tourism-anchor-panel strong { line-height: 1.5; }
 .tourism-anchor-panel .trip-muted { margin: 0; }
@@ -325,3 +325,25 @@
 .trip-invite-controls { display: grid; gap: 12px; margin-top: 20px; }
 .trip-invite-controls input { width: 100%; margin-top: 8px; padding: 12px; border: 1px solid #ddcfea; border-radius: 8px; }
 .trip-join > .trip-text-link { display: block; margin-top: 24px; }
+
+.trip-segment-heading { display:flex; align-items:center; gap:16px; padding-right:21px; }
+.trip-segment-heading-copy { flex:1; min-width:0; }
+.trip-segment-heading .trip-place-photo { flex:0 0 176px; margin:18px 0; }
+.trip-place-photo { position:relative; overflow:hidden; margin:0; border-radius:10px; background:#f3f0f6; }
+.trip-place-photo img { display:block; width:100%; height:118px; object-fit:contain; }
+.trip-place-photo figcaption { padding:4px 5px; text-align:center; color:#8b8095; background:#faf8fc; font-size:9px; line-height:1.4; }
+.trip-place-photo-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px; height:118px; color:#b2a5c2; font-size:11px; }
+.trip-place-photo-empty .trip-icon { width:27px; height:27px; }
+.trip-overview-place { display:flex; align-items:center; gap:16px; min-width:0; }
+.trip-overview-place>.trip-place-photo { flex:0 0 100px; }
+.trip-overview-place .trip-place-photo img,.trip-overview-place .trip-place-photo-empty { height:72px; }
+.trip-overview-place>.trip-place-photo figcaption { font-size:8px; }
+.trip-stop-list small + small { display:block; margin-top:3px; }
+@media(max-width:640px) {
+  .trip-segment-heading { padding-right:15px; gap:0; }
+  .trip-segment-heading .trip-place-photo { flex-basis:104px; }
+  .trip-segment-heading .trip-place-photo img,.trip-segment-heading .trip-place-photo-empty { height:90px; }
+  .tourism-anchor-label { margin-left:15px; margin-right:15px; }
+  .trip-overview-place { gap:10px; }
+  .trip-overview-place>.trip-place-photo { flex-basis:72px; }
+}

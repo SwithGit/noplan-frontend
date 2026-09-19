@@ -1,0 +1,47 @@
+.nopi-dialog.trip-dialog{width:min(1600px,97vw);max-width:none;height:94dvh;max-height:96dvh;padding:0;display:flex;flex-direction:column;overflow:hidden;background:#fff}
+.nopi-dialog>header{padding:18px 28px;border-bottom:1px solid #eee8f5;flex-shrink:0}
+.nopi-dialog>header h2{font-size:18px}
+.nopi-headline{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:20px 28px 12px}
+.nopi-headline h3{margin:7px 0;font-size:24px;letter-spacing:-.7px;color:#302840}
+.nopi-headline p{margin:0;color:#867a95;font-size:12px}
+.nopi-mode{display:flex;gap:4px;background:#f4f0fa;padding:5px;border-radius:14px;flex-shrink:0}
+.nopi-mode button{border:0;border-radius:10px;padding:13px 18px;display:flex;align-items:center;gap:6px;background:none;color:#776a88;font:inherit;font-size:13px;cursor:pointer}
+.nopi-mode button[aria-pressed=true]{background:#fff;color:#7046bc;box-shadow:0 2px 10px #3a1b6612;font-weight:700}
+.nopi-settings{border:0;border-bottom:1px solid #eee8f5;margin:0;display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px;padding:14px 28px 18px;background:#fcfbfe;min-width:0}
+.nopi-settings label{display:flex;flex-direction:column;gap:6px;font-size:11px;color:#7c6e8c}
+.nopi-settings input,.nopi-settings select{font:inherit;font-size:12px;color:#342943;border:1px solid #e4dcee;background:#fff;border-radius:9px;height:38px;padding:0 10px;min-width:95px}
+.nopi-profile{display:flex;gap:8px}
+.nopi-generate{margin-left:auto;min-height:42px}
+.nopi-generate img{width:27px;height:27px;object-fit:contain}
+.nopi-status{padding:9px 28px;color:#897991;display:flex;gap:16px;align-items:center;font-size:11px;background:#fff;flex-shrink:0;min-height:34px;flex-wrap:wrap}
+.nopi-status>span{margin-left:auto;color:#7551ad}
+.nopi-workbench{display:grid;grid-template-columns:minmax(360px,1fr) minmax(500px,.95fr);flex:1;min-height:0;border-top:1px solid #eee8f5}
+.nopi-map-pane{position:relative;min-height:280px;overflow:hidden;background:#f2f0f6}
+.nopi-map-caption{position:absolute;z-index:4;left:20px;right:20px;bottom:20px;padding:14px 18px;display:flex;flex-direction:column;gap:4px;border:1px solid #eee8f5;background:#fffffff5;border-radius:14px;box-shadow:0 5px 24px #33214412;pointer-events:none}
+.nopi-map-caption strong{font-size:14px;color:#3a2c4c}.nopi-map-caption span,.nopi-map-caption small{font-size:11px;color:#887b96}
+.nopi-route-pane{overflow:auto;padding:22px 26px 32px;min-height:0;border-left:1px solid #eee8f5;background:#faf9fd;scrollbar-width:thin;scrollbar-color:#d7cae7 transparent}
+.nopi-route-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}.nopi-route-heading h3{font-size:20px;margin:5px 0;color:#332942}
+.nopi-empty{text-align:center;padding:55px 20px;color:#8a7c98}.nopi-empty>img{width:88px;height:88px;object-fit:contain}.nopi-empty h3{color:#4b385e}.nopi-empty p{font-size:13px;line-height:1.8;white-space:pre-line}
+.nopi-stop{background:#fff;border:1px solid #e7deef;border-radius:16px;overflow:hidden;transition:border-color .15s}.nopi-stop.selected{border-color:#ae8cda;box-shadow:0 3px 15px #6738990a}
+.nopi-stop-overview{display:flex;align-items:center;gap:12px;width:100%;padding:18px;text-align:left;border:0;background:none;cursor:pointer;color:inherit;font:inherit}
+.nopi-stop-overview>b{width:28px;height:28px;flex-shrink:0;display:grid;place-items:center;background:#8c64c4;color:white;border-radius:50%;font-size:12px}
+.nopi-stop-overview img{width:82px;height:72px;object-fit:contain;background:#f3f0f6;border-radius:8px}
+.nopi-stop-overview>div{min-width:0;flex:1}.nopi-stop-overview span{font-size:11px;color:#9079a6}.nopi-stop-overview h4{margin:6px 0;font-size:17px;color:#342c42}.nopi-stop-overview p{font-size:11px;color:#908499;margin:0;line-height:1.6}
+.nopi-photo-credit{display:block;padding:0 18px 6px;text-align:right;font-size:9px;color:#aaa1b5}
+.nopi-reason{margin:0 18px 12px;color:#9274ae;font-size:11px;line-height:1.7}
+.nopi-facts{margin:0 18px 12px;color:#807187;font-size:12px;line-height:1.7}.nopi-facts summary{cursor:pointer;color:#72519b}.nopi-facts p{white-space:pre-line;margin:6px 0}
+.nopi-stop-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px;padding:11px 16px;background:#fdfbff;border-top:1px solid #f0eaf6;font-size:11px;color:#8a759d}
+.nopi-stop-actions label{display:flex;align-items:center;gap:5px}.nopi-stop-actions input,.nopi-leg input{width:56px;border:1px solid #dfd3eb;border-radius:6px;padding:6px;color:#654389;background:#fff}
+.nopi-stop-actions>div{display:flex;margin-left:auto;gap:4px}.nopi-stop-actions>div button{width:27px;height:27px;border:0;background:none;color:#8a759d;cursor:pointer;display:grid;place-items:center}.nopi-stop-actions>div button:disabled{opacity:.3}
+.nopi-stop-actions a{color:#8a759d;text-decoration:none}.nopi-stop-actions svg{width:15px;height:15px}
+.nopi-leg{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 0 30px;padding:12px 0 12px 22px;border-left:1px dashed #d7c6e7;color:#9c8bae;font-size:11px;min-height:42px}
+.nopi-footer{display:flex;align-items:center;gap:10px;padding:16px 28px;border-top:1px solid #eee8f5;background:white;flex-shrink:0}.nopi-footer>div{display:flex;flex-direction:column;gap:6px;margin-right:auto}.nopi-footer strong{font-size:13px;color:#594167}.nopi-footer span{font-size:11px;color:#9a8ba5}.nopi-footer .trip-button{font-size:12px}
+.nopi-dialog>.trip-alert{margin:4px 28px 8px;flex-shrink:0}
+.trip-timeline-actions{flex-wrap:wrap}.trip-timeline-header{flex-wrap:wrap;gap:16px}
+.tourism-card:disabled{opacity:.48;cursor:not-allowed}.tourism-card:disabled .tourism-card-action{color:#856999}
+.trip-overview-dialog.trip-dialog{width:min(1160px,95vw);max-width:none;max-height:92dvh;padding:0}.trip-overview-dialog>header{padding:22px 28px}.trip-overview-intro{padding:0 28px 20px;color:#877596;font-size:13px}.trip-overview-days{padding:0 28px 30px;display:grid;gap:24px}.trip-overview-day{border:1px solid #e9e0f2;border-radius:18px;overflow:hidden}.trip-overview-day>header{display:flex;justify-content:space-between;align-items:center;padding:18px 24px;background:#f8f5fc}.trip-overview-day h3{margin:5px 0;color:#392b4b}.trip-overview-day>header>div:last-child{display:flex;gap:8px}.trip-overview-stop{display:grid;grid-template-columns:110px 32px 1fr auto;align-items:center;gap:15px;padding:18px 24px;border-top:1px solid #f3edf8}.trip-overview-stop>span{font-size:12px;color:#a18dab}.trip-overview-stop>b{display:grid;place-items:center;border-radius:50%;background:#f0e8fa;color:#9370bc;width:26px;height:26px;font-size:11px}.trip-overview-stop h4{margin:0 0 5px;color:#45324f}.trip-overview-stop p{font-size:12px;color:#9b8ba4;margin:0}.trip-overview-stop a{font-size:11px;color:#977caf}.trip-overview-day>.trip-muted{padding:20px 24px}
+@media(max-width:1050px){.nopi-headline{align-items:flex-start}.nopi-headline h3{font-size:20px}.nopi-workbench{grid-template-columns:minmax(280px,.8fr) minmax(440px,1fr)}.nopi-settings{gap:8px}.nopi-settings label{font-size:10px}.nopi-stop-overview img{width:60px;height:60px}.nopi-footer span{max-width:280px}}
+@media(max-width:760px){.nopi-dialog.trip-dialog{width:100vw;height:100dvh;max-height:100dvh;border-radius:0}.nopi-headline{flex-direction:column;padding:12px 16px}.nopi-headline p{display:none}.nopi-settings{padding:10px 16px;max-height:190px;overflow:auto}.nopi-status{padding:8px 16px}.nopi-workbench{display:block;overflow:auto}.nopi-map-pane{height:230px;min-height:230px}.nopi-map-caption{left:10px;right:10px;bottom:10px;padding:8px}.nopi-map-caption small{display:none}.nopi-route-pane{overflow:visible;padding:16px}.nopi-footer{flex-wrap:wrap;padding:12px 16px}.nopi-footer>div{width:100%}.nopi-footer span{display:none}.nopi-stop-actions{gap:8px}.trip-overview-stop{grid-template-columns:75px 25px 1fr;padding:15px;gap:8px}.trip-overview-stop>a{grid-column:3}.trip-overview-day>header{flex-wrap:wrap;gap:12px}}
+
+.nopi-settings[hidden]{display:none}
+@media(min-width:761px) and (max-height:820px){.nopi-dialog>header{padding:12px 24px}.nopi-headline{padding:12px 24px}.nopi-headline p{display:none}.nopi-headline h3{font-size:20px;margin:4px 0}.nopi-settings{padding:10px 24px 12px}.nopi-footer{padding:12px 24px}}
