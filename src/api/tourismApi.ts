@@ -29,3 +29,21 @@ export function searchTourism(keyword: string, type: TourismAttraction['contentT
   Object.entries(ranking).forEach(([key, value]) => { if (value !== undefined) params.set(key, value); });
   return apiJson<TourismSearchResult>(`/api/tourism/search?${params}`, { signal });
 }
+
+export interface TourismDetail {
+  contentId: string;
+  contentTypeId: TourismAttraction['contentTypeId'];
+  overview: string;
+  homepage: string;
+  facts: { label: string; value: string }[];
+  extras: { label: string; value: string }[];
+  course: { duration: string; distance: string; stops: { name: string; description: string }[] } | null;
+  partial: boolean;
+  sourceLabel: string;
+}
+
+export function getTourismDetail(id: string, type: TourismAttraction['contentTypeId'], signal: AbortSignal) {
+  return apiJson<TourismDetail>(`/api/tourism/${encodeURIComponent(id)}?type=${type}`, {
+    signal: AbortSignal.any([signal, AbortSignal.timeout(15000)]),
+  });
+}
