@@ -52,13 +52,13 @@ test('isolated high-ranking attraction cannot pull a course away from its nearby
 });
 
 test('visit/cafe order is flexible: shop on the way is visited before a more distant cafe', () => {
-  const a = { ...place('100'), name: '출발 명소', searchCount: 10000 }, b = { ...place('101', '38', 35.551), name: '백화점', searchCount: 1 }, c = { ...place('102', '39', 35.57), name: '커피집', planning: { menu: '커피', hours: '', closed: '' }, searchCount: 1 };
+  const a = { ...place('100'), name: '출발 명소', searchCount: 10000 }, b = { ...place('101', '38', 35.551), name: '동네 편집숍', searchCount: 1 }, c = { ...place('102', '39', 35.57), name: '커피집', planning: { menu: '커피', hours: '', closed: '' }, searchCount: 1 };
   const afternoon = { ...options, start: '16:00', end: '20:00', transport: 'car' };
   const nodes = model.suggestCourse([a, b, c], afternoon, {});
-  assert.deepEqual(Array.from(nodes, n => n.place.name), ['출발 명소', '백화점', '커피집']);
+  assert.deepEqual(Array.from(nodes, n => n.place.name), ['출발 명소', '동네 편집숍', '커피집']);
   const oldOrder = [model.tourismNode(a, 45), model.tourismNode(c, 40), model.tourismNode(b, 60)];
   const orders = model.courseOrderOptions(oldOrder, afternoon);
-  assert.deepEqual(Array.from(orders[0], n => n.place.name), ['출발 명소', '백화점', '커피집']);
+  assert.deepEqual(Array.from(orders[0], n => n.place.name), ['출발 명소', '동네 편집숍', '커피집']);
 });
 
 test('fewer close candidates yield fewer stops with a notice, never an expanded radius', async () => {
@@ -78,10 +78,30 @@ test('short straight lines cannot pass with long real walking/car routes', async
 });
 
 test('real road comparisons can select a different order from straight-line ranking', async () => {
-  const a = { ...place('100'), name: '출발 명소', searchCount: 10000 }, b = { ...place('101', '38', 35.551), name: '백화점', searchCount: 1 }, c = { ...place('102', '39', 35.57), name: '커피집', planning: { menu: '커피', hours: '', closed: '' }, searchCount: 1 };
+  const a = { ...place('100'), name: '출발 명소', searchCount: 10000 }, b = { ...place('101', '38', 35.551), name: '동네 편집숍', searchCount: 1 }, c = { ...place('102', '39', 35.57), name: '커피집', planning: { menu: '커피', hours: '', closed: '' }, searchCount: 1 };
   const query = async (_, legs) => ({ legs: legs.map(leg => ({ id: leg.id, status: 'ok', durationMinutes: 5, distanceMeters: leg.from.lat === a.lat && leg.to.lat === c.lat || leg.from.lat === c.lat && leg.to.lat === b.lat ? 300 : 2500 })) });
   const result = await routing.generateNearbyCourse([a, b, c], { ...options, start: '16:00', end: '20:00', transport: 'car' }, {}, query, new AbortController().signal);
-  assert.equal(result.meters, 600); assert.deepEqual(Array.from(result.nodes, n => n.place.name), ['출발 명소', '커피집', '백화점']);
+  assert.equal(result.meters, 600); assert.deepEqual(Array.from(result.nodes, n => n.place.name), ['출발 명소', '커피집', '동네 편집숍']);
+});
+
+test('PC automatic courses exclude department stores even at high rank; manual additions still work', () => {
+  const stores = [
+    { name: '현대백화점 울산점' },
+    { name: '롯데 백화점 부산본점' },
+    { name: '더현대 서울' },
+    { name: '신세계 강남점', classification: 'SH01' },
+    { name: '나이키 롯데백화점 본점', classification: 'SH04' },
+  ].map((fields, index) => ({ ...place(String(900 + index), '38', 35.551), searchCount: 1e9, demographicShare: 100, ...fields }));
+  for (const transport of ['walk', 'car']) {
+    const nodes = model.suggestCourse([...catalog, ...stores], { ...options, transport }, {});
+    assert.ok(nodes.length >= 3);
+    assert.ok(nodes.every(node => Number(node.place.tourism.contentId) < 900));
+  }
+  const manual = model.tourismNode(stores[0], 60);
+  const day = model.courseDay(make().days[0], [manual], '09:00', '18:00', [], {});
+  assert.equal(day.blocks[0].places[0].name, stores[0].name);
+  const restaurant = { ...catalog[3], name: '강릉한우백화점', searchCount: 1e9 };
+  assert.ok(model.suggestCourse([...catalog.filter(p => p.contentId !== restaurant.contentId), restaurant], options, {}).some(node => node.place.name === restaurant.name));
 });
 
 test('one unroutable place is replaced and all remaining legs still pass real distance checks', async () => {
@@ -134,6 +154,31 @@ test('route replacement is bounded even when every candidate has no route', asyn
   const query = async (_, legs) => { calls++; return { legs: legs.map(leg => ({ id: leg.id, status: 'unavailable', reason: 'no_route', providerResultCode: 1 })) }; };
   await assert.rejects(routing.generateNearbyCourse(catalog, options, {}, query, new AbortController().signal), /이내|가까운/);
   assert.ok(calls <= 9);
+});
+
+test('day two recovers from Kakao 104 while excluding the five stops already drafted on day one', async () => {
+  const bothClusters = [...catalog, ...catalog.map(place => ({ ...place, contentId: String(Number(place.contentId) + 100), lat: place.lat + .15 }))];
+  const opts = { ...options, transport: 'car' };
+  const ok = leg => ({ id: leg.id, status: 'ok', durationMinutes: 5, distanceMeters: 300 });
+  const dayOne = await routing.generateNearbyCourse(bothClusters, opts, {}, async (_, legs) => ({ legs: legs.map(ok) }), new AbortController().signal);
+  assert.equal(dayOne.nodes.length, 5);
+  const doc = make(), drafts = draftModel.createNopiDrafts(doc);
+  drafts[doc.days[0].id].nodes = dayOne.nodes;
+  const exclusions = draftModel.nopiDraftExclusions(doc, drafts, doc.days[1].id);
+  const before = JSON.stringify(drafts);
+  let blocked, calls = 0;
+  const query = async (_, legs) => {
+    calls++;
+    blocked ||= JSON.stringify([legs.at(-1).from, legs.at(-1).to]);
+    return { legs: legs.map(leg => JSON.stringify([leg.from, leg.to]) === blocked
+      ? { id: leg.id, status: 'unavailable', reason: 'no_route', providerResultCode: 104 } : ok(leg)) };
+  };
+  const dayTwo = await routing.generateNearbyCourse(bothClusters, { ...opts, date: '2026-09-21' }, exclusions, query, new AbortController().signal);
+  assert.ok(dayTwo.nodes.every(node => !exclusions[node.place.tourism.contentId]));
+  assert.ok(dayTwo.routes.every(route => routing.routeWithinLimit(route, 'car')));
+  assert.match(dayTwo.notice, /경로.*제외/);
+  assert.ok(calls > 1 && calls <= 9);
+  assert.equal(JSON.stringify(drafts), before, 'generation must preserve the first day and existing drafts');
 });
 
 test('saved transport is inherited, explicit per-day changes persist, transit is not silently converted', () => {

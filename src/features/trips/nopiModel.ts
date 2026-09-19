@@ -88,7 +88,10 @@ export function suggestCourse(catalog: NopiAttraction[], options: NopiOptions, e
   const available = minutes(options.end) - minutes(options.start), limit = courseDistanceLimit(options.transport);
   if (!limit) throw Error('대중교통 자동 코스는 아직 지원하지 않아요. 이동수단을 도보 또는 차량으로 변경해 주세요.');
   if (available < 180 || available > 840) throw Error('노피 코스는 하루 3~14시간으로 설정해 주세요.');
-  const pool = catalog.filter(place => !excludedPlace({ ...place, tourism: { contentId: place.contentId, contentTypeId: place.contentTypeId } }, excluded) && place.contentTypeId !== '25' && (!options.district || place.district === options.district) && !closedOn(place, options.date)
+  // Apply only to automatic suggestions; search and manually added stops stay available.
+  const departmentStore = (place: NopiAttraction) => place.contentTypeId === '38'
+    && (place.classification === 'SH01' || /백화점|더현대/.test(place.name.replace(/\s/g, '')));
+  const pool = catalog.filter(place => !departmentStore(place) && !excludedPlace({ ...place, tourism: { contentId: place.contentId, contentTypeId: place.contentTypeId } }, excluded) && place.contentTypeId !== '25' && (!options.district || place.district === options.district) && !closedOn(place, options.date)
     && !/캠핑|야영|골프|컨트리클럽|스키|썰매|물놀이장|수영장|등산|산$|산\(울산\)/.test(place.name) && Number.isFinite(place.lat) && Number.isFinite(place.lng));
   const maxCount = Math.max(1, ...pool.map(p => p.searchCount || 0)), maxShare = Math.max(1, ...pool.map(p => p.demographicShare || 0));
   const scores = new Map(pool.map(p => [p.contentId, 1.4 * preference(p, options.purpose) + 1.6 * (p.demographicShare || 0) / maxShare + Math.log1p(p.searchCount || 0) / Math.log1p(maxCount)]));

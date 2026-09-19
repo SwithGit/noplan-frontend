@@ -21,6 +21,7 @@ export interface TourismAttraction {
   demographicShare?: number | null;
   district?: string;
   foodKind?: 'meal' | 'cafe' | 'unknown';
+  classification?: string;
 }
 export type TourismSort = 'recommended' | 'popular' | 'name';
 export interface TourismRankingOptions { region?: string; destination?: string; sort?: TourismSort; profile?: 'member' | 'custom'; ageBand?: string; gender?: 'all' | 'male' | 'female' }
