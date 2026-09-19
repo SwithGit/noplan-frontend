@@ -11,6 +11,7 @@ import { TourismPicker } from './TourismPicker';
 import { setTourismAnchor } from './tourismModel';
 import type { TourismAttraction } from '../../api/tourismApi';
 import { courseDistanceLabel } from './coursePolicy';
+import { HomeExhibitionBanner, HomeHero, HomeTravelCourses } from './HomeDiscovery';
 import './trips.css';
 
 function readTransport(key: string): TripDocument['transport'] {
@@ -62,11 +63,11 @@ export function TripHome({ user, libraryOnly=false }: { user: UserSession | null
   };
   const count = dayCount(startDate, endDate);
   return <div className={`trip-home ${libraryOnly?'library-only':''}`}>
-    <section className="travel-hero">
+    {desktop && !libraryOnly ? <HomeHero /> : <section className="travel-hero">
       <img src={coast} alt="푸른 바다와 산책길이 있는 해안 여행 일러스트" fetchPriority="high" />
       <div className="travel-hero-copy"><span className="trip-eyebrow">YOUR NEXT LITTLE ESCAPE</span><h1>가고 싶은 곳에서,<br />우리다운 여행으로.</h1><p>큰 일정은 가볍게 정하고<br />그 사이의 좋은 순간은 노피와 채워보세요.</p><a href="#trip-create" className="travel-hero-link">새로운 여행을 시작해요 <TripIcon name="arrow" /></a></div>
       <span className="travel-hero-stamp">Less planning.<br /><b>More memories.</b></span>
-    </section>
+    </section>}
     <form id="trip-create" className="trip-create-form" onSubmit={create}>
       <div className="trip-create-heading"><span><TripIcon name="spark" /> 나의 다음 여행</span><small>{count > 0 && count <= 14 ? count === 1 ? '가볍게, 당일치기' : `${count - 1}박 ${count}일의 새로운 발견` : '최대 14일'}</small></div>
       <div className="trip-create-fields">
@@ -84,7 +85,7 @@ export function TripHome({ user, libraryOnly=false }: { user: UserSession | null
     </form>
     {pickingTourism && <TourismPicker destination={destination} initial={attraction} initialDuration={visitDuration} context="선택할 여행 구간" onClose={() => setPickingTourism(false)} onSelect={(place, duration) => { setAttraction(place); setVisitDuration(duration); setPickingTourism(false); }} />}
     <div className="trip-home-caption"><span>울산 노피 코스는 도보 1km·차량 7km 이내의 실제 경로로 연결해요. 가까운 후보가 부족하면 거리를 자동으로 늘리지 않고 안내해요.</span>{!desktop && <Link to={ROUTES.quickHome}>지금 주변 코스만 찾기 <TripIcon name="arrow" /></Link>}</div>
-    {!libraryOnly&&<div className="m-desktop-only"><Link className="pc-event-entry" to={ROUTES.events}><TripIcon name="calendar"/><div><strong>여행 날짜에 어떤 축제·전시가 열릴까요?</strong><small>가고 싶은 경험을 먼저 고르고, 내 여행에 담아보세요.</small></div><TripIcon name="arrow"/></Link></div>}
+    {desktop && !libraryOnly && <><HomeExhibitionBanner /><HomeTravelCourses /></>}
     {error && <div className="trip-alert" role="alert">{error}{user && <button onClick={() => { setLoading(true); setReload(value => value + 1); }} type="button">다시 불러오기</button>}</div>}
     <section className="trip-library"><header><div><span className="trip-eyebrow">MY JOURNEYS</span><h2>다음 여행이 기다리고 있어요</h2></div>{libraryOnly?<><Link className="trip-button primary m-desktop-only" to={ROUTES.newTrip}>새 여행 만들기</Link><span className="trip-muted m-mobile-only">{user ? `${user.userNick}님의 여행` : '나만의 여행 노트'}</span></>:<span className="trip-muted">{user ? `${user.userNick}님의 여행` : '나만의 여행 노트'}</span>}</header>
       <div className="trip-library-grid">
