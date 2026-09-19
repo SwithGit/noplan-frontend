@@ -1,5 +1,10 @@
 import { apiJson } from './client';
 
+export interface TourismRegion { id: string; name: string; districts: string[] }
+export function getTourismRegions(signal?: AbortSignal) {
+  return apiJson<{ items: TourismRegion[] }>('/api/tourism/regions', { signal });
+}
+
 export interface TourismAttraction {
   contentId: string;
   contentTypeId: '12' | '14' | '28' | '25' | '38' | '39';

@@ -397,6 +397,27 @@
 .trip-delete-confirm { background: #b33447; color: white; border-color: #b33447; }
 .trip-detail-menu.opens-above { top: auto; bottom: calc(100% + 8px); }
 
+/* Two dependent destination menus keep the date fields on the same row. */
+.trip-create-fields { grid-template-columns: 1.4fr 1fr 1fr; }
+.trip-destination { min-width: 0; padding: 9px 10px; border: 1px solid var(--trip-line); border-radius: 9px; background: #fff; }
+.trip-destination-heading { display: flex; align-items: center; gap: 6px; margin: 0 4px 5px; color: #756b81; font-size: 12px; }
+.trip-destination-selects { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.trip-destination .trip-detail-card { padding: 3px 6px; border-color: transparent; border-radius: 6px; }
+.trip-destination .trip-detail-label { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.trip-destination .trip-detail-select { margin: 0; min-height: 29px; padding: 5px 26px 3px 0; font-size: 14px; }
+.trip-destination .trip-detail-chevron { top: 2px; width: 24px; height: 24px; border-radius: 5px; }
+.trip-destination .trip-detail-menu { width: max(100%, 230px); }
+.trip-destination .trip-detail-dropdown:last-child .trip-detail-menu { left: auto; right: 0; }
+.trip-destination .trip-detail-option { min-height: 42px; padding: 8px 10px; gap: 9px; }
+.trip-destination .trip-detail-option .trip-icon { width: 16px; height: 16px; }
+.trip-destination-pending, .trip-destination-status { align-self: center; color: var(--trip-muted); font-size: 12px; line-height: 30px; }
+.trip-destination-status button { border: 0; background: #f1ebfc; border-radius: 5px; color: #724bc1; cursor: pointer; font: inherit; }
+.trip-destination-notice { color: var(--trip-muted); font-size: 12px; margin: 8px 0 0; }
+@media (max-width: 900px) {
+  .trip-create-fields { grid-template-columns: 1fr 1fr; }
+  .trip-create-fields > .trip-destination { grid-column: 1 / -1; }
+}
+
 .trip-create-page { max-width: 1120px; padding: 14px 0 36px; }
 .trip-create-page-heading { position: relative; padding: 0 4px 30px; }
 .trip-create-page-heading nav { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; font-size: 12px; color: var(--trip-muted); }
