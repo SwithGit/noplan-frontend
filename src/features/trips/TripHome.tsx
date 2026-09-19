@@ -8,7 +8,8 @@ import coast from '../../assets/travel/coastal-escape.webp';
 import type { UserSession } from '../../types/noplan';
 import { ROUTES, tripRoute } from '../../routes';
 import { createTrip, dayCount, outboundLabels, readDrafts, removeDraft, shortDate, tomorrow, transportLabels, tripLength, writeDraft, type TripDocument, type TripRecord } from './tripModel';
-import { TripIcon } from './TripIcon';
+import { TripIcon, type TripIconName } from './TripIcon';
+import { TripDetailSelect } from './TripDetailSelect';
 import { TourismPicker } from './TourismPicker';
 import { setTourismAnchor } from './tourismModel';
 import type { TourismAttraction } from '../../api/tourismApi';
@@ -31,6 +32,7 @@ export function TripHome({ user, libraryOnly=false }: { user: UserSession | null
   const selectTransport = (value: TripDocument['transport']) => { setTransport(value); try { localStorage.setItem(transportKey, value); } catch { /* Trip creation still works without browser storage. */ } };
   const [outbound, setOutbound] = useState<TripDocument['outbound']>('local');
   const [companion, setCompanion] = useState('친구');
+  const [openDetail, setOpenDetail] = useState<'companion' | 'outbound' | 'transport' | null>(null);
   const [trips, setTrips] = useState<TripRecord[]>([]);
   const [drafts, setDrafts] = useState(() => readDrafts(user?.userId));
   const [guestDrafts, setGuestDrafts] = useState(() => user ? readDrafts().filter(trip => trip.version === 0) : []);
@@ -127,9 +129,19 @@ export function TripHome({ user, libraryOnly=false }: { user: UserSession | null
         <legend>상세 정보</legend>
         <p>누구와, 어떻게 떠날지 골라주세요. 선택한 조건은 일정에도 그대로 이어져요.</p>
         <div className="trip-detail-grid">
-          <label className="trip-detail-card"><span className="trip-detail-label"><TripIcon name="people" />함께하는 사람</span><span className="trip-detail-select"><select aria-label="여행 동행" value={companion} onChange={e => setCompanion(e.target.value)}>{['혼자', '친구', '연인', '가족', '동료'].map(value => <option key={value}>{value}</option>)}</select><span className="trip-detail-chevron"><TripIcon name="down" /></span></span></label>
-          <label className="trip-detail-card"><span className="trip-detail-label"><TripIcon name="pin" />여행지까지</span><span className="trip-detail-select"><select aria-label="여행지까지 이동" value={outbound} onChange={e => setOutbound(e.target.value as TripDocument['outbound'])}>{Object.entries(outboundLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select><span className="trip-detail-chevron"><TripIcon name="down" /></span></span></label>
-          <label className="trip-detail-card"><span className="trip-detail-label"><TripIcon name="transport" />이동 방식</span><span className="trip-detail-select"><select aria-label="현지 이동 방식" value={transport} onChange={e => selectTransport(e.target.value as TripDocument['transport'])}>{Object.entries(transportLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select><span className="trip-detail-chevron"><TripIcon name="down" /></span></span></label>
+          <TripDetailSelect label="함께하는 사람" icon="people" value={companion} onChange={setCompanion}
+            open={openDetail === 'companion'} onOpenChange={open => setOpenDetail(open ? 'companion' : null)}
+            options={['혼자', '친구', '연인', '가족', '동료'].map((label, index) => ({ value: label, label, icon: (['person', 'people', 'heart', 'home', 'briefcase'] as TripIconName[])[index] }))} />
+          <TripDetailSelect<TripDocument['outbound']> label="여행지까지" icon="pin" value={outbound} onChange={setOutbound}
+            open={openDetail === 'outbound'} onOpenChange={open => setOpenDetail(open ? 'outbound' : null)}
+            options={(Object.keys(outboundLabels) as TripDocument['outbound'][]).map(value => ({ value, label: outboundLabels[value], icon: ({ undecided: 'clock', local: 'pin', train: 'train', bus: 'bus', flight: 'flight', car: 'transport' } as const)[value] }))} />
+          <TripDetailSelect<TripDocument['transport']> label="이동 방식" icon="transport" value={transport} onChange={selectTransport}
+            open={openDetail === 'transport'} onOpenChange={open => setOpenDetail(open ? 'transport' : null)}
+            options={[
+              { value: 'walk', label: transportLabels.walk, icon: 'walk', description: '가까운 곳을 천천히 · 이동 최대 1km' },
+              { value: 'car', label: transportLabels.car, icon: 'transport', description: '자가용 또는 렌터카 · 이동 최대 7km' },
+              { value: 'transit', label: transportLabels.transit, icon: 'bus', description: '자동 추천 준비 중 · 코스 직접 편집' },
+            ]} />
         </div>
       </fieldset>
       <div className="trip-home-tourism"><div><span className="trip-eyebrow">여행의 중심이 될 곳</span><h3>{attraction?.name || '꼭 가고 싶은 관광지가 있나요?'}</h3><p>{attraction ? `${attraction.address} · 관람 ${visitDuration}분` : '관광지를 고르면 오전·오후·저녁의 중심 일정으로 담아드려요.'}</p></div><div className="tourism-home-actions"><button className="trip-button" type="button" onClick={() => setPickingTourism(true)}><TripIcon name="pin" />{attraction ? '관광지 변경' : '관광지부터 고르기'}</button>{attraction && <button className="trip-text-link" type="button" onClick={() => setAttraction(undefined)}>선택 해제</button>}</div>{attraction && <div className="trip-form-row tourism-home-schedule"><label className="trip-field">방문 날짜<input type="date" required min={startDate} max={endDate} value={visitDate || startDate} onChange={e => setVisitDate(e.target.value)} /></label><label className="trip-field">방문 구간<select value={visitSlot} onChange={e => setVisitSlot(Number(e.target.value))}><option value={0}>오전 · 09:00–12:00</option><option value={1}>오후 · 13:00–17:00</option><option value={2}>저녁 · 18:00–21:00</option></select></label></div>}</div>
