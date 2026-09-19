@@ -28,6 +28,7 @@ import LandingPage from './pages/landing/LandingPage';
 import { ROUTES, coursePlaceRoute, courseReplaceRoute } from './routes';
 import { HomeEntry } from './features/trips/HomeEntry';
 import { TripHome } from './features/trips/TripHome';
+import { TripCreatePage } from './features/trips/TripCreatePage';
 import { TripWorkspace } from './features/trips/TripWorkspace';
 import { PENDING_TRIP_INVITE, TripJoin } from './features/trips/TripSharing';
 import { EventsPage } from './features/events/EventsPage';
@@ -181,7 +182,7 @@ function AppRoutes() {
 
       <Route path={ROUTES.appHome} element={<HomeEntry user={user} />} />
       <Route path={ROUTES.trips} element={<TripHome key={user?.userId || 'guest'} user={user} libraryOnly />} />
-      <Route path={ROUTES.newTrip} element={<TripHome key={user?.userId || 'guest'} user={user} />} />
+      <Route path={ROUTES.newTrip} element={<TripCreatePage key={user?.userId || 'guest'} user={user} />} />
       <Route path={ROUTES.events} element={<EventsPage />} />
       <Route path="/app/events/:id" element={<EventDetail user={user} />} />
       <Route path="/app/trips/:id" element={<TripRouteEntry user={user} />} />

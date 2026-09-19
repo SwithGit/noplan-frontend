@@ -23,7 +23,7 @@ export function DesktopNav() {
             </NavLink>
           ))}
         </nav>
-        <div className="desktop-header-actions"><Link className="desktop-create-trip" to={ROUTES.newTrip}>여행 만들기</Link><Link className="desktop-account" to={user?ROUTES.myPage:ROUTES.login}><NavigationIcon name="user"/>{user?'마이':'로그인'}</Link></div>
+        <div className="desktop-header-actions"><Link className="desktop-create-trip" to={ROUTES.newTrip}>새 여행 만들기</Link><Link className="desktop-account" to={user?ROUTES.myPage:ROUTES.login}><NavigationIcon name="user"/>{user?'마이':'로그인'}</Link></div>
       </div>
     </header>
   );

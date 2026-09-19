@@ -5,6 +5,7 @@ import { AppFrame } from '../src/components/ui/AppFrame';
 import { FavoritesProvider } from '../src/features/mobile/FavoritesProvider';
 import { PlannerProvider } from '../src/features/planner/PlannerContext';
 import { TripHome } from '../src/features/trips/TripHome';
+import { TripCreatePage } from '../src/features/trips/TripCreatePage';
 import { TripWorkspace } from '../src/features/trips/TripWorkspace';
 import { EventsPage } from '../src/features/events/EventsPage';
 import { EventDetail } from '../src/features/events/EventDetail';
@@ -14,7 +15,7 @@ createRoot(document.getElementById('root')!).render(<MemoryRouter initialEntries
   <Route path="/app" element={<TripHome user={null} />} />
   <Route path="/app/explore" element={<ExploreEntry />} />
   <Route path="/app/favorites" element={<MobileFavorites />} />
-  <Route path="/app/trips/new" element={<TripHome user={null} />} />
+  <Route path="/app/trips/new" element={<TripCreatePage user={null} />} />
   <Route path="/app/trips" element={<TripHome user={null} libraryOnly />} />
   <Route path="/app/trips/:id" element={<TripWorkspace user={null} />} />
   <Route path="/app/events" element={<EventsPage />} />
