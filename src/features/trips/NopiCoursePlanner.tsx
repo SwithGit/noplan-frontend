@@ -34,7 +34,7 @@ export function NopiCoursePlanner({ document: sourceDocument, dayId: initialDayI
   const patchDay = useCallback((patch: Partial<NopiDayDraft> | ((previous: NopiDayDraft) => Partial<NopiDayDraft>)) => {
     setDrafts(previous => ({ ...previous, [dayId]: { ...previous[dayId], ...(typeof patch === 'function' ? patch(previous[dayId]) : patch) } }));
   }, [dayId]);
-  const [common, setCommon] = useState<{ purpose: Purpose; district: string }>(() => ({ purpose: document.companion === '연인' ? '데이트' : document.companion === '가족' ? '가족여행' : document.companion === '친구' ? '친구모임' : '발견', district: '' }));
+  const [common, setCommon] = useState<{ purpose: Purpose; district: string }>(() => ({ purpose: document.companion === '연인' ? '데이트' : document.companion === '가족' ? '가족여행' : document.companion === '친구' ? '친구모임' : '발견', district: document.destination.match(/울주군|중구|남구|동구|북구/)?.[0] || '' }));
   const [profile, setProfile] = useState({ mode: 'member', age: '', gender: 'all' });
   const [commonExpanded, setCommonExpanded] = useState(true);
   const [daySettingsOpen, setDaySettingsOpen] = useState(true);
