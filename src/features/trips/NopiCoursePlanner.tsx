@@ -34,7 +34,7 @@ export function NopiCoursePlanner({ document: sourceDocument, dayId: initialDayI
   const patchDay = useCallback((patch: Partial<NopiDayDraft> | ((previous: NopiDayDraft) => Partial<NopiDayDraft>)) => {
     setDrafts(previous => ({ ...previous, [dayId]: { ...previous[dayId], ...(typeof patch === 'function' ? patch(previous[dayId]) : patch) } }));
   }, [dayId]);
-  const [common, setCommon] = useState<{ purpose: Purpose; district: string }>(() => ({ purpose: document.companion === '연인' ? '데이트' : document.companion === '가족' ? '가족여행' : document.companion === '친구' ? '친구모임' : '발견', district: document.destination.match(/울주군|중구|남구|동구|북구/)?.[0] || '' }));
+  const [common, setCommon] = useState<{ purpose: Purpose; district: string }>(() => ({ purpose: document.companion === '연인' ? '데이트' : document.companion === '가족' ? '가족여행' : document.companion === '친구' ? '친구모임' : '발견', district: '' }));
   const [profile, setProfile] = useState({ mode: 'member', age: '', gender: 'all' });
   const [commonExpanded, setCommonExpanded] = useState(true);
   const [daySettingsOpen, setDaySettingsOpen] = useState(true);
@@ -53,7 +53,8 @@ export function NopiCoursePlanner({ document: sourceDocument, dayId: initialDayI
   const routeCache = useRef(new Map<string, DayRouteResult[]>());
   const cards = useRef(new Map<string, HTMLElement>());
   const profileKey = new URLSearchParams(profile.mode === 'member' ? { profile: 'member' } : { profile: 'custom', ageBand: profile.age, gender: profile.gender }).toString();
-  const catalogKey = `${catalogRetry}:${profileKey}`;
+  const catalogQuery = `${profileKey}&destination=${encodeURIComponent(document.destination)}`;
+  const catalogKey = `${catalogRetry}:${catalogQuery}`;
   const catalog = catalogResponse?.key === catalogKey ? catalogResponse.data : undefined;
   const nodes = useMemo(() => draftNodes.map(node => { const source = catalog?.items.find(item => item.contentId === node.place.tourism?.contentId); return source ? { ...node, imageUrl: source.imageUrl, imageLicense: source.imageLicense, planning: source.planning } : node; }), [draftNodes, catalog]);
   const exclusions = nopiDraftExclusions(document, drafts, dayId);
@@ -66,11 +67,11 @@ export function NopiCoursePlanner({ document: sourceDocument, dayId: initialDayI
 
   useEffect(() => {
     const controller = new AbortController();
-    apiJson<Catalog>(`/api/tourism/nopi-catalog?${profileKey}`, { signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]) })
+    apiJson<Catalog>(`/api/tourism/nopi-catalog?${catalogQuery}`, { signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]) })
       .then(data => { if (!controller.signal.aborted) setCatalogResponse({ key: catalogKey, data }); })
-      .catch(cause => { if (!controller.signal.aborted) setCatalogResponse({ key: catalogKey, error: cause instanceof Error ? cause.message : '울산 자료를 불러오지 못했어요.' }); });
+      .catch(cause => { if (!controller.signal.aborted) setCatalogResponse({ key: catalogKey, error: cause instanceof Error ? cause.message : '지역 자료를 불러오지 못했어요.' }); });
     return () => controller.abort();
-  }, [profileKey, catalogKey]);
+  }, [catalogQuery, catalogKey]);
   useEffect(() => () => generation.current?.abort(), []);
   useEffect(() => {
     const payload = JSON.parse(routeKey) as { transport: NopiOptions['transport']; legs: ReturnType<typeof courseLegs> };
@@ -131,10 +132,10 @@ export function NopiCoursePlanner({ document: sourceDocument, dayId: initialDayI
           <div className="nopi-section-heading"><div><h3>어떤 여행을 떠나볼까요?</h3><span>모든 날짜에 공통 적용</span></div><div><span>{document.destination} · {document.startDate.slice(5).replace('-', '.')} — {document.endDate.slice(5).replace('-', '.')}</span><button type="button" className="trip-text-link" aria-expanded={commonExpanded} onClick={() => setCommonExpanded(v => !v)}>{commonExpanded ? '접기' : '조건 변경'}</button></div></div>
           {commonExpanded ? <fieldset className="nopi-common-fields" disabled={busy || disabled}>
             <label>코스 목적<select aria-label="공통 코스 목적" value={common.purpose} onChange={e => setCommon({ ...common, purpose: e.target.value as Purpose })}>{['발견', '데이트', '친구모임', '가족여행', '자연산책', '문화여행'].map(value => <option key={value}>{value}</option>)}</select></label>
-            <label>지역<select aria-label="공통 추천 지역" value={common.district} onChange={e => setCommon({ ...common, district: e.target.value })}><option value="">울산 전체</option>{['중구', '남구', '동구', '북구', '울주군'].map(value => <option key={value}>{value}</option>)}</select></label>
+            <label>지역<select aria-label="공통 추천 지역" value={common.district} onChange={e => setCommon({ ...common, district: e.target.value })}><option value="">{catalog?.scope?.label || document.destination} 전체</option>{(catalog?.scope?.districts || []).map(value => <option key={value}>{value}</option>)}</select></label>
             <label>연령<select aria-label="노피 추천 연령" value={profile.mode === 'member' ? 'member' : profile.age} onChange={e => setProfile({ ...profile, mode: e.target.value === 'member' ? 'member' : 'custom', age: e.target.value === 'member' ? '' : e.target.value })}><option value="member">내 회원정보</option>{['10', '20', '30', '40', '50', '60', '70'].map(value => <option key={value} value={value}>{value === '10' ? '10대 이하' : value === '70' ? '70대 이상' : `${value}대`}</option>)}</select></label>
             <label>성별<select aria-label="노피 추천 성별" disabled={profile.mode === 'member'} value={profile.mode === 'member' ? catalog?.profile?.gender || 'all' : profile.gender} onChange={e => setProfile({ ...profile, gender: e.target.value })}><option value="all">전체</option><option value="female">여성</option><option value="male">남성</option></select></label>
-          </fieldset> : <p className="nopi-common-summary">{common.purpose} · {common.district || '울산 전체'} · {profile.mode === 'member' ? catalog?.profile?.label || '내 회원정보' : `${profile.age}대 · ${profile.gender === 'female' ? '여성' : profile.gender === 'male' ? '남성' : '성별 전체'}`}</p>}
+          </fieldset> : <p className="nopi-common-summary">{common.purpose} · {common.district || ((catalog?.scope?.label || document.destination) + ' 전체')} · {profile.mode === 'member' ? catalog?.profile?.label || '내 회원정보' : `${profile.age}대 · ${profile.gender === 'female' ? '여성' : profile.gender === 'male' ? '남성' : '성별 전체'}`}</p>}
         </section>
         <section className="nopi-days-panel" aria-label="날짜별 추천 조건">
           <div className="nopi-section-heading"><div><h3>날짜별 일정</h3><span>하루씩, 우리에게 맞게</span></div><small>만든 코스는 유지하고, 바꾼 공통 조건은 다음 추천부터 적용해요.</small></div>

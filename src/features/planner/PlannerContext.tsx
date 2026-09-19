@@ -1,3 +1,4 @@
+import { inferNamedTextLocation, resolveTextLocation } from './textLocation';
 import { isCourseRecommendationPlace } from './recommendationPolicy';
 import { savedAccuracyPreferences, accuracyMissing } from './accuracyModel';
 import { readPlannerDraft, savePlannerDraft, missingPlannerCondition } from './plannerDraft';
@@ -55,7 +56,8 @@ interface PlannerContextValue {
   searchError: string;
   detectCurrentLocation: (options?: { updateCondition?: boolean; updateStatus?: boolean }) => Promise<{ address: string; label: string }>;
   setCondition: (patch: Partial<PlannerCondition>) => void;
-  startFromText: (text: string) => Promise<void>;
+  inputNotice: string;
+  startFromText: (text: string) => Promise<boolean>;
   runSearch: (conditionOverride?: PlannerCondition) => Promise<boolean>;
   loadPlan: (nextPlan: CoursePlan) => void;
   selectCurrentPlan: () => boolean;
@@ -155,69 +157,7 @@ function reverseGeocode(lat: number, lng: number) {
   });
 }
 
-const locationStopWords = new Set([
-  '가족',
-  '내일',
-  '데이트',
-  '맛집',
-  '밤',
-  '산책',
-  '실내',
-  '오늘',
-  '아침',
-  '점심',
-  '오전',
-  '오후',
-  '저녁',
-  '새벽',
-  '주말',
-  '지금',
-  '친구',
-  '카페',
-  '커피',
-  '브런치',
-  '식사',
-  '혼자',
-]);
-
-function cleanLocationCandidate(candidate: string) {
-  return candidate
-    .replace(/^(오늘|내일|지금|이번|저녁|밤|오전|오후)\s*/g, '')
-    .replace(/(에서|으로|로|근처|주변|쪽|에)$/g, '')
-    .trim();
-}
-
-function isPlausibleLocation(candidate: string) {
-  const rawCandidate = candidate.trim();
-  if (/기로$/u.test(rawCandidate)) return false;
-  const cleaned = cleanLocationCandidate(candidate);
-  if (cleaned.length < 2) return false;
-  if (locationStopWords.has(cleaned)) return false;
-  if (/^(아침|점심|저녁|새벽|오전|오후)(시간|식사|약속)?$/.test(cleaned)) return false;
-  if (/^(친구|가족|혼자|데이트|카페|맛집|산책|실내)$/.test(cleaned)) return false;
-
-  return true;
-}
-
-function inferLocationFromText(text: string) {
-  const patterns = [
-    /([가-힣A-Za-z0-9]+)(?:에서|근처|주변|쪽)/g,
-    /([가-힣A-Za-z0-9]+(?:역|동|로|길|군|구|시|도))(?=\s|에서|으로|로|에|근처|주변|쪽|$)/g,
-    /([가-힣A-Za-z0-9]+)(?:으로|로)/g,
-    /([가-힣A-Za-z0-9]+)에/g,
-  ];
-
-  for (const pattern of patterns) {
-    const matches = [...text.matchAll(pattern)]
-      .map((match) => match[1] || '')
-      .filter(isPlausibleLocation)
-      .map(cleanLocationCandidate);
-
-    if (matches.length > 0) return matches[matches.length - 1];
-  }
-
-  return '';
-}
+const inferLocationFromText = inferNamedTextLocation;
 
 function inferTimeFromText(text: string) {
   if (/지금|바로/.test(text)) return '지금';
@@ -310,6 +250,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
   const [searchProgress, setSearchProgress] = useState<CourseProgress | null>(null);
   const [locationStatus, setLocationStatus] = useState<'idle' | 'locating' | 'success' | 'error'>('idle');
   const [searchError, setSearchError] = useState('');
+  const [inputNotice, setInputNotice] = useState('');
   useEffect(() => { savePlannerDraft(condition,currentPosition); }, [condition,currentPosition]);
 
   const setCondition = (patch: Partial<PlannerCondition>) => {
@@ -331,7 +272,8 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
 
   const startFromText = async (text: string) => {
     const rawText = text.trim();
-    if (!rawText) return;
+    if (!rawText) return false;
+    setInputNotice('');
     await trackPlannerEvent('planner_start', { entryMode: 'text' }, undefined, { resetSession: true }).catch(() => undefined);
     const fallbackCondition = inferConditionFromText(rawText);
     const parsedCondition = await parsePlannerCondition(rawText);
@@ -339,29 +281,27 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       parsedCondition ? 'condition_parse_success' : 'condition_parse_failure',
       { parser: parsedCondition ? 'openai' : 'fallback' },
     ).catch(() => undefined);
-    const resolvedCondition = {
-      location: parsedCondition?.location || fallbackCondition.location || null,
-      locationLabel: parsedCondition?.locationLabel || fallbackCondition.locationLabel || null,
-      time: parsedCondition?.time || fallbackCondition.time || null,
-      companion: parsedCondition?.companion || fallbackCondition.companion || null,
-      mood: parsedCondition?.mood || fallbackCondition.mood || null,
-      mainCategory: parsedCondition?.mainCategory || fallbackCondition.mainCategory || null,
-      supportingCategories: parsedCondition?.supportingCategories?.length
-        ? parsedCondition.supportingCategories
-        : fallbackCondition.supportingCategories || [],
-      coreIntent: parsedCondition?.coreIntent || fallbackCondition.coreIntent || null,
-      atmosphereTags: parsedCondition?.atmosphereTags?.length
-        ? parsedCondition.atmosphereTags
-        : fallbackCondition.atmosphereTags || [],
-      duration: parsedCondition?.duration || fallbackCondition.duration || null,
-    };
+    // A deliberate null from the parser must not be overwritten by regex guesses.
+    const resolvedCondition = parsedCondition || fallbackCondition;
+    const intent = resolveTextLocation(rawText, resolvedCondition.location, parsedCondition?.locationMode);
+    let location = intent.mode === 'named' ? intent.location : intent.mode === 'unspecified' ? condition.location : '';
+    let locationLabel = intent.mode === 'named' ? intent.location : intent.mode === 'unspecified' ? condition.locationLabel : '';
+    if (intent.mode !== 'unspecified') setCurrentPosition(null);
+    if (intent.mode === 'current') {
+      try {
+        const current = await detectCurrentLocation({ updateCondition: false });
+        location = current.address; locationLabel = current.label;
+      } catch {
+        setInputNotice('현재 위치를 확인하지 못했어요. 위치 권한을 허용하거나 출발할 동네·역을 직접 선택해 주세요.');
+      }
+    } else if (intent.mode === 'context') {
+      setInputNotice('집·회사·숙소가 어디인지 알려주세요. 출발할 동네나 역을 선택하면 나머지 조건은 그대로 이어갈게요.');
+    }
 
     setConditionState((prev) => ({
       ...prev,
-      location: resolvedCondition.location || prev.location,
-      locationLabel: resolvedCondition.location
-        ? resolvedCondition.locationLabel || resolvedCondition.location
-        : prev.locationLabel,
+      location,
+      locationLabel,
       time: resolvedCondition.time || '',
       companion: resolvedCondition.companion || '',
       mood: resolvedCondition.mood || categoryLabelFromKey(resolvedCondition.mainCategory) || '',
@@ -370,12 +310,13 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       coreIntent: normalizeCoreIntent(resolvedCondition.mainCategory, resolvedCondition.coreIntent),
       coreIntentExplicit: false,
       coreIntentSkipped: false,
-      atmosphereTags: resolvedCondition.atmosphereTags || fallbackCondition.atmosphereTags || [],
+      atmosphereTags: resolvedCondition.atmosphereTags || [],
       duration: resolvedCondition.duration || '',
       extras: [...new Set([...prev.extras, ...(fallbackCondition.extras || [])])],
       rawText,
       accuracy: { ...prev.accuracy, groupSize: undefined },
     }));
+    return Boolean(location);
   };
 
   const runSearch = async (conditionOverride?: PlannerCondition) => {
@@ -500,6 +441,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     searchProgress,
     locationStatus,
     searchError,
+    inputNotice,
     detectCurrentLocation,
     loadPlan,
     selectCurrentPlan,

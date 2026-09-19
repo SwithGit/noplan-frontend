@@ -17,7 +17,6 @@ import nopi from '../../assets/nopi/nopi-icon.png';
 import type { UserSession } from '../../types/noplan';
 import { ROUTES, tripRoute, eventRoute } from '../../routes';
 import { TripIcon } from './TripIcon';
-import { TripDialog } from './TripDialog';
 import { BlockForm, TripSettings } from './TripForms';
 import { TripRecommendations } from './TripRecommendations';
 import { PlacePicker } from './PlacePicker';
@@ -42,7 +41,7 @@ export function TripWorkspace({ user }: { user: UserSession | null }) {
   const [storageError, setStorageError] = useState('');
   const [dayId, setDayId] = useState((location.state as {focusDayId?:string}|null)?.focusDayId || seed?.document.days[0]?.id || '');
   const [blockId, setBlockId] = useState((location.state as {focusBlockId?:string}|null)?.focusBlockId || seed?.document.days[0]?.blocks[0]?.id || '');
-  const [dialog, setDialog] = useState<'searchPlace' | 'block' | 'settings' | 'tourism' | 'sharing' | 'dayRoute' | 'planner' | 'plannerRegion' | 'overview' | null>(null);
+  const [dialog, setDialog] = useState<'searchPlace' | 'block' | 'settings' | 'tourism' | 'sharing' | 'dayRoute' | 'planner' | 'overview' | null>(null);
   const clearUndo = useCallback(() => setUndo([]), []);
   const { trip, setTrip, remote, loading, saving: networkSaving, notice, setNotice, conflict, blocked, autoError, dirty, connected, save, openLatest } = useTripSync(id, user?.userId, seed, dialog !== null, clearUndo);
   const saving = networkSaving || loading;
@@ -67,15 +66,14 @@ export function TripWorkspace({ user }: { user: UserSession | null }) {
     window.addEventListener('beforeunload', prevent);
     return () => window.removeEventListener('beforeunload', prevent);
   }, [storageError, dirty, user]);
-  const photos = useTripPhotos(Boolean(trip && /울산|울주/.test(trip.document.destination)));
+  const photos = useTripPhotos(trip?.document);
   if (!trip) return <div className="trip-load-state"><TripIcon name="map" /><h1>{loading ? '여행 노트를 펼치고 있어요' : '여행을 열 수 없어요'}</h1><p>{notice || (user ? '여행 목록에서 다시 선택해 주세요.' : '계정에 저장한 여행은 로그인 후 열 수 있어요.')}</p><Link className="trip-button primary" to={user ? ROUTES.trips : ROUTES.login}>{user ? '내 여행으로' : '로그인하기'}</Link></div>;
   const document = trip.document;
   const day = document.days.find(item => item.id === dayId) || document.days[0];
   const block = day.blocks.find(item => item.id === blockId) || day.blocks[0];
   const tourismAnchor = block?.places.find(place => place.tourism);
   const primaryPlace = tourismAnchor || block?.places[0];
-  const ulsanPlanner = /울산|울주/.test(document.destination);
-  const openPlanner = (targetDayId = day.id) => { setDayId(targetDayId); setDialog(ulsanPlanner ? 'planner' : 'plannerRegion'); };
+  const openPlanner = (targetDayId = day.id) => { setDayId(targetDayId); setDialog('planner'); };
   const totalPlaces = document.days.flatMap(item => item.blocks.flatMap(segment => segment.places)).length;
   const change = (next: TripDocument) => {
     if (saving) return;
@@ -146,7 +144,6 @@ export function TripWorkspace({ user }: { user: UserSession | null }) {
         </div> : <div className="trip-inspector-body"><p className="trip-muted">일정 구간을 추가하면 노피가 도와드릴게요.</p></div>}
       </aside>
     </div>}
-    {dialog === 'plannerRegion' && <TripDialog title="노피의 코스플래닝" onClose={() => setDialog(null)}><p>현재 자동 코스플래닝은 울산·울주 지역에서 시범 운영하고 있어요.</p><p className="trip-muted">지금 여행지는 {document.destination}이에요. 울산 여행을 계획 중이라면 여행 정보를 수정해 주세요. 직접 장소를 담는 기능은 모든 지역에서 사용할 수 있어요.</p><button className="trip-button" type="button" onClick={() => setDialog('settings')}>여행 정보 수정</button></TripDialog>}
     {dialog === 'planner' && <NopiCoursePlanner document={document} dayId={day.id} disabled={saving || conflict || blocked} onClose={() => setDialog(null)} onApply={(nextDays, baseline, overview, activeDayId) => {
       if (saving || conflict || blocked) throw new Error('저장 또는 동기화가 끝난 뒤 다시 반영해 주세요.');
       if (JSON.stringify(document) !== baseline) throw new Error('여행 일정이 바뀌었어요. 코스 만들기를 다시 열어 주세요.');
@@ -155,7 +152,7 @@ export function TripWorkspace({ user }: { user: UserSession | null }) {
       setBlockId((nextDays.find(item => item.id === activeDayId) || document.days.find(item => item.id === activeDayId))?.blocks[0]?.id || '');
       setDialog(overview ? 'overview' : null);
     }} />}
-    {dialog === 'overview' && <TripOverview document={document} photos={photos} onClose={() => setDialog(null)} onEdit={target => { if (ulsanPlanner) openPlanner(target); else { setDayId(target); setDialog(null); } }} onDayRoute={target => { setDayId(target); setDialog('dayRoute'); }} />}
+    {dialog === 'overview' && <TripOverview document={document} photos={photos} onClose={() => setDialog(null)} onEdit={target => openPlanner(target)} onDayRoute={target => { setDayId(target); setDialog('dayRoute'); }} />}
     {dialog === 'dayRoute' && <DayRouteDialog document={document} dayId={day.id} disabled={saving} onClose={() => setDialog(null)} onApply={(nextDay, transport, baseline) => {
       if (saving) return;
       if (JSON.stringify(document) !== baseline) throw new Error('일정이 바뀌었어요. 동선 보기를 다시 열어 최신 내용에서 수정해 주세요.');

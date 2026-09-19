@@ -1,3 +1,4 @@
+import { NearbyPlaces } from './features/mobile/NearbyPlaces';
 import { useEffect, useMemo, useState } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { getSharedCourse } from './api/courseApi';
@@ -188,6 +189,7 @@ function AppRoutes() {
       <Route path="/app/trips/:id" element={<TripRouteEntry user={user} />} />
       <Route path={ROUTES.tripJoin} element={<TripJoin user={user} />} />
       <Route path={ROUTES.explore} element={<ExploreEntry />} />
+      <Route path={ROUTES.nearbyPlaces} element={<NearbyPlaces />} />
       <Route path={ROUTES.favorites} element={<MobileFavorites />} />
       <Route element={<MobileRoute />}>
         <Route path={ROUTES.quickHome} element={<PlannerHome />} />

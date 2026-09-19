@@ -11,7 +11,7 @@ export interface CourseNode { place: TripPlace; imageUrl?: string; imageLicense?
 export interface NopiOptions { date: string; start: string; end: string; transport: TripDocument['transport']; purpose: Purpose; district: string }
 
 export function tourismNode(place: NopiAttraction, duration = 90): CourseNode {
-  return { place: { id: newId(), name: place.name, address: place.address, type: place.type, lat: place.lat, lng: place.lng, durationMinutes: duration, fixed: true, source: 'tourism', sourceUrl: place.sourceUrl, priceNeedsCheck: true, tourism: { contentId: place.contentId, contentTypeId: place.contentTypeId } }, imageUrl: place.imageUrl, imageLicense: place.imageLicense, planning: place.planning };
+  return { place: { id: newId(), name: place.name, address: place.address, type: foodKind(place) === 'cafe' ? '카페' : place.type, lat: place.lat, lng: place.lng, durationMinutes: duration, fixed: true, source: 'tourism', sourceUrl: place.sourceUrl, priceNeedsCheck: true, tourism: { contentId: place.contentId, contentTypeId: place.contentTypeId } }, imageUrl: place.imageUrl, imageLicense: place.imageLicense, planning: place.planning };
 }
 export function dayNodes(day: TripDay): CourseNode[] {
   return [...day.blocks].sort((a, b) => a.startTime.localeCompare(b.startTime)).flatMap(block => block.places.map((place, index) => ({ place: { ...place, travelMinutes: undefined }, initialNotBefore: minutes(block.startTime), originalNotes: index === 0 ? block.notes : undefined })));
@@ -27,6 +27,7 @@ export function distance(a: { lat: number; lng: number }, b: { lat: number; lng:
 }
 export function foodKind(place: NopiAttraction): 'meal' | 'cafe' | 'unknown' {
   if (place.contentTypeId !== '39') return 'unknown';
+  if (place.foodKind === 'meal' || place.foodKind === 'cafe') return place.foodKind;
   const text = `${place.name} ${place.planning?.menu || ''}`;
   if (/카페|커피|아메리카노|라떼|베이커리|디저트|찻집|다방|cafe|coffee/i.test(text)) return 'cafe';
   return place.planning?.menu ? 'meal' : 'unknown';
@@ -90,7 +91,8 @@ export function suggestCourse(catalog: NopiAttraction[], options: NopiOptions, e
   const pool = catalog.filter(place => !excludedPlace({ ...place, tourism: { contentId: place.contentId, contentTypeId: place.contentTypeId } }, excluded) && place.contentTypeId !== '25' && (!options.district || place.district === options.district) && !closedOn(place, options.date)
     && !/캠핑|야영|골프|컨트리클럽|스키|썰매|물놀이장|수영장|등산|산$|산\(울산\)/.test(place.name) && Number.isFinite(place.lat) && Number.isFinite(place.lng));
   const maxCount = Math.max(1, ...pool.map(p => p.searchCount || 0)), maxShare = Math.max(1, ...pool.map(p => p.demographicShare || 0));
-  const score = (p: NopiAttraction) => 1.4 * preference(p, options.purpose) + 1.6 * (p.demographicShare || 0) / maxShare + Math.log1p(p.searchCount || 0) / Math.log1p(maxCount);
+  const scores = new Map(pool.map(p => [p.contentId, 1.4 * preference(p, options.purpose) + 1.6 * (p.demographicShare || 0) / maxShare + Math.log1p(p.searchCount || 0) / Math.log1p(maxCount)]));
+  const score = (p: NopiAttraction) => scores.get(p.contentId)!;
   const pairDistances = new Map<string, number>();
   const metersBetween = (a: NopiAttraction, b: NopiAttraction) => {
     const key = edgeId(a.contentId, b.contentId);
@@ -98,12 +100,62 @@ export function suggestCourse(catalog: NopiAttraction[], options: NopiOptions, e
     if (meters == null) { meters = distance(a, b); pairDistances.set(key, meters); pairDistances.set(edgeId(b.contentId, a.contentId), meters); }
     return meters;
   };
-  const density = new Map(pool.map(p => [p.contentId, Math.min(10, pool.filter(other => other.contentId !== p.contentId && metersBetween(p, other) <= limit * .7).length) / 10]));
+  // A cell is wider than the density radius throughout Korea. Examine only
+  // adjacent cells and stop at ten neighbours; avoid an N² distance cache.
+  const cellSize = limit / 80000;
+  const grid = new Map<string, NopiAttraction[]>();
+  const cell = (p: NopiAttraction) => [Math.floor(p.lat / cellSize), Math.floor(p.lng / cellSize)];
+  pool.forEach(p => { const key = cell(p).join(':'); const bucket = grid.get(key) || []; bucket.push(p); grid.set(key, bucket); });
+  const density = new Map(pool.map(p => {
+    const [y, x] = cell(p); let count = 0;
+    nearby: for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      for (const other of grid.get(`${y + dy}:${x + dx}`) || []) {
+        if (other.contentId !== p.contentId && distance(p, other) <= limit * .7 && ++count >= 10) break nearby;
+      }
+    }
+    return [p.contentId, count / 10];
+  }));
   const ranked = pool.toSorted((a, b) => score(b) + density.get(b.contentId)! - score(a) - density.get(a.contentId)! || a.contentId.localeCompare(b.contentId));
+  const rankIndex = new Map(ranked.map((p, i) => [p.contentId, i]));
+  const neighbours = new Map<string, NopiAttraction[]>();
+  const candidatesNear = (p: NopiAttraction) => {
+    const cached = neighbours.get(p.contentId); if (cached) return cached;
+    const [y, x] = cell(p), found: NopiAttraction[] = [];
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      found.push(...(grid.get(`${y + dy}:${x + dx}`) || []).filter(other => distance(p, other) <= limit));
+    }
+    found.sort((a, b) => rankIndex.get(a.contentId)! - rankIndex.get(b.contentId)!);
+    neighbours.set(p.contentId, found); return found;
+  };
   const durationFor = (p: NopiAttraction) => foodKind(p) === 'meal' ? 60 : foodKind(p) === 'cafe' ? 40 : p.contentTypeId === '38' ? 60 : available < 360 ? 45 : 75;
   const roleOf = (p: NopiAttraction) => foodKind(p) === 'meal' ? 'meal' : foodKind(p) === 'cafe' ? 'cafe' : ['12', '14', '28', '38'].includes(p.contentTypeId) ? 'visit' : 'other';
   const lunch = minutes(options.start) <= 780 && minutes(options.end) >= 840;
   const mealTimes = [...(lunch ? [690] : []), ...(available >= 660 && minutes(options.end) >= 1140 ? [1050] : [])];
+  // Large regions can have hundreds of highly ranked sights in clusters with
+  // no food. Do not spend every starting slot on such infeasible clusters.
+  const foodGrid = new Map<string, NopiAttraction[]>();
+  pool.forEach(p => {
+    const role = roleOf(p); if (role !== 'meal' && role !== 'cafe') return;
+    const key = `${role}:${cell(p).join(':')}`, bucket = foodGrid.get(key) || [];
+    bucket.push(p); foodGrid.set(key, bucket);
+  });
+  const canStart = new Map<string, boolean>();
+  const hasFoodNearby = (p: NopiAttraction) => {
+    const known = canStart.get(p.contentId); if (known !== undefined) return known;
+    const [y, x] = cell(p);
+    const enough = (role: string, required: number) => {
+      if (!required) return true;
+      let count = 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        for (const other of foodGrid.get(`${role}:${y + dy}:${x + dx}`) || []) {
+          if (distance(p, other) <= limit && ++count >= required) return true;
+        }
+      }
+      return false;
+    };
+    const valid = enough('cafe', 1) && enough('meal', mealTimes.length);
+    canStart.set(p.contentId, valid); return valid;
+  };
   type Path = { items: NopiAttraction[]; mealStarts: number[]; value: number; meters: number; cursor: number; visits: number; meals: number; cafes: number };
   // Prefer fewer close stops over filling the requested count with a remote place.
   for (let target = targetCourseCount(options); target >= 3; target--) {
@@ -114,9 +166,10 @@ export function suggestCourse(catalog: NopiAttraction[], options: NopiOptions, e
       const next: Path[] = [];
       for (const path of beam) {
         const last = path.items.at(-1);
-        const candidates = ranked.filter(p => {
+        const candidates = (last ? candidatesNear(last) : ranked).filter(p => {
           const role = roleOf(p);
           if (role === 'other' || (!index && role !== 'visit') || role === 'visit' && path.visits >= wantedVisits || role === 'meal' && path.meals >= wantedMeals || role === 'cafe' && path.cafes >= wantedCafes) return false;
+          if (!index && !hasFoodNearby(p)) return false;
           if (path.items.some(t => t.contentId === p.contentId) || p.contentTypeId === '38' && path.items.some(t => t.contentTypeId === '38')) return false;
           // Stay in one compact group, avoiding gradual drift toward an isolated node.
           if (path.items.some(t => metersBetween(t, p) > limit)) return false;

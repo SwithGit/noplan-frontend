@@ -12,6 +12,26 @@ const catalog = [place('1'), place('2', '12', 35.552), place('3', '14', 35.554),
 const options = { date: '2026-09-20', start: '09:00', end: '18:00', transport: 'walk', purpose: '자연산책', district: '중구' };
 const make = () => trip.createTrip({ title: '울산 여행', destination: '울산', startDate: '2026-09-20', endDate: '2026-09-21', transport: 'car', outbound: 'local', companion: '친구' }).document;
 
+test('official nationwide food categories work without Ulsan menu facts', () => {
+  const national = catalog.map(p => ({ ...p, district: '경주시', planning: null, foodKind: p.contentId === '4' ? 'meal' : p.contentId === '5' ? 'cafe' : 'unknown' }));
+  const nodes = model.suggestCourse(national, { ...options, district: '경주시' }, {});
+  assert.ok(nodes.some(n => n.place.tourism.contentId === '4'));
+  assert.ok(nodes.some(n => n.place.tourism.contentId === '5'));
+  const cafe = nodes.find(n => n.place.tourism.contentId === '5');
+  assert.equal(cafe.place.type, '카페');
+  assert.ok(model.scheduleCourse([{ ...cafe, place: { ...cafe.place, durationMinutes: 20 } }], '09:00', '18:00', []).errors.some(e => e.includes('최소 30분')));
+  assert.equal(model.foodKind({ ...national[0], foodKind: 'meal' }), 'unknown');
+  assert.equal(model.foodKind({ ...national[3], foodKind: 'unknown', name: '알 수 없는 가게' }), 'unknown');
+});
+
+test('large provincial catalogs keep recommendations inside one nearby cluster', () => {
+  const remote = Array.from({ length: 5000 }, (_, i) => ({ ...place(String(1000 + i), '12', 36 + i * .0001), lng: 128.1, district: '경주시' }));
+  const local = catalog.map(p => ({ ...p, district: '경주시' }));
+  const nodes = model.suggestCourse([...remote, ...local], { ...options, district: '경주시' }, {});
+  assert.ok(nodes.length >= 3);
+  assert.ok(nodes.every(n => Number(n.place.tourism.contentId) < 1000));
+});
+
 test('distance policy uses real path lengths with inclusive 1km/7km boundaries', () => {
   const route = meters => ({ id: 'a:b', status: 'ok', durationMinutes: 10, distanceMeters: meters });
   assert.equal(routing.routeWithinLimit(route(1000), 'walk'), true);

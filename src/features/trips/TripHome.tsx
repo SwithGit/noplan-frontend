@@ -81,7 +81,7 @@ export function TripHome({ user, libraryOnly=false }: { user: UserSession | null
       <span className="travel-hero-stamp">Less planning.<br /><b>More memories.</b></span>
     </section>}
     {(!libraryOnly || !desktop) && <TripCreateForm key={user?.userId || 'guest'} user={user} />}
-    <div className="trip-home-caption"><span>울산 노피 코스는 도보 1km·차량 7km 이내의 실제 경로로 연결해요. 가까운 후보가 부족하면 거리를 자동으로 늘리지 않고 안내해요.</span>{!desktop && <Link to={ROUTES.quickHome}>지금 주변 코스만 찾기 <TripIcon name="arrow" /></Link>}</div>
+    <div className="trip-home-caption"><span>노피 코스는 도보 1km·차량 7km 이내의 실제 경로로 연결해요. 가까운 후보가 부족하면 거리를 자동으로 늘리지 않고 안내해요.</span>{!desktop && <Link to={ROUTES.quickHome}>지금 주변 코스만 찾기 <TripIcon name="arrow" /></Link>}</div>
     {desktop && !libraryOnly && <><HomeExhibitionBanner /><HomeTravelCourses /></>}
     {error && <div className="trip-alert" role="alert">{error}{user && <button onClick={() => { setLoading(true); setReload(value => value + 1); }} type="button">다시 불러오기</button>}</div>}
     {notice && <p className="trip-library-notice" role="status">{notice}</p>}

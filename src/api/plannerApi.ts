@@ -46,6 +46,7 @@ interface GenerateCourseResponse {
 }
 
 export interface ParsedPlannerCondition {
+  locationMode?: 'named' | 'current' | 'context' | 'unspecified';
   companion: string | null;
   duration: string | null;
   location: string | null;
@@ -333,6 +334,7 @@ export async function parsePlannerCondition(text: string): Promise<ParsedPlanner
     if (!result.success || !result.condition) return null;
 
     return {
+      locationMode: result.condition.locationMode,
       companion: normalizeParsedValue(result.condition.companion),
       duration: normalizeParsedValue(result.condition.duration),
       location: normalizeParsedValue(result.condition.location),

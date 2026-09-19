@@ -310,8 +310,8 @@ export function PlannerHome({ active = true }: { active?: boolean }) {
       return;
     }
 
-    await startFromText(text);
-    navigate(ROUTES.plannerCondition);
+    const hasLocation = await startFromText(text);
+    navigate(hasLocation ? ROUTES.plannerCondition : ROUTES.plannerChat);
   };
 
   const handleCurrentLocation = async () => {
@@ -433,7 +433,7 @@ export function PlannerHome({ active = true }: { active?: boolean }) {
 
 export function ChatStart() {
   const navigate = useNavigate();
-  const { condition, detectCurrentLocation, locationStatus, setCondition } = usePlanner();
+  const { condition, detectCurrentLocation, locationStatus, setCondition, inputNotice } = usePlanner();
   const [activeStep, setActiveStep] = useState(() => {
     const hasPeople = peopleOptions.some((option) => condition.companion.includes(option));
     if (!condition.location) return 0;
@@ -442,7 +442,7 @@ export function ChatStart() {
     if (!condition.mood) return 3;
     return 4;
   });
-  const [statusMessage, setStatusMessage] = useState('');
+  const [statusMessage, setStatusMessage] = useState(inputNotice);
   const [dateTimeSheetMode, setDateTimeSheetMode] = useState<DateTimeSheetMode | null>(null);
   const [addressSheetOpen, setAddressSheetOpen] = useState(false);
   const [manualAddress, setManualAddress] = useState('');
@@ -776,7 +776,7 @@ export function ChatStart() {
           <p className="inline-message">{endTimeHint(condition.duration)}</p>
         </QuickQuestion>}
 
-        {statusMessage && activeStep !== 0 && <p className="inline-message warning">{statusMessage}</p>}
+        {activeStep !== 0 && statusMessage && <p className="inline-message warning">{statusMessage}</p>}
 
         <div className="chat-step-footer">
           <button className="primary-result-button" disabled={!stepComplete} type="button" onClick={advance}>

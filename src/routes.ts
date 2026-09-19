@@ -12,6 +12,7 @@ export const ROUTES = {
   plannerSearching: '/app/planner/searching',
   plannerResult: '/app/planner/result',
   explore: '/app/explore',
+  nearbyPlaces: '/app/nearby',
   courseMap: '/app/course/map',
   myPage: '/app/mypage',
   myCourses: '/app/mypage/courses',
