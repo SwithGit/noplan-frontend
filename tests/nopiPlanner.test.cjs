@@ -152,8 +152,25 @@ test('provider outages, quota errors, missing legs and malformed results do not 
 test('route replacement is bounded even when every candidate has no route', async () => {
   let calls = 0;
   const query = async (_, legs) => { calls++; return { legs: legs.map(leg => ({ id: leg.id, status: 'unavailable', reason: 'no_route', providerResultCode: 1 })) }; };
-  await assert.rejects(routing.generateNearbyCourse(catalog, options, {}, query, new AbortController().signal), /이내|가까운/);
+  await assert.rejects(routing.generateNearbyCourse(catalog, options, {}, query, new AbortController().signal), error => /경로를 확인할 수 없는 구간/.test(error.message) && !/7km|1km/.test(error.message));
   assert.ok(calls <= 9);
+});
+
+test('automatic courses avoid repeated entrance coordinates and nearby tenants while manual stops remain usable', () => {
+  const cafe = catalog[4];
+  const tenants = [
+    { ...place('801', '28', cafe.lat), name: '실내 체험장', searchCount: 1e9 },
+    { ...place('802', '14', cafe.lat + .00008), name: '공연장', searchCount: 1e9 },
+    { ...place('803', '39', cafe.lat + .00008), name: '같은 건물 식당', searchCount: 1e9 },
+  ];
+  for (const transport of ['car', 'walk']) {
+    const nodes = model.suggestCourse([...catalog, ...tenants], { ...options, transport }, {});
+    assert.ok(nodes.length >= 3);
+    nodes.forEach((node, i) => nodes.slice(i + 1).forEach(other => assert.ok(model.distance(node.place, other.place) >= 20)));
+  }
+  const manual = [model.tourismNode(tenants[0], 60), model.tourismNode(cafe, 40)];
+  const routes = model.courseLegs(manual).map(leg => ({ id: leg.id, status: 'ok', distanceMeters: 0, durationMinutes: 0 }));
+  assert.equal(model.courseDay(make().days[0], manual, '09:00', '18:00', routes, {}).blocks.length, 2);
 });
 
 test('day two recovers from Kakao 104 while excluding the five stops already drafted on day one', async () => {

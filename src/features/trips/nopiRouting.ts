@@ -11,6 +11,7 @@ export async function generateNearbyCourse(catalog: NopiAttraction[], options: N
   const rejected = new Set<string>(), cache = new Map<string, DayRouteResult>();
   const unroutable = new Set<string>();
   let replacedUnavailable = false;
+  let distanceRejected = false, timeRejected = false;
   for (let attempt = 0; attempt < 3; attempt++) {
     signal.throwIfAborted();
     const suggested = suggestCourse(catalog.filter(place => !unroutable.has(place.contentId)), options, exclusions, rejected, variant);
@@ -44,6 +45,8 @@ export async function generateNearbyCourse(catalog: NopiAttraction[], options: N
         const index = legs.findIndex(leg => leg.id === route.id);
         const from = nodes[index].place.tourism!.contentId, to = nodes[index + 1].place.tourism!.contentId;
         rejected.add(edgeId(from, to));
+        // Near-identical endpoints cannot be fixed by reversing their order.
+        if (route.providerResultCode === 104) rejected.add(edgeId(to, from));
         // Kakao 102/103 explicitly identify an origin/destination with no road.
         if (route.providerResultCode === 102) unroutable.add(from);
         if (route.providerResultCode === 103) unroutable.add(to);
@@ -51,13 +54,18 @@ export async function generateNearbyCourse(catalog: NopiAttraction[], options: N
       });
       if (failures.length) continue;
       const over = routes.filter(r => !routeWithinLimit(r, options.transport));
+      if (over.some(route => route.distanceMeters! > courseDistanceLimit(options.transport))) distanceRejected = true;
+      if (over.some(route => route.durationMinutes! > (options.transport === 'walk' ? 40 : 60))) timeRejected = true;
       over.forEach(r => { const index = legs.findIndex(leg => leg.id === r.id); rejected.add(edgeId(nodes[index].place.tourism!.contentId, nodes[index + 1].place.tourism!.contentId)); });
-      if (over.length || scheduleCourse(nodes, options.start, options.end, routes, {}, options.date).errors.length) continue;
+      if (over.length) continue;
+      if (scheduleCourse(nodes, options.start, options.end, routes, {}, options.date).errors.length) { timeRejected = true; continue; }
       const meters = routes.reduce((sum, r) => sum + r.distanceMeters!, 0);
       if (!best || meters < best.meters) best = { nodes, routes, meters };
     }
     if (best) return { ...best, notice: [replacedUnavailable ? '경로를 확인할 수 없는 구간을 제외하고 이동 가능한 코스로 구성했어요.' : '', best.nodes.length < targetCourseCount(options) ? `가까운 후보가 부족해 ${best.nodes.length}곳으로 구성했어요. ${courseDistanceLabel(options.transport)} 제한은 그대로 지켰어요.` : ''].filter(Boolean).join(' ') };
     if (serviceFailure) throw Error(serviceFailure);
   }
+  if (replacedUnavailable) throw Error('경로를 확인할 수 없는 구간이 반복돼 코스를 완성하지 못했어요. 다른 권역을 선택하거나 장소를 직접 담아 주세요.');
+  if (timeRejected && !distanceRejected) throw Error('이동·방문 시간을 합치면 설정한 시간 안에 코스를 구성하기 어려워요. 여행 시간을 늘리거나 장소를 직접 담아 주세요.');
   throw Error(`${courseDistanceLabel(options.transport)} 이내의 실제 경로로 연결하기 어려워요. 거리를 넓히지 않았어요. 다른 권역을 선택하거나 장소를 직접 담아 주세요.`);
 }

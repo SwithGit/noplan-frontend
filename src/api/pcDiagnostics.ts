@@ -11,8 +11,8 @@ export function diagnosticReason(cause: unknown) {
   const message = error?.message || '';
   if (/가까운 장소가 부족/.test(message)) return 'insufficient_nearby_places';
   if (/실제 경로로 연결/.test(message)) return 'distance_limit';
-  if (/실제 이동거리·시간/.test(message)) return 'route_unavailable';
-  if (/3~14시간/.test(message)) return 'invalid_time_window';
+  if (/실제 이동거리·시간|경로를 확인할 수 없는 구간/.test(message)) return 'route_unavailable';
+  if (/3~14시간|설정한 시간 안에 코스/.test(message)) return 'invalid_time_window';
   if (/대중교통/.test(message)) return 'unsupported_transport';
   if (error?.name === 'ApiError') return 'http_error';
   return 'unexpected_error';

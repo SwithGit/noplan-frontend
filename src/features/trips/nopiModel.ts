@@ -84,6 +84,9 @@ export function targetCourseCount(options: NopiOptions) {
   const available = minutes(options.end) - minutes(options.start);
   return (available >= 480 ? 5 : available >= 360 ? 4 : 3) + (available >= 660 && minutes(options.end) >= 1140 ? 1 : 0);
 }
+// TourAPI often assigns one building/entrance coordinate to several tenants.
+// Automatic itineraries pick one stop within 20 m; manual stops are unaffected.
+const AUTO_STOP_SEPARATION_METERS = 20;
 export function suggestCourse(catalog: NopiAttraction[], options: NopiOptions, excluded: Record<string, string>, rejectedEdges = new Set<string>(), variant = 0): CourseNode[] {
   const available = minutes(options.end) - minutes(options.start), limit = courseDistanceLimit(options.transport);
   if (!limit) throw Error('대중교통 자동 코스는 아직 지원하지 않아요. 이동수단을 도보 또는 차량으로 변경해 주세요.');
@@ -175,7 +178,7 @@ export function suggestCourse(catalog: NopiAttraction[], options: NopiOptions, e
           if (!index && !hasFoodNearby(p)) return false;
           if (path.items.some(t => t.contentId === p.contentId) || p.contentTypeId === '38' && path.items.some(t => t.contentTypeId === '38')) return false;
           // Stay in one compact group, avoiding gradual drift toward an isolated node.
-          if (path.items.some(t => metersBetween(t, p) > limit)) return false;
+          if (path.items.some(t => { const meters = metersBetween(t, p); return meters > limit || meters < AUTO_STOP_SEPARATION_METERS; })) return false;
           return !last || !rejectedEdges.has(edgeId(last.contentId, p.contentId));
         });
         const scored = candidates.map(p => {
