@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useTripSync } from './useTripSync';
 import { TripSharing } from './TripSharing';
+import { DayRouteDialog } from './DayRouteDialog';
 import MapBoard from '../../components/MapBoard';
 import nopi from '../../assets/nopi/nopi-icon.png';
 import type { UserSession } from '../../types/noplan';
@@ -27,7 +28,7 @@ export function TripWorkspace({ user }: { user: UserSession | null }) {
   const [storageError, setStorageError] = useState('');
   const [dayId, setDayId] = useState((location.state as {focusDayId?:string}|null)?.focusDayId || seed?.document.days[0]?.id || '');
   const [blockId, setBlockId] = useState((location.state as {focusBlockId?:string}|null)?.focusBlockId || seed?.document.days[0]?.blocks[0]?.id || '');
-  const [dialog, setDialog] = useState<'place' | 'block' | 'settings' | 'tourism' | 'sharing' | null>(null);
+  const [dialog, setDialog] = useState<'place' | 'block' | 'settings' | 'tourism' | 'sharing' | 'dayRoute' | null>(null);
   const clearUndo = useCallback(() => setUndo([]), []);
   const { trip, setTrip, remote, loading, saving: networkSaving, notice, setNotice, conflict, blocked, autoError, dirty, connected, save, openLatest } = useTripSync(id, user?.userId, seed, dialog !== null, clearUndo);
   const saving = networkSaving || loading;
@@ -86,7 +87,7 @@ export function TripWorkspace({ user }: { user: UserSession | null }) {
     {(notice || storageError) && <div className="trip-alert" role="status"><span>{storageError || notice}</span>{(!user || blocked) && <Link to={ROUTES.login}>로그인</Link>}{(isConflict || blocked) && <><button type="button" disabled={saving} onClick={() => void openLatest()}>최신 여행 열기</button><button type="button" disabled={saving} onClick={copy}>새 여행으로 복사</button></>}</div>}
     <div className="trip-editor-layout">
       <aside className="trip-days"><span className="trip-eyebrow">ITINERARY</span><h2>우리의 여정</h2><nav aria-label="여행 날짜">{document.days.map((item, index) => <button key={item.id} className={item.id === day.id ? 'selected' : ''} aria-pressed={item.id === day.id} type="button" onClick={() => { setDayId(item.id); setBlockId(item.blocks[0]?.id || ''); setMobileDetail(false); }}><span>DAY {String(index + 1).padStart(2, '0')}</span><strong>{shortDate(item.date)}</strong><small>{item.blocks.reduce((sum, segment) => sum + segment.places.length, 0)}개 장소</small></button>)}</nav><div className="trip-day-summary"><TripIcon name="map" /><strong>{totalPlaces}개의 작은 발견</strong><span>{document.days.length}일의 여행에 담았어요.</span></div><Link to={ROUTES.quickHome} className="trip-text-link">주변 코스만 찾기 <TripIcon name="arrow" /></Link></aside>
-      <section className="trip-timeline" aria-label="날짜별 일정"><div className="trip-timeline-header"><div><span className="trip-eyebrow">DAY {String(document.days.indexOf(day) + 1).padStart(2, '0')}</span><h2>{shortDate(day.date)}의 여행</h2></div><button className="trip-button" onClick={addBlock} disabled={saving || day.blocks.length >= 12} type="button"><TripIcon name="plus" />구간 추가</button></div>
+      <section className="trip-timeline" aria-label="날짜별 일정"><div className="trip-timeline-header"><div><span className="trip-eyebrow">DAY {String(document.days.indexOf(day) + 1).padStart(2, '0')}</span><h2>{shortDate(day.date)}의 여행</h2></div><div className="trip-timeline-actions"><button className="trip-button primary" type="button" disabled={saving} onClick={() => setDialog('dayRoute')}><TripIcon name="map" />하루 동선 보기</button><button className="trip-button" onClick={addBlock} disabled={saving || day.blocks.length >= 12} type="button"><TripIcon name="plus" />구간 추가</button></div></div>
         <div className="trip-timeline-list">{[...day.blocks].sort((a, b) => a.startTime.localeCompare(b.startTime)).map((segment, index) => <article className={`trip-segment ${segment.id === block?.id ? 'selected' : ''}`} key={segment.id}>
           <div className="trip-segment-rail"><span>{segment.startTime}</span><i>{String(index + 1).padStart(2, '0')}</i><small>{segment.endTime}</small></div>
           <div className="trip-segment-card"><button className="trip-segment-title" type="button" onClick={() => chooseBlock(segment)} aria-pressed={segment.id === block?.id}><div><span>{segment.places.length ? `${segment.places.length}곳 · 체류 ${segment.places.reduce((sum, place) => sum + place.durationMinutes, 0)}분` : '이 시간을 무엇으로 채울까요?'}</span><h3>{segment.places.find(place => place.tourism)?.name || segment.title}</h3></div><TripIcon name="arrow" /></button>
@@ -111,6 +112,13 @@ export function TripWorkspace({ user }: { user: UserSession | null }) {
         </div> : <div className="trip-inspector-body"><p className="trip-muted">일정 구간을 추가하면 노피가 도와드릴게요.</p></div>}
       </aside>
     </div>
+    {dialog === 'dayRoute' && <DayRouteDialog document={document} dayId={day.id} disabled={saving} onClose={() => setDialog(null)} onApply={(nextDay, transport, baseline) => {
+      if (saving) return;
+      if (JSON.stringify(document) !== baseline) throw new Error('일정이 바뀌었어요. 동선 보기를 다시 열어 최신 내용에서 수정해 주세요.');
+      const next = { ...document, transport, days: document.days.map(item => item.id === day.id ? nextDay : item) };
+      if (JSON.stringify(next) !== baseline) change(next);
+      setDialog(null);
+    }} />}
     {dialog === 'sharing' && <TripSharing trip={trip} onClose={() => setDialog(null)} />}
     {dialog === 'tourism' && block && <TourismPicker destination={document.destination} initial={tourismAnchor ? attractionFromPlace(tourismAnchor) : undefined} initialDuration={tourismAnchor?.durationMinutes} context={`${shortDate(day.date)} · ${block.title}`} onClose={() => setDialog(null)} onSelect={(place, duration) => { if (saving) return; change(setTourismAnchor(document, day.id, block.id, place, duration)); setDialog(null); setDetailTab('recommend'); setMobileDetail(true); setNotice('중심 관광지를 담았어요. 기존 장소는 유지됩니다. 관광지와 각 장소 사이의 이동·운영시간을 확인해 주세요.'); }} />}
     {dialog === 'place' && block && <PlaceForm place={editingPlace} onClose={() => setDialog(null)} onAdd={place => { if (!editingPlace && block.places.length >= 15) { setNotice('한 구간에는 최대 15개 장소를 담을 수 있어요.'); return; } updatePlaces(editingPlace ? block.places.map(item => item.id === editingPlace.id ? place : item) : [...block.places, place]); setDialog(null); }} />}

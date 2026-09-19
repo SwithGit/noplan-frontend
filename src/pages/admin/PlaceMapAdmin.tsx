@@ -51,7 +51,7 @@ type KakaoMapsApi = {
 
 function getKakaoMaps(): KakaoMapsApi | undefined {
   if (typeof window === 'undefined') return undefined;
-  return (window as Window & { kakao?: { maps?: KakaoMapsApi } }).kakao?.maps;
+  return (window as unknown as { kakao?: { maps?: KakaoMapsApi } }).kakao?.maps;
 }
 
 function displayAddress(place: AdminMapPlace) {

@@ -1,0 +1,44 @@
+[
+  {
+    "contentId": "128022",
+    "contentTypeId": "12",
+    "name": "간절곶",
+    "type": "관광지",
+    "address": "울산광역시 울주군 서생면 간절곶1길 39-2",
+    "lat": 35.3589668021,
+    "lng": 129.3605738299,
+    "imageUrl": "https://tong.visitkorea.or.kr/cms/resource/50/3583350_image2_1.jpg",
+    "imageLicense": "Type1",
+    "sourceUrl": "https://www.data.go.kr/data/15101578/openapi.do",
+    "sourceLabel": "한국관광공사 TourAPI",
+    "district": "울주군"
+  },
+  {
+    "contentId": "2675086",
+    "contentTypeId": "12",
+    "name": "송정 박상진호수공원",
+    "type": "관광지",
+    "address": "울산광역시 북구 저수지길 158-31",
+    "lat": 35.6096,
+    "lng": 129.3785,
+    "imageUrl": "https://tong.visitkorea.or.kr/cms/resource/24/3506324_image2_1.jpg",
+    "imageLicense": "Type1",
+    "sourceUrl": "https://www.data.go.kr/data/15101578/openapi.do",
+    "sourceLabel": "한국관광공사 TourAPI",
+    "district": "북구"
+  },
+  {
+    "contentId": "2917191",
+    "contentTypeId": "38",
+    "name": "롯데백화점 울산점",
+    "type": "쇼핑",
+    "address": "울산광역시 남구 삼산로 288 (삼산동)",
+    "lat": 35.5386226526119,
+    "lng": 129.338866778005,
+    "imageUrl": "https://tong.visitkorea.or.kr/cms/resource/50/4019750_image2_1.jpg",
+    "imageLicense": "Type3",
+    "sourceUrl": "https://www.data.go.kr/data/15101578/openapi.do",
+    "sourceLabel": "한국관광공사 TourAPI",
+    "district": "남구"
+  }
+]
