@@ -14,7 +14,7 @@ export interface TripPlace {
   sourceUrl: string;
   candidateSource?: 'catalog' | 'live';
   priceNeedsCheck?: boolean;
-  tourism?: { contentId: string; contentTypeId: '12' | '14' | '28' };
+  tourism?: { contentId: string; contentTypeId: '12' | '14' | '28' | '25' | '38' };
   event?: {id: string; startDate: string; endDate: string; hours: string};
 }
 export interface TripBlock { id: string; title: string; area: string; startTime: string; endTime: string; notes: string; places: TripPlace[] }

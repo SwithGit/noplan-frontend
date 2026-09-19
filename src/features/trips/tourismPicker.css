@@ -19,7 +19,7 @@
 .tourism-reset-search { flex-shrink: 0; border: 0; border-left: 1px solid #eee8f3; padding: 6px 12px; background: transparent; font: inherit; font-size: 12px; color: #7955a6; cursor: pointer; }
 .tourism-reset-search:hover { color: #51317e; text-decoration: underline; }
 .tourism-discovery-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 12px; padding: 10px 0; flex-shrink: 0; }
-.tourism-categories { display: flex; gap: 7px; }
+.tourism-categories { display: flex; flex-wrap: wrap; gap: 7px; }
 .tourism-categories button { border: 1px solid #e8e3ee; border-radius: 25px; padding: 7px 12px; font: inherit; font-size: 12px; font-weight: 600; color: #807588; background: #fff; cursor: pointer; }
 .tourism-categories button[aria-pressed=true] { background: #322741; color: #fff; border-color: #322741; }
 .tourism-source { font-size: 11px; color: #958b9e; white-space: nowrap; }
@@ -130,3 +130,6 @@ body:has(.tourism-dialog[open]) { overflow: hidden; }
 .tourism-ranking-explanation { font-size: 11px; color: #70617f; line-height: 1.5; margin: 6px 0 2px; }
 .tourism-ranking-panel > small { color: #998fa3; font-size: 10px; }
 .tourism-ranking-badge { display: inline-block; color: #7756a2; background: #f4eefb; font-size: 11px; line-height: 1.5; border-radius: 5px; padding: 4px 7px; margin: 3px 0 7px; }
+
+.tourism-course-note { padding: 12px; border-radius: 10px; background: #f7f4fb; color: #796589; font-size: 12px; line-height: 1.7; }
+.tourism-course-note strong { display: block; margin-bottom: 4px; color: #57416d; }
