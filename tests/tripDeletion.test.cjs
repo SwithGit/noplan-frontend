@@ -2,7 +2,7 @@ const test = require('node:test'), assert = require('node:assert/strict');
 const fs = require('node:fs'), vm = require('node:vm'), ts = require('typescript');
 const values = new Map();
 const storage = { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) };
-const box = { exports: {}, localStorage: storage };
+const box = { exports: {}, localStorage: storage, require: name => { assert.equal(name, '../../i18n/locale'); return { getLocale: () => 'ko' }; } };
 vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/features/trips/tripModel.ts', 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, box);
 const { readDrafts, writeDraft, removeDraft, draftKey } = box.exports;
 const trip = id => ({ id, version: 0, document: { title: id, days: [{ date: '2026-09-20', blocks: [] }] } });

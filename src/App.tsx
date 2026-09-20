@@ -33,6 +33,7 @@ import { TripHome } from './features/trips/TripHome';
 import { TripCreatePage } from './features/trips/TripCreatePage';
 import { TripWorkspace } from './features/trips/TripWorkspace';
 import { PENDING_TRIP_INVITE, TripJoin } from './features/trips/TripSharing';
+import { TripPublicView } from './features/trips/TripPublicView';
 import { readPendingTripCreation } from './features/trips/pendingTripCreation';
 import { EventsPage } from './features/events/EventsPage';
 import { EventDetail } from './features/events/EventDetail';
@@ -188,6 +189,7 @@ function AppRoutes() {
       <Route path={ROUTES.appHome} element={<HomeEntry user={user} />} />
       <Route path={ROUTES.trips} element={<TripHome key={user?.userId || 'guest'} user={user} libraryOnly />} />
       <Route path={ROUTES.newTrip} element={<TripCreatePage key={user?.userId || 'guest'} user={user} />} />
+      <Route path={ROUTES.tripShared} element={<TripPublicView />} />
       <Route path={ROUTES.events} element={<EventsPage />} />
       <Route path="/app/events/:id" element={<EventDetail user={user} />} />
       <Route path="/app/trips/:id" element={<TripRouteEntry user={user} />} />

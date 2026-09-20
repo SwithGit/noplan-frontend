@@ -3,6 +3,7 @@ const fs = require('node:fs'), vm = require('node:vm'), ts = require('typescript
 const exportsObject = {};
 vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/features/trips/mergeTrip.ts', 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports: exportsObject });
 const { mergeTripDocuments: merge, sameDocument } = exportsObject;
+const { resolveTripMerge: resolve } = exportsObject;
 const copy = x => JSON.parse(JSON.stringify(x));
 const document = () => ({ title: '울산 여행', transport: 'walk', days: [{ id: 'day', blocks: [{ id: 'am', title: '오전', notes: '', places: [{ id: 'a', name: '간절곶', durationMinutes: 60 }, { id: 'b', name: '카페', durationMinutes: 30 }] }, { id: 'pm', title: '오후', notes: '', places: [] }] }] });
 test('다른 구간과 같은 장소의 서로 다른 필드는 양쪽 변경을 모두 보존한다', () => {
@@ -53,4 +54,29 @@ test('충돌 후 추가 편집하고 새로고침해도 원래 기준 버전을 
   local.days[0].blocks[0].notes = '충돌 뒤 이어 쓴 메모';
   const restored = copy(exportsObject.draftWithBaseline(draft, remote));
   assert.equal(merge(restored.baseDocument, restored.document, latest), null);
+});
+
+test('충돌 항목 선택은 독립적인 메모·장소 수정을 함께 유지한다',()=>{
+  const base=document(),local=copy(base),remote=copy(base);
+  local.title='내 제목';remote.title='친구 제목';local.days[0].blocks[0].notes='내 메모';remote.days[0].blocks[1].notes='친구 메모';
+  const initial=resolve(base,local,remote);assert.equal(initial.conflicts.length,1);
+  const result=resolve(base,local,remote,{[initial.conflicts[0].key]:'remote'});
+  assert.equal(result.conflicts.length,0);assert.equal(result.document.title,'친구 제목');assert.equal(result.document.days[0].blocks[0].notes,'내 메모');assert.equal(result.document.days[0].blocks[1].notes,'친구 메모');
+});
+test('삭제·수정 충돌에서 수정 선택 시 장소 복구, 삭제 선택 시 삭제 유지',()=>{
+  const base=document(),local=copy(base),remote=copy(base);local.days[0].blocks[0].places.shift();remote.days[0].blocks[0].places[0].name='수정한 장소';
+  const conflict=resolve(base,local,remote).conflicts[0];
+  const kept=resolve(base,local,remote,{[conflict.key]:'remote'});assert.equal(kept.conflicts.length,0);assert.equal(kept.document.days[0].blocks[0].places.find(p=>p.id==='a').name,'수정한 장소');
+  const removed=resolve(base,local,remote,{[conflict.key]:'local'});assert.equal(removed.conflicts.length,0);assert.equal(removed.document.days[0].blocks[0].places.length,1);
+});
+test('서로 충돌하는 방문 순서를 선택하면서 장소 필드 변경은 유지한다',()=>{
+  const base=document();base.days[0].blocks[0].places.push({id:'c',name:'식사'});const local=copy(base),remote=copy(base);
+  local.days[0].blocks[0].places.reverse();remote.days[0].blocks[0].places=[remote.days[0].blocks[0].places[1],remote.days[0].blocks[0].places[0],remote.days[0].blocks[0].places[2]];remote.days[0].blocks[0].places[0].name='바뀐 카페';
+  const conflict=resolve(base,local,remote).conflicts.find(c=>c.path.at(-1)==='@order');assert.ok(conflict);
+  const result=resolve(base,local,remote,{[conflict.key]:'local'});assert.equal(result.conflicts.length,0);assert.equal(result.document.days[0].blocks[0].places.map(p=>p.id).join(','),'c,b,a');assert.equal(result.document.days[0].blocks[0].places[1].name,'바뀐 카페');
+});
+test('노피가 첫날을 계획하는 중 친구가 바꾼 둘째 날을 유지한다',()=>{
+  const base=document();base.days.push({...copy(base.days[0]),id:'day2'});const local=copy(base),remote=copy(base);
+  local.days[0].blocks[0].places.push({id:'nopi',name:'노피 추천'});remote.days[1].blocks[0].notes='둘째 날 친구 메모';
+  const result=merge(base,local,remote);assert.ok(result);assert.equal(result.days[0].blocks[0].places.at(-1).id,'nopi');assert.equal(result.days[1].blocks[0].notes,'둘째 날 친구 메모');
 });

@@ -4,6 +4,7 @@ import { mobileMessages } from './mobileMessages';
 import { siteMessages } from './siteMessages';
 import { reviewedMessages } from './reviewedMessages';
 import { travelMessages } from './travelMessages';
+import { sharingMessages } from './sharingMessages';
 
 const templates: Record<string, readonly [string,string,string]> = {
   '{0} 이내의 실제 경로로 연결하기 어려워요. 거리를 넓히지 않았어요. 다른 권역을 선택하거나 장소를 직접 담아 주세요.': ['We could not connect a route within {0}. The limit was kept. Try another area or add places yourself.', '无法在{0}以内连接实际路线，距离限制保持不变。请选择其他地区或手动添加地点。', '{0}以内の実際の経路で接続できませんでした。制限は維持しています。別のエリアを選ぶか、場所を直接追加してください。'],
@@ -34,7 +35,7 @@ export function translate<T>(value: T, locale: Locale = getLocale()): T {
   if (locale === 'ko' || typeof value !== 'string') return value;
   const text = value.trim().replace(/\s+/g,' ');
   const index = locale === 'en' ? 0 : locale === 'zh-CN' ? 1 : 2;
-  const translation = (travelMessages[text] || reviewedMessages[text] || messages[text] || mobileMessages[text] || siteMessages[text])?.[index];
+  const translation = (sharingMessages[text] || travelMessages[text] || reviewedMessages[text] || messages[text] || mobileMessages[text] || siteMessages[text])?.[index];
   if (translation) return (value.match(/^\s*/)?.[0]+translation+value.match(/\s*$/)?.[0]) as T;
   for(const pattern of patterns) {
     const match=pattern.regex.exec(text);

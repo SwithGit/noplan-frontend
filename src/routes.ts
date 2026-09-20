@@ -6,6 +6,7 @@ export const ROUTES = {
   trips: '/app/trips',
   newTrip: '/app/trips/new',
   tripJoin: '/app/trips/join',
+  tripShared: '/app/trips/shared',
   events: '/app/events',
   plannerChat: '/app/planner/chat',
   plannerCondition: '/app/planner/condition',

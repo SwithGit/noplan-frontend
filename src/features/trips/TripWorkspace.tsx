@@ -5,6 +5,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useTripSync } from './useTripSync';
 import { TripSharing } from './TripSharing';
+import { TripCollaborationBar } from './TripCollaborationBar';
+import { TripConflictDialog } from './TripConflictDialog';
+import { mergeTripDocuments, sameDocument } from './mergeTrip';
+import { normalizeNeeds } from './travelNeeds';
 import { NopiCoursePlanner } from './NopiCoursePlanner';
 import { TripPlacePhoto } from './TripPlacePhoto';
 import { useTripPhotos } from './useTripPhotos';
@@ -44,8 +48,10 @@ export function TripWorkspace({ user }: { user: UserSession | null }) {
   const [dayId, setDayId] = useState((location.state as {focusDayId?:string}|null)?.focusDayId || seed?.document.days[0]?.id || '');
   const [blockId, setBlockId] = useState((location.state as {focusBlockId?:string}|null)?.focusBlockId || seed?.document.days[0]?.blocks[0]?.id || '');
   const [dialog, setDialog] = useState<'searchPlace' | 'block' | 'settings' | 'tourism' | 'sharing' | 'dayRoute' | 'planner' | 'overview' | null>(null);
+  const [resolving, setResolving] = useState(false);
+  const [plannerConflict, setPlannerConflict] = useState<{base:TripDocument;local:TripDocument;overview:boolean;activeDayId:string}|null>(null);
   const clearUndo = useCallback(() => setUndo([]), []);
-  const { trip, setTrip, remote, loading, saving: networkSaving, notice, setNotice, conflict, blocked, autoError, dirty, connected, save, openLatest } = useTripSync(id, user?.userId, seed, dialog !== null, clearUndo);
+  const { trip, setTrip, remote, loading, saving: networkSaving, notice, setNotice, conflict, blocked, autoError, dirty, connected, save, openLatest, resolveConflict } = useTripSync(id, user?.userId, seed, dialog !== null && !['planner','overview','sharing'].includes(dialog), clearUndo);
   const saving = networkSaving || loading;
   const [pickerNewBlock, setPickerNewBlock] = useState<TripBlock | null>(null);
   const [editingPlace, setEditingPlace] = useState<TripPlace | undefined>();
@@ -113,8 +119,9 @@ export function TripWorkspace({ user }: { user: UserSession | null }) {
   const isConflict = conflict || (remote && remote.version !== trip.version);
   return <div className={`trip-workspace ${desktop ? 'trip-workspace-desktop' : ''}`}>
     <div className="trip-workspace-bar"><div className="trip-breadcrumb"><Link to={ROUTES.trips}>{uiText("내 여행")}</Link><span>/</span><span>{document.destination}</span></div><div className="trip-save-tools"><button className="trip-button" type="button" disabled={saving || conflict || blocked} onClick={async () => { if (!user) { setNotice('로그인 후 여행을 저장하면 친구를 초대할 수 있어요.'); return; } if ((!trip.version || dirty) && !await save()) return; setDialog('sharing'); }}>{uiText(desktop ? '공유 · 친구와 함께' : '친구와 함께')}{uiText(trip.collaboration?.enabled ? ` · ${trip.collaboration.memberCount}명` : '')}</button><span className="trip-save-state"><span className={dirty ? 'pending' : ''} />{uiText(saving ? '저장 중…' : !user ? '이 브라우저의 초안' : conflict ? '수정 충돌 · 작업본 보관 중' : blocked ? '편집 권한 확인 필요' : autoError ? '저장 실패 · 재시도 필요' : !connected ? '연결 확인 필요' : dirty ? trip.collaboration?.enabled ? '친구에게 반영 중…' : '저장할 변경사항 있음' : trip.collaboration?.enabled ? '함께 편집 · 자동 저장됨' : '계정에 저장됨')}</span><button className="trip-button" disabled={!undo.length || saving} onClick={() => { const previous = undo.at(-1); if (previous) { setTrip({ ...trip, document: previous }); setUndo(undo.slice(0, -1)); } }} type="button">{uiText("되돌리기")}</button><button className="trip-button primary" disabled={saving || conflict || blocked} onClick={() => void save()} type="button"><TripIcon name="save" />{uiText(user ? '여행 저장' : '저장 안내')}</button></div></div>
+    {user && trip.version > 0 && trip.collaboration?.enabled && <TripCollaborationBar id={trip.id} editing={dialog === 'planner'} />}
     {!desktop && <header className="trip-workspace-heading"><div><span className="trip-eyebrow">MY TRAVEL NOTE</span><h1>{uiText(document.title)}</h1><div className="trip-meta"><span><TripIcon name="calendar" />{document.startDate} — {document.endDate}</span><span>{tripLength(document)}</span><span>{uiText(transportLabels[document.transport])}</span><span>{uiText(document.companion === '혼자' ? '나만의 여행' : `${document.companion}와 함께`)}</span></div></div><div className="trip-timeline-actions"><button type="button" className="trip-button" onClick={() => setDialog('overview')}>{uiText("전체 일정 보기")}</button><button type="button" className="trip-button" onClick={() => setDialog('settings')} disabled={saving}>{uiText("여행 정보 수정")}</button></div></header>}
-    {(notice || storageError) && <div className="trip-alert" role="status"><span>{storageError || notice}</span>{(!user || blocked) && <Link to={ROUTES.login}>{uiText("로그인")}</Link>}{(isConflict || blocked) && <><button type="button" disabled={saving} onClick={() => void openLatest()}>{uiText("최신 여행 열기")}</button><button type="button" disabled={saving} onClick={copy}>{uiText("새 여행으로 복사")}</button></>}</div>}
+    {(notice || storageError) && <div className="trip-alert" role="status"><span>{storageError || notice}</span>{(!user || blocked) && <Link to={ROUTES.login}>{uiText("로그인")}</Link>}{conflict && trip.baseDocument && <button type="button" onClick={()=>setResolving(true)}>{uiText('충돌 해결')}</button>}{(isConflict || blocked) && <><button type="button" disabled={saving} onClick={() => void openLatest()}>{uiText("최신 여행 열기")}</button><button type="button" disabled={saving} onClick={copy}>{uiText("새 여행으로 복사")}</button></>}</div>}
     {desktop ? <TripDayWorkspace document={document} day={day} photos={photos} disabled={saving || conflict || blocked}
       onChange={change} onDay={target => { setDayId(target); setBlockId(document.days.find(item => item.id === target)?.blocks[0]?.id || ''); }}
       onPlanner={() => openPlanner()} onSettings={() => setDialog('settings')} onOverview={() => setDialog('overview')} onRoute={() => setDialog('dayRoute')}
@@ -148,8 +155,11 @@ export function TripWorkspace({ user }: { user: UserSession | null }) {
     </div>}
     {dialog === 'planner' && <NopiCoursePlanner document={document} dayId={day.id} disabled={saving || conflict || blocked} onClose={() => setDialog(null)} onApply={(nextDays, baseline, overview, activeDayId, needs) => {
       if (saving || conflict || blocked) throw new Error('저장 또는 동기화가 끝난 뒤 다시 반영해 주세요.');
-      if (JSON.stringify(document) !== baseline) throw new Error('여행 일정이 바뀌었어요. 코스 만들기를 다시 열어 주세요.');
-      change({ ...document, needs, days: document.days.map(item => nextDays.find(next => next.id === item.id) || item) });
+      const base = JSON.parse(baseline) as TripDocument;
+      const local = { ...base, needs: sameDocument(normalizeNeeds(base.needs), needs) ? base.needs : needs, days: base.days.map(item => nextDays.find(next => next.id === item.id) || item) };
+      const merged = mergeTripDocuments(base, local, document);
+      if (!merged) { setPlannerConflict({base, local, overview, activeDayId}); return; }
+      change(merged);
       setDayId(activeDayId);
       setBlockId((nextDays.find(item => item.id === activeDayId) || document.days.find(item => item.id === activeDayId))?.blocks[0]?.id || '');
       setDialog(overview ? 'overview' : null);
@@ -162,6 +172,8 @@ export function TripWorkspace({ user }: { user: UserSession | null }) {
       if (JSON.stringify(next) !== baseline) change(next);
       setDialog(null);
     }} />}
+    {resolving && conflict && remote && trip.baseDocument && <TripConflictDialog key={remote.version} base={trip.baseDocument} local={document} remote={remote.document} onClose={()=>setResolving(false)} onResolve={value=>{resolveConflict(value,remote.version);setResolving(false);}} />}
+    {plannerConflict && <TripConflictDialog key={trip.version} base={plannerConflict.base} local={plannerConflict.local} remote={document} onClose={()=>setPlannerConflict(null)} onResolve={value=>{if(saving||conflict||blocked)throw new Error('동기화가 끝난 뒤 다시 반영해 주세요.');change(value);setDayId(plannerConflict.activeDayId);setDialog(plannerConflict.overview?'overview':null);setPlannerConflict(null);}} />}
     {dialog === 'sharing' && <TripSharing trip={trip} onClose={() => setDialog(null)} />}
     {(dialog === 'tourism' || dialog === 'searchPlace') && pickerBlock && <PlacePicker needs={document.needs} destination={document.destination} initial={dialog === 'tourism' ? tourismAnchor || block?.places[0] : editingPlace} excluded={tripExclusions(document, undefined, (dialog === 'tourism' ? tourismAnchor || block?.places[0] : editingPlace)?.id)} context={uiText(`${shortDate(day.date)} · ${pickerBlock.title}`)} onClose={() => { setDialog(null); setPickerNewBlock(null); }} onSelect={place => {
       if (saving || conflict || blocked) throw new Error('동기화 상태를 확인한 뒤 다시 담아 주세요.');

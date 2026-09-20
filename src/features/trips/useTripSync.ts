@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError } from '../../api/client';
 import { getTrip, pollTrip, saveTrip } from '../../api/tripsApi';
 import { draftWithBaseline, mergeTripDocuments, sameDocument } from './mergeTrip';
-import { resetChangedTravel, type TripRecord } from './tripModel';
+import { resetChangedTravel, type TripDocument, type TripRecord } from './tripModel';
 
 interface SyncState {
   trip: TripRecord | null; remote: TripRecord | null; loading: boolean; saving: boolean;
@@ -29,7 +29,7 @@ export function useTripSync(id: string, userId: string | undefined, seed: TripRe
     const merged = base ? mergeTripDocuments(base, trip.document, incoming.document)
       : sameDocument(trip.document, incoming.document) ? incoming.document : null;
     if (!merged) {
-      update({ remote: incoming, conflict: true, notice: '같은 항목을 서로 다르게 수정했어요. 내 작업본은 보관되어 있어요. 사본을 남기거나 최신 일정을 열어 주세요.' });
+      update({ remote: incoming, trip: { ...trip, baseDocument: base }, conflict: true, notice: '같은 항목을 서로 다르게 수정했어요. 충돌 해결에서 반영할 내용을 선택해 주세요.' });
       return;
     }
     onRemoteChange();
@@ -120,5 +120,11 @@ export function useTripSync(id: string, userId: string | undefined, seed: TripRe
     } catch (cause) { reportError(cause); }
     finally { busy.current = false; update({ saving: false }); }
   }, [id, onRemoteChange, reportError, update]);
-  return { ...state, dirty, setTrip, save, openLatest, setNotice: (notice: string) => update({ notice }) };
+  const resolveConflict = (document: TripDocument, remoteVersion: number) => {
+    const latest = current.current.remote;
+    if (!latest || latest.version !== remoteVersion || current.current.saving || current.current.blocked) throw new Error('친구가 일정을 다시 수정했어요. 최신 내용을 확인해 주세요.');
+    onRemoteChange();
+    update({ trip: { ...latest, document: resetChangedTravel(latest.document, document), baseDocument: latest.document }, conflict: false, autoError: false, notice: '선택한 수정 내용을 반영했어요.' });
+  };
+  return { ...state, dirty, setTrip, save, openLatest, resolveConflict, setNotice: (notice: string) => update({ notice }) };
 }

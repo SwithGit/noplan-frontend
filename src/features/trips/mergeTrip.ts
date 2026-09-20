@@ -18,8 +18,19 @@ export function sameDocument(a: unknown, b: unknown): boolean {
 
 // A three-way merge preserves independent edits. Ambiguous changes never win silently.
 export function mergeTripDocuments(base: TripDocument, local: TripDocument, remote: TripDocument): TripDocument | null {
-  let conflict = false;
-  function merge(b: unknown, l: unknown, r: unknown): unknown {
+  const result = resolveTripMerge(base, local, remote);
+  return result.conflicts.length ? null : result.document;
+}
+export interface TripMergeConflict { key: string; path: string[]; local: unknown; remote: unknown }
+export function resolveTripMerge(base: TripDocument, local: TripDocument, remote: TripDocument, choices: Record<string, 'local' | 'remote'> = {}) {
+  const conflicts: TripMergeConflict[] = [];
+  function choose(l: unknown, r: unknown, path: string[]) {
+    const key = JSON.stringify(path);
+    if (choices[key]) return choices[key] === 'local' ? l : r;
+    conflicts.push({ key, path, local: l, remote: r });
+    return l;
+  }
+  function merge(b: unknown, l: unknown, r: unknown, path: string[]): unknown {
     if (sameDocument(l, r) || sameDocument(b, r)) return l;
     if (sameDocument(b, l)) return r;
     if (Array.isArray(b) && Array.isArray(l) && Array.isArray(r)
@@ -28,7 +39,7 @@ export function mergeTripDocuments(base: TripDocument, local: TripDocument, remo
       const bm = byId(b), lm = byId(l), rm = byId(r);
       const merged = new Map<string, unknown>();
       for (const id of new Set([...bm.keys(), ...lm.keys(), ...rm.keys()])) {
-        const value = merge(bm.get(id), lm.get(id), rm.get(id));
+        const value = merge(bm.get(id), lm.get(id), rm.get(id), [...path, id]);
         if (value !== undefined) merged.set(id, value);
       }
       const ids = (list: Record<string, unknown>[]) => list.map(item => String(item.id)).filter(id => merged.has(id));
@@ -44,7 +55,10 @@ export function mergeTripDocuments(base: TripDocument, local: TripDocument, remo
       const result: unknown[] = [];
       while (result.length < merged.size) {
         const next = order.find(id => degrees.get(id) === 0);
-        if (!next) { conflict = true; return l; }
+        if (!next) {
+          const chosen = choose(li, ri, [...path, '@order']) as string[];
+          return [...new Set([...chosen, ...merged.keys()])].map(id => merged.get(id));
+        }
         result.push(merged.get(next)); degrees.set(next, -1);
         for (const to of edges.get(next)!) degrees.set(to, degrees.get(to)! - 1);
       }
@@ -53,14 +67,13 @@ export function mergeTripDocuments(base: TripDocument, local: TripDocument, remo
     if (object(b) && object(l) && object(r)) {
       const result: Record<string, unknown> = {};
       for (const key of new Set([...Object.keys(b), ...Object.keys(l), ...Object.keys(r)])) {
-        const value = merge(b[key], l[key], r[key]);
+        const value = merge(b[key], l[key], r[key], [...path, key]);
         if (value !== undefined) result[key] = value;
       }
       return result;
     }
-    conflict = true;
-    return l;
+    return choose(l, r, path);
   }
-  const document = merge(base, local, remote) as TripDocument;
-  return conflict ? null : document;
+  const document = merge(base, local, remote, []) as TripDocument;
+  return { document, conflicts };
 }

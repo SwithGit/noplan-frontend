@@ -11,9 +11,9 @@ import { shortDate, transportLabels, type TripDocument } from './tripModel';
 import './dayRoute.css';
 import './tripOverview.css';
 
-export function TripOverview({ document, photos, initialDayId, onClose, onEdit, onDayRoute }: {
+export function TripOverview({ document, photos, initialDayId, onClose, onEdit, onDayRoute, readOnly = false }: {
   document: TripDocument; photos: TripPhotos; initialDayId?: string;
-  onClose: () => void; onEdit: (dayId: string) => void; onDayRoute: (dayId: string) => void;
+  onClose: () => void; onEdit?: (dayId: string) => void; onDayRoute?: (dayId: string) => void; readOnly?: boolean;
 }) {
   const days = useMemo(() => overviewDays(document), [document]);
   const [selection, setSelection] = useState({ dayId: initialDayId || document.days[0]?.id, placeId: '' });
@@ -46,12 +46,13 @@ export function TripOverview({ document, photos, initialDayId, onClose, onEdit, 
     scrollTo(cards.current.get(placeId));
   };
 
-  return <TripDialog title={uiText('전체 일정 보기')} className="trip-overview-dialog" onClose={onClose}>
+  return <TripDialog title={uiText(readOnly ? '공유 여행 · 보기 전용' : '전체 일정 보기')} className="trip-overview-dialog" onClose={onClose}>
     <div className="overview-layout">
       <aside className="overview-sidebar" aria-label={uiText('날짜별 일정')}>
         <div className="overview-intro">
           <span className="trip-eyebrow">{uiText(document.destination)}</span>
           <h3>{uiText(document.title)}</h3>
+          {readOnly && <p className="trip-public-notice">{uiText('보기 전용 일정이에요. 장소와 지도를 자유롭게 살펴보세요.')}</p>}
           <span>{document.startDate} — {document.endDate}</span>
           <p>{document.days.length}{uiText('일 중 ')}{filled}{uiText('일에 장소를 담았어요. 날짜별 코스를 이어서 살펴보세요.')}</p>
         </div>
@@ -75,14 +76,14 @@ export function TripOverview({ document, photos, initialDayId, onClose, onEdit, 
                   {!routePoint(stop.place) && <small className="overview-coordinate-note">{uiText('지도 위치 확인 필요')}</small>}
                 </span>
               </button>
-            </li>)}</ol> : <div className="overview-empty-day"><p>{uiText('아직 비어 있는 하루예요. 노피와 다음 코스를 만들어 보세요.')}</p><button className="trip-text-link" type="button" onClick={() => onEdit(item.day.id)}>{uiText('코스 만들기')}</button></div>}
+            </li>)}</ol> : <div className="overview-empty-day"><p>{uiText('아직 비어 있는 하루예요. 노피와 다음 코스를 만들어 보세요.')}</p>{!readOnly && onEdit && <button className="trip-text-link" type="button" onClick={() => onEdit(item.day.id)}>{uiText('코스 만들기')}</button>}</div>}
           </section>)}
         </div>
       </aside>
       {activeDay && <section className="overview-main" aria-label={uiText('선택한 날짜의 지도')}>
         <div className="overview-map-heading">
           <div aria-live="polite"><span className="trip-eyebrow">DAY {String(activeDay.number).padStart(2, '0')}</span><strong>{shortDate(activeDay.day.date)}</strong><span>{uiText(transportLabels[activeDay.day.transport || document.transport])} · {uiText(`${activeDay.stops.length}곳`)}</span></div>
-          <div className="overview-actions"><button className="trip-button" type="button" onClick={() => onDayRoute(activeDay.day.id)}>{uiText('하루 동선 보기')}</button><button className="trip-button primary" type="button" onClick={() => onEdit(activeDay.day.id)}><TripIcon name="spark" />{uiText(activeDay.stops.length ? '코스 수정' : '코스 만들기')}</button></div>
+          {!readOnly && onEdit && onDayRoute && <div className="overview-actions"><button className="trip-button" type="button" onClick={() => onDayRoute(activeDay.day.id)}>{uiText('하루 동선 보기')}</button><button className="trip-button primary" type="button" onClick={() => onEdit(activeDay.day.id)}><TripIcon name="spark" />{uiText(activeDay.stops.length ? '코스 수정' : '코스 만들기')}</button></div>}
         </div>
         <div className="overview-map">
           <DayRouteMap points={activeDay.points} activeId={selected?.id || ''} focusActive={Boolean(selection.placeId)} fitRequest={fitRequest}
