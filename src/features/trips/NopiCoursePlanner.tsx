@@ -44,8 +44,8 @@ export function NopiCoursePlanner({ document: sourceDocument, dayId: initialDayI
   }, [dayId]);
   const [common, setCommon] = useState<{ purpose: Purpose; district: string }>(() => ({ purpose: document.companion === '연인' ? '데이트' : document.companion === '가족' ? '가족여행' : document.companion === '친구' ? '친구모임' : '발견', district: '' }));
   const [profile, setProfile] = useState({ mode: 'member', age: '', gender: 'all' });
-  const [commonExpanded, setCommonExpanded] = useState(true);
-  const [daySettingsOpen, setDaySettingsOpen] = useState(true);
+  const [commonExpanded, setCommonExpanded] = useState(() => !draft.nodes.length);
+  const [daySettingsOpen, setDaySettingsOpen] = useState(() => !draft.nodes.length);
   const options: NopiOptions = { date: day.date, start: draft.start, end: draft.end, transport: draft.transport, needs, ...common };
   const { nodes: draftNodes, routesResponse, manualTravel, variant, error, notice: generationNotice } = draft;
   const setError = (error: string) => patchDay({ error });
@@ -96,7 +96,7 @@ export function NopiCoursePlanner({ document: sourceDocument, dayId: initialDayI
 
   const updateNodes = (next: CourseNode[]) => patchDay({ nodes: next.map(node => ({ ...node, initialNotBefore: undefined })), edited: true, error: '', notice: '' });
   const updateOptions = (patch: Partial<Pick<NopiDayDraft, 'start' | 'end' | 'transport'>>) => patchDay(previous => ({ ...patch, nodes: previous.nodes.map(node => ({ ...node, initialNotBefore: undefined })), manualTravel: {}, edited: true, error: '', notice: '' }));
-  const selectDay = (id: string) => { if (busy) return; setDayId(id); setDaySettingsOpen(!drafts[id].nodes.length); setPicker(null); setActive(''); };
+  const selectDay = (id: string) => { if (busy) return; setDayId(id); setDaySettingsOpen(!drafts[id].nodes.length); if (drafts[id].nodes.length) setCommonExpanded(false); setPicker(null); setActive(''); };
   const select = (id: string) => { setActive(id); cards.current.get(id)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); };
   const close = () => { if (!edited || window.confirm('아직 일정에 반영하지 않은 코스를 닫을까요?')) { generation.current?.abort(); onClose(); } };
   const generate = async () => {
@@ -164,20 +164,22 @@ export function NopiCoursePlanner({ document: sourceDocument, dayId: initialDayI
         <section className="nopi-days-panel" aria-label={uiText("날짜별 추천 조건")}>
           <div className="nopi-section-heading"><div><h3>{uiText("날짜별 일정")}</h3><span>{uiText("하루씩, 우리에게 맞게")}</span></div><small>{uiText("만든 코스는 유지하고, 바꾼 공통 조건은 다음 추천부터 적용해요.")}</small></div>
           <div className="nopi-day-tabs" role="tablist" aria-label={uiText("코스를 만들 날짜")}>{document.days.map((item, index) => { const saved = drafts[item.id]; return <button type="button" role="tab" key={item.id} id={`nopi-tab-${item.id}`} aria-controls="nopi-selected-day" aria-selected={item.id === dayId} disabled={busy} onClick={() => selectDay(item.id)}><span>DAY {String(index + 1).padStart(2, '0')}<small>{uiText(saved.nodes.length ? `${saved.nodes.length}곳${saved.edited ? ' · 반영 전' : ''}` : item.id === dayId ? '선택됨' : '일정 만들기')}</small></span><strong>{shortDate(item.date)}</strong><span>{saved.start}–{saved.end} · {uiText(transportLabels[saved.transport])}</span></button>; })}</div>
-          <div id="nopi-selected-day" className="nopi-selected-day" role="tabpanel" aria-labelledby={`nopi-tab-${dayId}`}>
-            <div className="nopi-section-heading"><h3>{shortDate(day.date)}{uiText(", 우리의 여행을 이어볼까요?")}</h3><span className="nopi-day-only">{uiText("이 날짜에만 적용")}</span></div>
+          <div id="nopi-selected-day" className={`nopi-selected-day${daySettingsOpen ? '' : ' nopi-selected-day-compact'}`} role="tabpanel" aria-labelledby={`nopi-tab-${dayId}`}>
+            <div className="nopi-section-heading"><h3>{shortDate(day.date)}{uiText(", 우리의 여행을 이어볼까요?")}</h3><div><span className="nopi-day-only">{uiText("이 날짜에만 적용")}</span>{daySettingsOpen && nodes.length > 0 && <button type="button" className="trip-text-link" aria-expanded={daySettingsOpen} onClick={() => setDaySettingsOpen(false)}>{uiText("접기")}</button>}</div></div>
             {daySettingsOpen ? <fieldset className="nopi-day-fields" disabled={busy || disabled}><label>{uiText("출발 시간")}<input type="time" aria-label={uiText("코스 시작 시간")} value={options.start} onChange={e => updateOptions({ start: e.target.value })} /></label><label>{uiText("마치는 시간")}<input type="time" aria-label={uiText("코스 종료 시간")} value={options.end} onChange={e => updateOptions({ end: e.target.value })} /></label><label>{uiText("이동수단")}<select aria-label={uiText("코스 이동수단")} value={options.transport} onChange={e => updateOptions({ transport: e.target.value as NopiOptions['transport'] })}><option value="walk">{uiText("도보 · 최대 1km")}</option><option value="car">{uiText("자가용·렌터카 · 최대 7km")}</option><option value="transit">{uiText("대중교통 · 직접 편집")}</option></select></label>{generateButton}</fieldset> : <div className="nopi-day-compact"><span>{options.start}–{options.end} · {uiText(transportLabels[options.transport])}{uiText(options.transport !== 'transit' ? ` · 최대 ${courseDistanceLimit(options.transport) / 1000}km` : '')}</span><button type="button" className="trip-text-link" disabled={busy} onClick={() => setDaySettingsOpen(true)}>{uiText("이날 조건 변경")}</button>{generateButton}</div>}
 
           </div>
         </section>
       </div>
+      <div className="nopi-feedback">
       {options.transport === 'transit' && <p className="trip-alert">{uiText("저장한 대중교통 설정을 유지했어요. 자동 코스를 이용하려면 이동수단을 도보 또는 차량으로 변경해 주세요.")}</p>}
       {generationNotice && <p className="trip-alert" role="status">{uiText(generationNotice)}</p>}
       <div className="nopi-status" role="status">{uiText(busy ? '가까운 장소와 실제 이동시간을 확인하고 있어요…' : '날짜를 오가도 작업 중인 코스는 유지돼요.')}<span>{uiText("✓ 다른 날짜에 담은 장소 제외")}{uiText(otherDayCount > 0 ? ` · ${otherDayCount}곳` : '')}</span>{busy && <button className="trip-text-link" type="button" onClick={() => { generation.current?.abort(); setBusy(false); }}>{uiText("추천 중단")}</button>}</div>
       {catalogResponse?.key === catalogKey && catalogResponse.error && <div className="trip-alert">{uiText(catalogResponse.error)}<button type="button" onClick={() => setCatalogRetry(value => value + 1)}>{uiText("자료 다시 받기")}</button></div>}
       {error && <div className="trip-alert" role="alert">{uiText(error)}</div>}
+      </div>
       {nodes.length > 0 ? <div className="nopi-workbench">
-        <section className="nopi-map-pane" aria-label={uiText("하루 코스 지도")}><DayRouteMap points={points} activeId={active} onSelect={select} /><div className="nopi-map-caption"><strong>{nodes.length}{uiText("곳을 잇는 하루")}</strong><span>{uiText("점선은 방문 순서예요. 도로 모양과 다를 수 있어요.")}</span><small>{uiText("이동시간은 현재 조회 기준 · 차량은 주차 여유 포함")}</small></div></section>
+        <section className="nopi-map-pane" aria-label={uiText("하루 코스 지도")}><div className="nopi-map-canvas"><DayRouteMap points={points} activeId={active} onSelect={select} /></div><div className="nopi-map-caption"><strong>{nodes.length}{uiText("곳을 잇는 하루")}</strong><span>{uiText("점선은 방문 순서예요. 도로 모양과 다를 수 있어요.")}</span><small>{uiText("이동시간은 현재 조회 기준 · 차량은 주차 여유 포함")}</small></div></section>
         <section className="nopi-route-pane" aria-label={uiText("하루 코스 편집")} aria-busy={busy || routeLoading}>
           <div className="nopi-route-heading"><div><span className="trip-eyebrow">YOUR DAY</span><h3>{uiText(nodes.length ? `${nodes.length}곳, 하나의 여행` : '첫 장소부터 담아보세요')}</h3></div><button type="button" className="trip-button" disabled={busy || nodes.length >= 12} onClick={() => setPicker(nodes.length)}><TripIcon name="plus" />{uiText("장소 담기")}</button></div>
           {!nodes.length && <div className="nopi-empty"><img src={nopi} alt={uiText("노피")} /><h3>{uiText("오늘은 어떤 발견을 할까요?")}</h3><p>{uiText('위에서 여행 취향을 선택하면\n노피가 가까운 명소와 음식점을 이어드려요.')}</p><button className="trip-button" type="button" onClick={() => setPicker(0)}>{uiText("직접 첫 장소 담기")}</button></div>}

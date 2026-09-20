@@ -17,6 +17,7 @@
 .nopi-status>span{margin-left:auto;color:#7551ad}
 .nopi-workbench{display:grid;grid-template-columns:minmax(360px,1fr) minmax(500px,.95fr);flex:1;min-height:0;border-top:1px solid #eee8f5}
 .nopi-map-pane{position:relative;min-height:280px;overflow:hidden;background:#f2f0f6}
+.nopi-map-canvas{height:100%;min-height:0;overflow:hidden}
 .nopi-map-caption{position:absolute;z-index:4;left:20px;right:20px;bottom:20px;padding:14px 18px;display:flex;flex-direction:column;gap:4px;border:1px solid #eee8f5;background:#fffffff5;border-radius:14px;box-shadow:0 5px 24px #33214412;pointer-events:none}
 .nopi-map-caption strong{font-size:14px;color:#3a2c4c}.nopi-map-caption span,.nopi-map-caption small{font-size:11px;color:#887b96}
 .nopi-route-pane{overflow:auto;padding:22px 26px 32px;min-height:0;border-left:1px solid #eee8f5;background:#faf9fd;scrollbar-width:thin;scrollbar-color:#d7cae7 transparent}
@@ -36,7 +37,8 @@
 .nopi-stop-actions a{color:#8a759d;text-decoration:none}.nopi-stop-actions svg{width:15px;height:15px}
 .nopi-leg{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 0 30px;padding:12px 0 12px 22px;border-left:1px dashed #d7c6e7;color:#9c8bae;font-size:11px;min-height:42px}
 .nopi-footer{display:flex;align-items:center;gap:10px;padding:16px 28px;border-top:1px solid #eee8f5;background:white;flex-shrink:0}.nopi-footer>div{display:flex;flex-direction:column;gap:6px;margin-right:auto}.nopi-footer strong{font-size:13px;color:#594167}.nopi-footer span{font-size:11px;color:#9a8ba5}.nopi-footer .trip-button{font-size:12px}
-.nopi-dialog>.trip-alert{margin:4px 28px 8px;flex-shrink:0}
+.nopi-feedback{flex-shrink:0}
+.nopi-feedback>.trip-alert{margin:4px 28px 8px}
 .trip-timeline-actions{flex-wrap:wrap}.trip-timeline-header{flex-wrap:wrap;gap:16px}
 .tourism-card:disabled{opacity:.48;cursor:not-allowed}.tourism-card:disabled .tourism-card-action{color:#856999}
 .trip-overview-dialog.trip-dialog{width:min(1160px,95vw);max-width:none;max-height:92dvh;padding:0}.trip-overview-dialog>header{padding:22px 28px}.trip-overview-intro{padding:0 28px 20px;color:#877596;font-size:13px}.trip-overview-days{padding:0 28px 30px;display:grid;gap:24px}.trip-overview-day{border:1px solid #e9e0f2;border-radius:18px;overflow:hidden}.trip-overview-day>header{display:flex;justify-content:space-between;align-items:center;padding:18px 24px;background:#f8f5fc}.trip-overview-day h3{margin:5px 0;color:#392b4b}.trip-overview-day>header>div:last-child{display:flex;gap:8px}.trip-overview-stop{display:grid;grid-template-columns:110px 32px 1fr auto;align-items:center;gap:15px;padding:18px 24px;border-top:1px solid #f3edf8}.trip-overview-stop>span{font-size:12px;color:#a18dab}.trip-overview-stop>b{display:grid;place-items:center;border-radius:50%;background:#f0e8fa;color:#9370bc;width:26px;height:26px;font-size:11px}.trip-overview-stop h4{margin:0 0 5px;color:#45324f}.trip-overview-stop p{font-size:12px;color:#9b8ba4;margin:0}.trip-overview-stop a{font-size:11px;color:#977caf}.trip-overview-day>.trip-muted{padding:20px 24px}
@@ -83,5 +85,26 @@
 .nopi-setup-dialog .nopi-plan-controls{max-height:none;flex-shrink:1;min-height:0}
 .nopi-setup-empty{display:flex;align-items:center;gap:16px;padding:20px 28px;border-top:1px solid #eee8f5;flex-shrink:0}
 .nopi-setup-empty>img{width:46px;height:46px;object-fit:contain}.nopi-setup-empty>div{display:flex;flex-direction:column;gap:5px;margin-right:auto}.nopi-setup-empty strong{font-size:14px;color:#5a416d}.nopi-setup-empty span{font-size:12px;color:#93819f}
-@media(min-width:801px) and (max-height:820px){.nopi-has-course .nopi-common,.nopi-has-course .nopi-days-panel{padding:10px 24px}.nopi-has-course .nopi-day-tabs>button{padding:8px 12px;gap:4px}.nopi-has-course .nopi-selected-day{padding:10px 12px}.nopi-has-course .nopi-section-heading{margin-bottom:8px}.nopi-has-course .nopi-workbench{min-height:220px}.nopi-has-course .nopi-plan-controls{max-height:41dvh}}
+/* Keep the editing canvas spacious even with expanded travel needs or alerts. */
+@media(min-width:801px){
+  .nopi-has-course.trip-dialog{width:min(1800px,98vw);height:98dvh;max-height:98dvh}
+  .nopi-has-course>header{padding:10px 24px}
+  .nopi-has-course .nopi-plan-controls{flex:0 1 auto;min-height:0;max-height:28dvh;overscroll-behavior:contain;scrollbar-gutter:stable}
+  .nopi-has-course .nopi-feedback{max-height:12dvh;overflow:auto;overscroll-behavior:contain}
+  .nopi-has-course .nopi-common,.nopi-has-course .nopi-days-panel{padding:10px 24px}
+  .nopi-has-course .nopi-section-heading{margin-bottom:6px}
+  .nopi-has-course .nopi-day-tabs>button{padding:7px 12px;gap:3px;flex-basis:220px}
+  .nopi-has-course .nopi-selected-day{padding:8px 12px}
+  .nopi-has-course .nopi-selected-day-compact>.nopi-section-heading{display:none}
+  .nopi-has-course .nopi-day-compact{flex-wrap:wrap;gap:8px 14px}
+  .nopi-has-course .nopi-status{padding:6px 24px;min-height:28px}
+  .nopi-has-course .nopi-workbench{flex:1 0 0;min-height:0;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .nopi-has-course .nopi-map-pane{display:grid;grid-template-rows:minmax(0,1fr) auto}
+  .nopi-has-course .nopi-map-canvas{height:auto}
+  .nopi-has-course .nopi-map-caption{position:static;flex-direction:row;flex-wrap:wrap;gap:3px 12px;padding:9px 16px;border:0;border-top:1px solid #eee8f5;border-radius:0;box-shadow:none}
+  .nopi-has-course .nopi-map-caption strong{font-size:12px}
+  .nopi-has-course .nopi-route-pane{min-width:0;padding:18px 22px 28px;overscroll-behavior:contain;scrollbar-gutter:stable}
+  .nopi-has-course .nopi-route-heading{margin-bottom:14px}
+  .nopi-has-course .nopi-footer{padding:10px 24px}
+}
 @media(max-width:800px){.nopi-common,.nopi-days-panel{padding:14px 16px}.nopi-section-heading{flex-wrap:wrap;gap:6px}.nopi-section-heading>div{flex-wrap:wrap;gap:6px}.nopi-common-fields,.nopi-day-fields{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.nopi-selected-day{padding:12px}.nopi-day-tabs>button{flex-basis:185px}.nopi-setup-dialog.trip-dialog{width:100vw;height:100dvh}.nopi-setup-empty{padding:14px 16px;flex-wrap:wrap}.nopi-setup-empty>img{width:36px;height:36px}.nopi-setup-empty>div{flex:1}.nopi-plan-controls{max-height:55dvh}}
