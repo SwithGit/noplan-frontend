@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { t } from '../../i18n/translate';
 import { TripDialog } from './TripDialog';
-import { resolveTripMerge, type TripMergeConflict } from './mergeTrip';
+import { resolveTripMerge, tripMergeIssue, type TripMergeConflict } from './mergeTrip';
 import { shortDate, type TripDocument } from './tripModel';
 import { facilityLabels } from './travelNeeds';
 import './tripSharing.css';
@@ -21,15 +21,19 @@ function display(value: unknown, documents: TripDocument[]): string {
   const named = documents.flatMap(d=>d.days.flatMap(day=>[day, ...day.blocks, ...day.blocks.flatMap(b=>b.places)])).find(item=>item.id===value);
   return named ? ('name' in named ? named.name : 'title' in named ? named.title : shortDate(named.date)) : t(({dog:'강아지',cat:'고양이',prefer:'있으면 좋아요',required:'꼭 필요해요',walk:'도보',car:'자가용·렌터카',transit:'대중교통',local:'여행지에서 시작',train:'기차',bus:'버스',flight:'비행기'} as Record<string,string>)[String(value)] || String(value));
 }
-export function TripConflictDialog({ base, local, remote, onClose, onResolve }: { base: TripDocument; local: TripDocument; remote: TripDocument; onClose: () => void; onResolve: (document: TripDocument) => void }) {
+export function TripConflictDialog({ base, local, remote, onClose, onResolve }: { base: TripDocument; local: TripDocument; remote: TripDocument; onClose: () => void; onResolve: (document: TripDocument) => void | Promise<void> }) {
   const [choices, setChoices] = useState<Record<string,'local'|'remote'>>({});
   const [error,setError] = useState('');
+  const [busy,setBusy] = useState(false);
   const initial = resolveTripMerge(base,local,remote), result = resolveTripMerge(base,local,remote,choices);
-  return <TripDialog title={t('충돌 해결')} className="trip-conflict-dialog" onClose={onClose}>
+  const issue = result.conflicts.length ? '' : tripMergeIssue(result.document);
+  return <TripDialog title={t('같은 일정을 함께 수정했어요')} className="trip-conflict-dialog" onClose={()=>{if(!busy)onClose();}}>
+    <p className="trip-conflict-summary" role="alert">{t('수정한 내용이 달라 잠시 편집을 멈췄어요. 아래에서 유지할 일정을 선택해 주세요.')}</p>
     <p>{t('다른 항목의 수정은 함께 유지돼요. 서로 다르게 바꾼 항목만 선택해 주세요.')}</p>
+    <p>{t('같은 구간의 장소 선택과 겹치는 코스는 한쪽 일정으로 반영해요.')}</p>
     <p className="trip-muted">{t('확인 중 새 변경사항이 오면 최신 내용으로 선택을 다시 받아요.')}</p>
-    {initial.conflicts.map(conflict=><fieldset key={conflict.key}><legend>{label(conflict,local,remote)}</legend>{(['local','remote'] as const).map(side=><label key={side}><input type="radio" name={conflict.key} checked={choices[conflict.key]===side} onChange={()=>setChoices({...choices,[conflict.key]:side})}/><span><b>{t(side==='local'?'내 수정':'친구 수정')}</b><pre>{display(conflict[side],[local,remote])}</pre></span></label>)}</fieldset>)}
-    {error && <p role="alert" className="trip-alert">{t(error)}</p>}
-    <button className="trip-button primary" type="button" disabled={result.conflicts.length>0} onClick={()=>{try {onResolve(result.document);} catch(cause){setError(cause instanceof Error?cause.message:'처리하지 못했어요.');}}}>{t('선택한 내용 반영')}</button>
+    {initial.conflicts.map(conflict=><fieldset key={conflict.key} disabled={busy}><legend>{label(conflict,local,remote)}</legend>{(['local','remote'] as const).map(side=><label key={side}><input type="radio" name={conflict.key} checked={choices[conflict.key]===side} onChange={()=>setChoices({...choices,[conflict.key]:side})}/><span><b>{t(side==='local'?'내 수정':'친구 수정')}</b><pre>{display(conflict[side],[local,remote])}</pre></span></label>)}</fieldset>)}
+    {(error || issue) && <p role="alert" className="trip-alert">{t(error || issue)}</p>}
+    <button className="trip-button primary" type="button" disabled={busy || result.conflicts.length>0 || Boolean(issue)} onClick={async()=>{setBusy(true);setError('');try {await onResolve(result.document);} catch(cause){setError(cause instanceof Error?cause.message:'처리하지 못했어요.');}finally{setBusy(false);}}}>{t(busy?'저장 중…':'선택한 내용 반영')}</button>
   </TripDialog>;
 }

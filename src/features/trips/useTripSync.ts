@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError } from '../../api/client';
 import { getTrip, pollTrip, saveTrip } from '../../api/tripsApi';
-import { draftWithBaseline, mergeTripDocuments, sameDocument } from './mergeTrip';
+import { draftWithBaseline, mergeTripDocuments, sameDocument, tripMergeIssue } from './mergeTrip';
 import { resetChangedTravel, type TripDocument, type TripRecord } from './tripModel';
 
 interface SyncState {
@@ -22,6 +22,10 @@ export function useTripSync(id: string, userId: string | undefined, seed: TripRe
     if (!trip) { update({ trip: incoming, remote: incoming, conflict: false }); return; }
     if (conflict) { update({ remote: incoming }); return; }
     if (incoming.version === trip.version) {
+      if (tripMergeIssue(trip.document)) {
+        update({ remote: incoming, trip: { ...trip, baseDocument: incoming.document }, conflict: true, notice: '이전에 합쳐진 일정에 중복 장소나 겹치는 시간이 있어요. 유지할 일정을 선택해 주세요.' });
+        return;
+      }
       update({ remote: incoming, trip: { ...trip, collaboration: incoming.collaboration, baseDocument: incoming.document } });
       return;
     }
@@ -120,11 +124,27 @@ export function useTripSync(id: string, userId: string | undefined, seed: TripRe
     } catch (cause) { reportError(cause); }
     finally { busy.current = false; update({ saving: false }); }
   }, [id, onRemoteChange, reportError, update]);
-  const resolveConflict = (document: TripDocument, remoteVersion: number) => {
+  const resolveConflict = async (document: TripDocument, remoteVersion: number) => {
+    const issue = tripMergeIssue(document);
+    if (issue) throw new Error(issue);
     const latest = current.current.remote;
-    if (!latest || latest.version !== remoteVersion || current.current.saving || current.current.blocked) throw new Error('친구가 일정을 다시 수정했어요. 최신 내용을 확인해 주세요.');
-    onRemoteChange();
-    update({ trip: { ...latest, document: resetChangedTravel(latest.document, document), baseDocument: latest.document }, conflict: false, autoError: false, notice: '선택한 수정 내용을 반영했어요.' });
+    if (!latest || latest.version !== remoteVersion || busy.current || current.current.saving || current.current.blocked) throw new Error('친구가 일정을 다시 수정했어요. 최신 내용을 확인해 주세요.');
+    busy.current = true;
+    update({ saving: true });
+    try {
+      // Keep the conflict and original local draft until the server accepts the
+      // selection. A third editor may save while the decision dialog is open.
+      const result = await saveTrip({ ...latest, document: resetChangedTravel(latest.document, document) });
+      onRemoteChange();
+      update({ trip: { ...result, baseDocument: result.document }, remote: result, conflict: false, autoError: false, connected: true, notice: '선택한 수정 내용을 저장했어요. 참여자에게 반영돼요.' });
+    } catch (cause) {
+      if (cause instanceof ApiError && cause.status === 409) {
+        reconcile(await getTrip(id));
+        throw new Error('친구가 일정을 다시 수정했어요. 최신 내용을 확인해 주세요.');
+      }
+      reportError(cause, true);
+      throw cause;
+    } finally { busy.current = false; update({ saving: false }); }
   };
   return { ...state, dirty, setTrip, save, openLatest, resolveConflict, setNotice: (notice: string) => update({ notice }) };
 }

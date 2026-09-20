@@ -80,3 +80,38 @@ test('노피가 첫날을 계획하는 중 친구가 바꾼 둘째 날을 유지
   local.days[0].blocks[0].places.push({id:'nopi',name:'노피 추천'});remote.days[1].blocks[0].notes='둘째 날 친구 메모';
   const result=merge(base,local,remote);assert.ok(result);assert.equal(result.days[0].blocks[0].places.at(-1).id,'nopi');assert.equal(result.days[1].blocks[0].notes,'둘째 날 친구 메모');
 });
+
+test('같은 빈 구간에 고른 더현대·삼청각은 친구 선택 후 하나만 남는다',()=>{
+  const base=document(),local=copy(base),remote=copy(base);
+  const anchor=(id,name)=>({id,name,durationMinutes:75,tourism:{contentId:id}});
+  const a=local.days[0].blocks[1],b=remote.days[0].blocks[1];
+  a.area='삼청각';a.places=[anchor('111','삼청각')];b.area='더현대';b.places=[anchor('222','더현대')];
+  local.days[0].blocks[0].notes='내 메모';
+  const initial=resolve(base,local,remote);assert.equal(initial.conflicts.length,1);assert.equal(initial.conflicts[0].path.join('/'),'days/day/blocks/pm');
+  const result=resolve(base,local,remote,{[initial.conflicts[0].key]:'remote'});
+  assert.equal(result.conflicts.length,0);assert.equal(result.document.days[0].blocks[1].places.map(p=>p.name).join(','),'더현대');assert.equal(result.document.days[0].blocks[1].area,'더현대');assert.equal(result.document.days[0].blocks[0].notes,'내 메모');
+  assert.equal(exportsObject.tripMergeIssue(result.document),'');
+});
+test('같은 장소 ID를 서로 다른 관광지로 바꿔도 이름·좌표·관광지 번호를 섞지 않는다',()=>{
+  const base=document();base.days[0].blocks[1].places=[{id:'anchor',name:'기존',lat:37,tourism:{contentId:'1'}}];
+  const local=copy(base),remote=copy(base);local.days[0].blocks[1].places[0]={id:'anchor',name:'삼청각',lat:37.6,tourism:{contentId:'2'}};remote.days[0].blocks[1].places[0]={id:'anchor',name:'더현대',lat:37.5,tourism:{contentId:'3'}};
+  const initial=resolve(base,local,remote);const result=resolve(base,local,remote,Object.fromEntries(initial.conflicts.map(c=>[c.key,'remote'])));
+  assert.equal(result.document.days[0].blocks[1].places[0].name,'더현대');assert.equal(result.document.days[0].blocks[1].places[0].tourism.contentId,'3');assert.equal(result.document.days[0].blocks[1].places[0].lat,37.5);
+});
+test('두 명의 하루 전체 재생성은 시간대가 달라도 코스를 연결하지 않고 선택한다',()=>{
+  const base=document(),local=copy(base),remote=copy(base);
+  local.days[0].blocks=[{id:'nopi-a',startTime:'09:00',endTime:'10:00',places:[]}];remote.days[0].blocks=[{id:'nopi-b',startTime:'13:00',endTime:'14:00',places:[]}];
+  const initial=resolve(base,local,remote);assert.equal(initial.conflicts.length,1);
+  const result=resolve(base,local,remote,{[initial.conflicts[0].key]:'remote'});assert.equal(result.document.days[0].blocks.length,1);assert.equal(result.document.days[0].blocks[0].id,'nopi-b');
+});
+test('각자 추가한 구간의 시간이 겹치면 자동 저장하지 않고 날짜의 코스를 선택한다',()=>{
+  const base=document(),local=copy(base),remote=copy(base);local.days[0].blocks.push({id:'new-a',startTime:'18:00',endTime:'20:00',places:[]});remote.days[0].blocks.push({id:'new-b',startTime:'19:00',endTime:'21:00',places:[]});
+  const initial=resolve(base,local,remote);assert.equal(initial.conflicts.length,1);assert.equal(initial.conflicts[0].path.at(-1),'blocks');
+  const result=resolve(base,local,remote,{[initial.conflicts[0].key]:'remote'});assert.equal(result.conflicts.length,0);assert.equal(exportsObject.tripMergeIssue(result.document),'');
+});
+test('이미 잘못 합쳐진 브라우저 작업본도 서버 버전이 같을 때 복구 선택을 제공한다',()=>{
+  const remote=document();remote.days[0].blocks[1].places=[{id:'a1',name:'더현대',tourism:{contentId:'1'}}];const local=copy(remote);local.days[0].blocks[1].places.push({id:'a2',name:'삼청각',tourism:{contentId:'2'}});
+  const initial=resolve(remote,local,remote);assert.equal(initial.conflicts.length,1);
+  const bad=resolve(remote,local,remote,{[initial.conflicts[0].key]:'local'});assert.ok(exportsObject.tripMergeIssue(bad.document));
+  const good=resolve(remote,local,remote,{[initial.conflicts[0].key]:'remote'});assert.equal(exportsObject.tripMergeIssue(good.document),'');assert.equal(good.document.days[0].blocks[1].places.length,1);
+});

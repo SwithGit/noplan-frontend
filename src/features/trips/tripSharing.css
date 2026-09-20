@@ -16,6 +16,7 @@
 .trip-activity-list article{padding:10px 0;border-bottom:1px solid #eee7f5}.trip-activity-list time{display:block;color:#a08cad;font-size:10px;margin:4px 0}.trip-activity-list p{margin:5px 0;line-height:1.5}
 .trip-conflict-dialog.trip-dialog{width:min(800px,94vw)}
 .trip-conflict-dialog>p{font-size:13px;color:#806991;line-height:1.7}
+.trip-conflict-dialog .trip-conflict-summary{padding:16px;border:1px solid #d8c5f3;border-radius:12px;background:#f3ecff;color:#513073;font-size:15px;font-weight:700}
 .trip-conflict-dialog fieldset{border:1px solid #e5daef;border-radius:12px;margin:18px 0;padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:14px;min-width:0}
 .trip-conflict-dialog legend{font-size:13px;font-weight:700;color:#76558e;padding:0 6px}
 .trip-conflict-dialog label{display:flex;align-items:flex-start;gap:8px;padding:12px;background:#faf7fd;border-radius:8px;min-width:0;cursor:pointer}

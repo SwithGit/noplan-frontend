@@ -49,6 +49,7 @@ export function TripWorkspace({ user }: { user: UserSession | null }) {
   const [blockId, setBlockId] = useState((location.state as {focusBlockId?:string}|null)?.focusBlockId || seed?.document.days[0]?.blocks[0]?.id || '');
   const [dialog, setDialog] = useState<'searchPlace' | 'block' | 'settings' | 'tourism' | 'sharing' | 'dayRoute' | 'planner' | 'overview' | null>(null);
   const [resolving, setResolving] = useState(false);
+  const [dismissedConflict, setDismissedConflict] = useState('');
   const [plannerConflict, setPlannerConflict] = useState<{base:TripDocument;local:TripDocument;overview:boolean;activeDayId:string}|null>(null);
   const clearUndo = useCallback(() => setUndo([]), []);
   const { trip, setTrip, remote, loading, saving: networkSaving, notice, setNotice, conflict, blocked, autoError, dirty, connected, save, openLatest, resolveConflict } = useTripSync(id, user?.userId, seed, dialog !== null && !['planner','overview','sharing'].includes(dialog), clearUndo);
@@ -117,6 +118,7 @@ export function TripWorkspace({ user }: { user: UserSession | null }) {
   };
   const pickerBlock = pickerNewBlock || block;
   const isConflict = conflict || (remote && remote.version !== trip.version);
+  const conflictKey = conflict && remote ? `${trip.version}:${remote.version}` : '';
   return <div className={`trip-workspace ${desktop ? 'trip-workspace-desktop' : ''}`}>
     <div className="trip-workspace-bar"><div className="trip-breadcrumb"><Link to={ROUTES.trips}>{uiText("내 여행")}</Link><span>/</span><span>{document.destination}</span></div><div className="trip-save-tools"><button className="trip-button" type="button" disabled={saving || conflict || blocked} onClick={async () => { if (!user) { setNotice('로그인 후 여행을 저장하면 친구를 초대할 수 있어요.'); return; } if ((!trip.version || dirty) && !await save()) return; setDialog('sharing'); }}>{uiText(desktop ? '공유 · 친구와 함께' : '친구와 함께')}{uiText(trip.collaboration?.enabled ? ` · ${trip.collaboration.memberCount}명` : '')}</button><span className="trip-save-state"><span className={dirty ? 'pending' : ''} />{uiText(saving ? '저장 중…' : !user ? '이 브라우저의 초안' : conflict ? '수정 충돌 · 작업본 보관 중' : blocked ? '편집 권한 확인 필요' : autoError ? '저장 실패 · 재시도 필요' : !connected ? '연결 확인 필요' : dirty ? trip.collaboration?.enabled ? '친구에게 반영 중…' : '저장할 변경사항 있음' : trip.collaboration?.enabled ? '함께 편집 · 자동 저장됨' : '계정에 저장됨')}</span><button className="trip-button" disabled={!undo.length || saving} onClick={() => { const previous = undo.at(-1); if (previous) { setTrip({ ...trip, document: previous }); setUndo(undo.slice(0, -1)); } }} type="button">{uiText("되돌리기")}</button><button className="trip-button primary" disabled={saving || conflict || blocked} onClick={() => void save()} type="button"><TripIcon name="save" />{uiText(user ? '여행 저장' : '저장 안내')}</button></div></div>
     {user && trip.version > 0 && trip.collaboration?.enabled && <TripCollaborationBar id={trip.id} editing={dialog === 'planner'} />}
@@ -172,8 +174,7 @@ export function TripWorkspace({ user }: { user: UserSession | null }) {
       if (JSON.stringify(next) !== baseline) change(next);
       setDialog(null);
     }} />}
-    {resolving && conflict && remote && trip.baseDocument && <TripConflictDialog key={remote.version} base={trip.baseDocument} local={document} remote={remote.document} onClose={()=>setResolving(false)} onResolve={value=>{resolveConflict(value,remote.version);setResolving(false);}} />}
-    {plannerConflict && <TripConflictDialog key={trip.version} base={plannerConflict.base} local={plannerConflict.local} remote={document} onClose={()=>setPlannerConflict(null)} onResolve={value=>{if(saving||conflict||blocked)throw new Error('동기화가 끝난 뒤 다시 반영해 주세요.');change(value);setDayId(plannerConflict.activeDayId);setDialog(plannerConflict.overview?'overview':null);setPlannerConflict(null);}} />}
+    {plannerConflict && !conflict && <TripConflictDialog key={trip.version} base={plannerConflict.base} local={plannerConflict.local} remote={document} onClose={()=>setPlannerConflict(null)} onResolve={value=>{if(saving||conflict||blocked)throw new Error('동기화가 끝난 뒤 다시 반영해 주세요.');change(value);setDayId(plannerConflict.activeDayId);setDialog(plannerConflict.overview?'overview':null);setPlannerConflict(null);}} />}
     {dialog === 'sharing' && <TripSharing trip={trip} onClose={() => setDialog(null)} />}
     {(dialog === 'tourism' || dialog === 'searchPlace') && pickerBlock && <PlacePicker needs={document.needs} destination={document.destination} initial={dialog === 'tourism' ? tourismAnchor || block?.places[0] : editingPlace} excluded={tripExclusions(document, undefined, (dialog === 'tourism' ? tourismAnchor || block?.places[0] : editingPlace)?.id)} context={uiText(`${shortDate(day.date)} · ${pickerBlock.title}`)} onClose={() => { setDialog(null); setPickerNewBlock(null); }} onSelect={place => {
       if (saving || conflict || blocked) throw new Error('동기화 상태를 확인한 뒤 다시 담아 주세요.');
@@ -185,5 +186,6 @@ export function TripWorkspace({ user }: { user: UserSession | null }) {
     }} />}
     {dialog === 'block' && (addingBlock || block) && <BlockForm block={addingBlock || block} day={day} days={document.days} onClose={() => { setDialog(null); setAddingBlock(null); }} onSave={(next, targetDay) => { change({ ...document, days: document.days.map(item => ({ ...item, blocks: [...item.blocks.filter(segment => segment.id !== next.id), ...(item.id === targetDay ? [next] : [])].sort((a, b) => a.startTime.localeCompare(b.startTime)) })) }); setDayId(targetDay); setBlockId(next.id); setDialog(null); setAddingBlock(null); }} />}
     {dialog === 'settings' && <TripSettings trip={document} onClose={() => setDialog(null)} onSave={patch => { change({ ...document, ...patch }); setDialog(null); }} />}
+    {conflict && remote && trip.baseDocument && (resolving || dismissedConflict !== conflictKey) && <TripConflictDialog key={conflictKey} base={trip.baseDocument} local={document} remote={remote.document} onClose={()=>{setResolving(false);setDismissedConflict(conflictKey);}} onResolve={async value=>{await resolveConflict(value,remote.version);setResolving(false);setDismissedConflict('');}} />}
   </div>;
 }
