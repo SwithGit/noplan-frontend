@@ -70,6 +70,7 @@ export function SignupForm({ provider, profile = {}, registrationToken, onGoToLo
   const expiresSeconds = challenge ? Math.max(0, Math.ceil((challenge.expiresAt - now) / 1000)) : 0;
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
   const labels = { terms: '[필수] 이용약관 동의', privacy: '[필수] 개인정보 수집·이용 동의', marketing: '[선택] 마케팅 정보 수신 동의' };
+  const policyPaths = { terms: ROUTES.terms, privacy: ROUTES.privacyConsent, marketing: ROUTES.marketingConsent };
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!provider && checkedId !== fields.id.trim()) { setError('아이디 중복 확인을 해 주세요.'); return; }
@@ -108,7 +109,7 @@ export function SignupForm({ provider, profile = {}, registrationToken, onGoToLo
           <button className="login-submit" type="submit" disabled={!!pending || !options?.available}>{t(pending === 'submit' ? '가입 중…' : '동의하고 가입하기')}</button>
         </form><p className="login-signup">{t('이미 계정이 있으신가요?')} <Link to={ROUTES.login}>{t('로그인')}</Link></p>
       </section>
-    </main><footer className="login-footer">{t('계획 없어도 좋은 하루, 노플랜')}</footer>
-    {policy && <PolicyDialog title={labels[policy]} url={options?.documents[policy] || ''} close={() => setPolicy(null)}/>}
+    </main><footer className="login-footer"><nav className="signup-legal-links" aria-label={t('약관 동의')}><Link to={ROUTES.terms} target="_blank" rel="noopener noreferrer">{t('이용약관')}</Link><Link to={ROUTES.privacy} target="_blank" rel="noopener noreferrer">{t('개인정보처리방침')}</Link><Link to={ROUTES.marketingConsent} target="_blank" rel="noopener noreferrer">{t('마케팅 정보 수신 동의')}</Link></nav>{t('계획 없어도 좋은 하루, 노플랜')}</footer>
+    {policy && <PolicyDialog title={labels[policy]} url={options?.documents[policy] || policyPaths[policy]} close={() => setPolicy(null)}/>}
   </div>;
 }

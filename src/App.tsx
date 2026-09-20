@@ -23,6 +23,8 @@ import NaverCallback from './pages/auth/NaverCallback';
 import NaverSignup from './pages/auth/NaverSignup';
 import Signup from './pages/auth/Signup';
 import Privacy from './pages/Privacy';
+import LegalPage from './pages/legal/LegalPage';
+import PrivacyArchive from './pages/legal/PrivacyArchive';
 import Supporters from './pages/Supporters';
 import PlaceAdmin from './pages/admin/PlaceAdmin';
 import PlaceMapAdmin from './pages/admin/PlaceMapAdmin';
@@ -230,6 +232,10 @@ function AppRoutes() {
       <Route path={ROUTES.naverCallback} element={<NaverCallback />} />
       <Route path={ROUTES.googleCallback} element={<GoogleCallback />} />
       <Route path={ROUTES.privacy} element={<Privacy />} />
+      <Route path={ROUTES.terms} element={<LegalPage documentId="terms" />} />
+      <Route path={ROUTES.privacyConsent} element={<LegalPage documentId="privacyConsent" />} />
+      <Route path={ROUTES.marketingConsent} element={<LegalPage documentId="marketing" />} />
+      <Route path={ROUTES.privacyArchive} element={<PrivacyArchive />} />
       <Route path={ROUTES.supporters} element={<Supporters />} />
       <Route path={ROUTES.placeAdmin} element={<PlaceAdmin />} />
       <Route path={ROUTES.placeAdminMap} element={<PlaceMapAdmin />} />

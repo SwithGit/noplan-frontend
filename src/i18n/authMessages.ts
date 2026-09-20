@@ -42,6 +42,7 @@ export const authMessages: Record<string, readonly [string, string, string]> = {
   '[필수] 이용약관 동의': ['[Required] Terms of service', '[必选] 同意服务条款', '【必須】利用規約への同意'],
   '[필수] 개인정보 수집·이용 동의': ['[Required] Collection and use of personal information', '[必选] 同意个人信息收集与使用', '【必須】個人情報の収集・利用への同意'],
   '[선택] 마케팅 정보 수신 동의': ['[Optional] Receive marketing communications', '[可选] 接收营销信息', '【任意】マーケティング情報の受信'],
+  '마케팅 정보 수신 동의': ['Marketing consent', '营销信息接收同意', 'マーケティング情報の受信同意'],
   '내용 보기': ['Read details', '查看内容', '内容を見る'],
   '가입 중…': ['Creating account…', '注册中…', '登録中…'],
   '동의하고 가입하기': ['Agree and create account', '同意并注册', '同意して登録する'],
