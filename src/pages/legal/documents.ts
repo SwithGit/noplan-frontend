@@ -3,7 +3,7 @@ export interface LegalSection { title: string; paragraphs?: string[]; items?: st
 export interface LegalDocument { title: string; summary: string; sections: LegalSection[] }
 
 export const LEGAL_VERSION = '2026-09-20';
-export const LEGAL_CONTACT = { company: '앤오피', name: '박휘선', email: 'shake923@gmail.com', phone: '010-8393-7197' };
+export const LEGAL_CONTACT = { company: '앤오피', name: '박휘선', email: ' hwiba122@naver.com'};
 export const LEGAL_PATHS: Record<LegalDocumentId, string> = {
   terms: '/terms', privacy: '/privacy', privacyConsent: '/privacy-consent', marketing: '/marketing-consent',
 };
