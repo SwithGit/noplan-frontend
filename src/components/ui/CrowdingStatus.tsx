@@ -1,3 +1,4 @@
+import { t as uiText } from '../../i18n/translate';
 import type { CrowdingSnapshot } from '../../types/noplan';
 import { getCrowdingDetail, getCrowdingTitle } from './crowdingFormat';
 
@@ -6,12 +7,12 @@ export function CrowdingStatus({ compact = false, snapshot }: { compact?: boolea
   const title = getCrowdingTitle(snapshot);
   const detail = getCrowdingDetail(snapshot);
   return (
-    <div aria-label={`${title}. ${detail}`} className={`crowding-status crowding-${snapshot.level} ${compact ? 'compact' : ''}`}>
+    <div aria-label={uiText(`${title}. ${detail}`)} className={`crowding-status crowding-${snapshot.level} ${compact ? 'compact' : ''}`}>
       <span aria-hidden="true" />
       <div>
-        <strong>{title}</strong>
+        <strong>{uiText(title)}</strong>
         <small>{detail}</small>
-        {!compact && snapshot.scope === 'area' && <p>통신 기반 권역 추정치이며 실제 매장 내부 혼잡도와 다를 수 있어요.</p>}
+        {!compact && snapshot.scope === 'area' && <p>{uiText("통신 기반 권역 추정치이며 실제 매장 내부 혼잡도와 다를 수 있어요.")}</p>}
       </div>
     </div>
   );

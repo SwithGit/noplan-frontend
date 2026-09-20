@@ -1,3 +1,4 @@
+import { t as uiText } from '../../i18n/translate';
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { TripIcon, type TripIconName } from './TripIcon';
 
@@ -61,7 +62,7 @@ export function TripDetailSelect<T extends string>({ label, icon, value, options
       const now = Date.now();
       const text = (now - search.current.time < 700 ? search.current.text : '') + event.key;
       search.current = { text, time: now };
-      const match = options.findIndex(option => option.label.startsWith(text));
+      const match = options.findIndex(option => uiText(option.label).toLocaleLowerCase().startsWith(text.toLocaleLowerCase()));
       if (match >= 0) { event.preventDefault(); if (!open) expand(match); else setActive(match); search.current = { text, time: now }; }
     }
   };
@@ -73,8 +74,8 @@ export function TripDetailSelect<T extends string>({ label, icon, value, options
       aria-labelledby={`${id}-label ${id}-value`} aria-controls={open ? `${id}-list` : undefined}
       aria-activedescendant={open ? `${id}-option-${active}` : undefined}
       className="trip-detail-card" onClick={() => { if (open) onOpenChange(false); else expand(); }} onKeyDown={onKeyDown}>
-      <span id={`${id}-label`} className="trip-detail-label"><TripIcon name={icon} />{label}</span>
-      <span className="trip-detail-select"><span id={`${id}-value`}>{options[selected].label}</span><span className="trip-detail-chevron"><TripIcon name="down" /></span></span>
+      <span id={`${id}-label`} className="trip-detail-label"><TripIcon name={icon} />{uiText(label)}</span>
+      <span className="trip-detail-select"><span id={`${id}-value`}>{uiText(options[selected].label)}</span><span className="trip-detail-chevron"><TripIcon name="down" /></span></span>
     </button>
     {open && <ul ref={menu} id={`${id}-list`} role="listbox" aria-labelledby={`${id}-label`} className={`trip-detail-menu${placement.above ? ' opens-above' : ''}`} style={{ maxHeight: placement.height }}>
       {options.map((option, index) => <li key={option.value} id={`${id}-option-${index}`} role="option"
@@ -82,7 +83,7 @@ export function TripDetailSelect<T extends string>({ label, icon, value, options
         className={`trip-detail-option${active === index ? ' is-active' : ''}`}
         onMouseDown={event => event.preventDefault()} onMouseMove={() => setActive(index)} onClick={() => choose(index)}>
         <span className="trip-detail-option-icon"><TripIcon name={option.icon} /></span>
-        <span className="trip-detail-option-copy"><span>{option.label}</span>{option.description && <small>{option.description}</small>}</span>
+        <span className="trip-detail-option-copy"><span>{uiText(option.label)}</span>{option.description && <small>{uiText(option.description)}</small>}</span>
         <span className="trip-detail-option-check">{option.value === value && <TripIcon name="check" />}</span>
       </li>)}
     </ul>}

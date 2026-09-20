@@ -1,3 +1,4 @@
+import { t as uiText } from '../i18n/translate';
 import { useEffect, useRef } from 'react';
 import type { CoursePlace, ExploreCourse } from '../types/noplan';
 import { PlaceVisual } from './ui/PlaceVisual';
@@ -65,10 +66,10 @@ export default function ExploreDetailModal({ course, places, onClose, onLike, on
       <section aria-labelledby="explore-preview-title" aria-modal="true" className="explore-preview-dialog" ref={dialogRef} role="dialog">
         <header>
           <div>
-            <span>{course.location || '서울'}</span>
-            <h2 id="explore-preview-title">{course.title}</h2>
+            <span>{uiText(course.location || '서울')}</span>
+            <h2 id="explore-preview-title">{uiText(course.title)}</h2>
           </div>
-          <button aria-label="코스 미리보기 닫기" ref={closeRef} type="button" onClick={onClose}>×</button>
+          <button aria-label={uiText("코스 미리보기 닫기")} ref={closeRef} type="button" onClick={onClose}>×</button>
         </header>
 
         {course.review_image ? (
@@ -80,9 +81,9 @@ export default function ExploreDetailModal({ course, places, onClose, onLike, on
         )}
 
         <div className="explore-preview-meta">
-          <span>{places.length}곳</span>
-          <span>약 {Math.max(1, Math.round(minutes / 60))}시간</span>
-          <span>좋아요 {course.likes || 0} · 조회 {course.views || 0}</span>
+          <span>{places.length}{uiText("곳")}</span>
+          <span>{uiText("약 ")}{Math.max(1, Math.round(minutes / 60))}{uiText("시간")}</span>
+          <span>{uiText("좋아요 ")}{course.likes || 0}{uiText(" · 조회 ")}{course.views || 0}</span>
         </div>
 
         {course.review_text && <blockquote>{course.review_text}</blockquote>}
@@ -90,15 +91,15 @@ export default function ExploreDetailModal({ course, places, onClose, onLike, on
         <ol className="explore-preview-route">
           {places.map((place, index) => (
             <li key={`${place.id}-${index}`}>
-              <PlaceVisual alt={place.name} color={place.color} imageUrl={place.imageUrl} label={String(index + 1)} type={place.type} detailType={place.detailType} />
-              <div><span>{place.category}</span><strong>{place.title}</strong><p>{place.summary}</p></div>
+              <PlaceVisual alt={place.name} color={place.color} imageUrl={place.imageUrl} label={uiText(String(index + 1))} type={place.type} detailType={place.detailType} />
+              <div><span>{place.category}</span><strong>{uiText(place.title)}</strong><p>{place.summary}</p></div>
             </li>
           ))}
         </ol>
 
         <div className="explore-preview-actions">
-          <button type="button" onClick={onLike}>좋아요 {course.likes || 0}</button>
-          {!desktop && <button className="primary" type="button" onClick={onUseCourse}>이 코스로 출발</button>}
+          <button type="button" onClick={onLike}>{uiText("좋아요 ")}{course.likes || 0}</button>
+          {!desktop && <button className="primary" type="button" onClick={onUseCourse}>{uiText("이 코스로 출발")}</button>}
         </div>
       </section>
     </div>

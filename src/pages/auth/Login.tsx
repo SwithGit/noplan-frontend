@@ -1,3 +1,4 @@
+import { t as uiText } from '../../i18n/translate';
 // Login.tsx
 import { useState } from 'react'
 import { createOAuthState } from '../../api/authApi';
@@ -87,26 +88,20 @@ function Login({ onLoginSuccess, onGoToSignup }: LoginProps) {
       <div style={{ padding: '40px', backgroundColor: 'white', borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', width: '320px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
         <h2 style={{ textAlign: 'center', color: '#007AFF' }}>Welcome Back!</h2>
         
-        <input placeholder="아이디" value={id} onChange={(e) => setId(e.target.value)} style={{ padding: '12px', borderRadius: '10px', border: '1px solid #ddd' }} />
-        <input type="password" placeholder="비밀번호" value={pw} onChange={(e) => setPw(e.target.value)} style={{ padding: '12px', borderRadius: '10px', border: '1px solid #ddd' }} />
+        <input placeholder={uiText("아이디")} value={id} onChange={(e) => setId(e.target.value)} style={{ padding: '12px', borderRadius: '10px', border: '1px solid #ddd' }} />
+        <input type="password" placeholder={uiText("비밀번호")} value={pw} onChange={(e) => setPw(e.target.value)} style={{ padding: '12px', borderRadius: '10px', border: '1px solid #ddd' }} />
                 
         <div style={{ display: 'flex', gap: '10px' }}>
-          <button onClick={handleLogin} style={{ flex: 1, padding: '12px', backgroundColor: '#007AFF', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}>
-            로그인
-          </button>
+          <button onClick={handleLogin} style={{ flex: 1, padding: '12px', backgroundColor: '#007AFF', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}>{uiText("로그인")}</button>
           
           {/* 오빠가 말한 회원가입 버튼이에용! */}
-          <button onClick={onGoToSignup} style={{ flex: 1, padding: '12px', backgroundColor: 'white', color: '#007AFF', border: '1px solid #007AFF', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}>
-            회원가입
-          </button>
+          <button onClick={onGoToSignup} style={{ flex: 1, padding: '12px', backgroundColor: 'white', color: '#007AFF', border: '1px solid #007AFF', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}>{uiText("회원가입")}</button>
         </div>
 
         <button 
           onClick={handleKakaoLogin} 
           style={{ width: '100%', padding: '12px', backgroundColor: '#FEE500', color: '#000000', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', marginTop: '10px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}
-        >
-          💬 카카오로 3초 만에 시작하기
-        </button>
+        >{uiText("💬 카카오로 3초 만에 시작하기")}</button>
 
         {/* <button 
           onClick={handleNaverLogin} 
@@ -118,9 +113,7 @@ function Login({ onLoginSuccess, onGoToSignup }: LoginProps) {
         <button 
           onClick={handleGoogleLogin} 
           style={{ width: '100%', padding: '12px', backgroundColor: 'white', color: '#555', border: '1px solid #ddd', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}
-        >
-          🅖 구글로 3초 만에 시작하기
-        </button>
+        >{uiText("🅖 구글로 3초 만에 시작하기")}</button>
       </div>
     </div>
   )

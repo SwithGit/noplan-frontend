@@ -1,3 +1,4 @@
+import { t as uiText } from '../../i18n/translate';
 // KakaoCallback.tsx
 import { useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -56,8 +57,8 @@ function KakaoCallback() {
 
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column' }}>
-      <h2 style={{ color: '#FEE500', textShadow: '1px 1px 2px rgba(0,0,0,0.1)' }}>💬 카카오 로그인 중이에요...</h2>
-      <p style={{ color: '#555', marginTop: '10px' }}>로그인 확인중이에요 조금만 기다려주세요..! </p>
+      <h2 style={{ color: '#FEE500', textShadow: '1px 1px 2px rgba(0,0,0,0.1)' }}>{uiText("💬 카카오 로그인 중이에요...")}</h2>
+      <p style={{ color: '#555', marginTop: '10px' }}>{uiText("로그인 확인중이에요 조금만 기다려주세요..! ")}</p>
     </div>
   );
 }

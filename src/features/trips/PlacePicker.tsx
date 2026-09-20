@@ -1,3 +1,4 @@
+import { t as uiText } from '../../i18n/translate';
 import { useState } from 'react';
 import type { TourismAttraction } from '../../api/tourismApi';
 import { TourismPicker } from './TourismPicker';
@@ -18,6 +19,6 @@ export function PlacePicker({ destination, initial, context, excluded = {}, onCl
     if (duplicate) throw Error(`${duplicate} · 이미 담은 장소예요.`);
     onSelect(place, attraction);
   };
-  return direct ? <DirectPlacePicker destination={destination} initial={initial} context={context} excluded={excluded} onClose={onClose} onRecommended={() => setDirect(false)} onSelect={select} />
-    : <TourismPicker destination={destination} initial={initial?.tourism ? attractionFromPlace(initial) : undefined} initialDuration={initial?.durationMinutes || 75} context={context} disabledPlaces={excluded} onClose={onClose} onDirectSearch={() => setDirect(true)} onSelect={(attraction, duration) => select(tourismNode(attraction, duration).place, attraction)} />;
+  return direct ? <DirectPlacePicker destination={destination} initial={initial} context={uiText(context)} excluded={excluded} onClose={onClose} onRecommended={() => setDirect(false)} onSelect={select} />
+    : <TourismPicker destination={destination} initial={initial?.tourism ? attractionFromPlace(initial) : undefined} initialDuration={initial?.durationMinutes || 75} context={uiText(context)} disabledPlaces={excluded} onClose={onClose} onDirectSearch={() => setDirect(true)} onSelect={(attraction, duration) => select(tourismNode(attraction, duration).place, attraction)} />;
 }

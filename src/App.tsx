@@ -1,4 +1,5 @@
 import { NearbyPlaces } from './features/mobile/NearbyPlaces';
+import { useLocale } from './i18n/locale';
 import { useEffect, useMemo, useState } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { getSharedCourse } from './api/courseApi';
@@ -92,6 +93,7 @@ function TripRouteEntry({ user }: { user: UserSession | null }) {
 }
 
 function AppRoutes() {
+  useLocale();
   const desktop = useDesktop();
   const location = useLocation();
   const navigate = useNavigate();

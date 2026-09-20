@@ -1,3 +1,4 @@
+import { t as uiText } from '../../i18n/translate';
 import nopiIconImage from '../../assets/nopi/nopi-icon.png';
 
 interface NopiBubbleProps {
@@ -11,7 +12,7 @@ export function NopiBubble({ title, body, compact = false }: NopiBubbleProps) {
     <section className={`nopi-bubble-row ${compact ? 'is-compact' : ''}`}>
       <img alt="" className="nopi-bubble-avatar" src={nopiIconImage} />
       <div className="nopi-bubble">
-        <strong>{title}</strong>
+        <strong>{uiText(title)}</strong>
         {body && <span>{body}</span>}
       </div>
     </section>

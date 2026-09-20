@@ -1,3 +1,4 @@
+import { t as uiText } from '../../i18n/translate';
 import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import type { UserSession } from '../../types/noplan';
@@ -13,13 +14,13 @@ export function TripCreatePage({ user }: { user: UserSession | null }) {
   }, []);
   return <div className="trip-home trip-create-page">
     <header className="trip-create-page-heading">
-      <nav aria-label="현재 위치"><Link to={ROUTES.appHome}>홈</Link><span>/</span><span>새 여행 만들기</span></nav>
+      <nav aria-label={uiText("현재 위치")}><Link to={ROUTES.appHome}>{uiText("홈")}</Link><span>/</span><span>{uiText("새 여행 만들기")}</span></nav>
       <span className="trip-eyebrow">YOUR NEXT JOURNEY</span>
-      <h1 ref={heading} tabIndex={-1}>어떤 여행을 떠날까요?</h1>
-      <p>목적지와 날짜를 정하고, 우리에게 맞는 여행을 시작해요.</p>
-      <ol aria-label="여행 만들기 단계"><li aria-current="step"><b>1</b>여행 조건 입력</li><li><b>2</b>일정 구성하기</li></ol>
+      <h1 ref={heading} tabIndex={-1}>{uiText("어떤 여행을 떠날까요?")}</h1>
+      <p>{uiText("목적지와 날짜를 정하고, 우리에게 맞는 여행을 시작해요.")}</p>
+      <ol aria-label={uiText("여행 만들기 단계")}><li aria-current="step"><b>1</b>{uiText("여행 조건 입력")}</li><li><b>2</b>{uiText("일정 구성하기")}</li></ol>
     </header>
     <TripCreateForm key={user?.userId || 'guest'} user={user} />
-    <p className="trip-create-page-note">일정을 시작한 뒤 노피에게 코스를 추천받거나, 원하는 장소를 직접 담을 수 있어요.</p>
+    <p className="trip-create-page-note">{uiText("일정을 시작한 뒤 노피에게 코스를 추천받거나, 원하는 장소를 직접 담을 수 있어요.")}</p>
   </div>;
 }

@@ -1,3 +1,4 @@
+import { t as uiText } from '../i18n/translate';
 // src/Supporters.tsx
 import { useState } from 'react';
 
@@ -29,24 +30,24 @@ function Supporters() {
 
   return (
     <div style={{ padding: '20px', maxWidth: '400px', margin: '0 auto', fontFamily: 'sans-serif' }}>
-      <h2 style={{ textAlign: 'center' }}>🚩 서포터즈 현장 제보</h2>
+      <h2 style={{ textAlign: 'center' }}>{uiText("🚩 서포터즈 현장 제보")}</h2>
       
       <div style={{ marginBottom: '20px' }}>
-        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>📍 매장명</label>
+        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>{uiText("📍 매장명")}</label>
         <input 
           value={storeName} 
           onChange={(e) => setStoreName(e.target.value)}
-          placeholder="서울 OO식당"
+          placeholder={uiText("서울 OO식당")}
           style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #ddd', boxSizing: 'border-box' }}
         />
       </div>
 
-      <p style={{ fontWeight: 'bold', marginBottom: '10px' }}>🔥 현재 혼잡도 제보</p>
+      <p style={{ fontWeight: 'bold', marginBottom: '10px' }}>{uiText("🔥 현재 혼잡도 제보")}</p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <button onClick={() => handleUpdate('OPEN', 'FREE')} style={btnStyle('#4CAF50')} disabled={loading}>🟢 여유로워요</button>
-        <button onClick={() => handleUpdate('OPEN', 'BUSY')} style={btnStyle('#FF9800')} disabled={loading}>🟡 조금 붐벼요</button>
-        <button onClick={() => handleUpdate('OPEN', 'FULL')} style={btnStyle('#F44336')} disabled={loading}>🔴 만석 / 웨이팅</button>
-        <button onClick={() => handleUpdate('CLOSED', 'NONE')} style={btnStyle('#9E9E9E')} disabled={loading}>✖ 임시 휴무/재료 소진</button>
+        <button onClick={() => handleUpdate('OPEN', 'FREE')} style={btnStyle('#4CAF50')} disabled={loading}>{uiText("🟢 여유로워요")}</button>
+        <button onClick={() => handleUpdate('OPEN', 'BUSY')} style={btnStyle('#FF9800')} disabled={loading}>{uiText("🟡 조금 붐벼요")}</button>
+        <button onClick={() => handleUpdate('OPEN', 'FULL')} style={btnStyle('#F44336')} disabled={loading}>{uiText("🔴 만석 / 웨이팅")}</button>
+        <button onClick={() => handleUpdate('CLOSED', 'NONE')} style={btnStyle('#9E9E9E')} disabled={loading}>{uiText("✖ 임시 휴무/재료 소진")}</button>
       </div>
     </div>
   );

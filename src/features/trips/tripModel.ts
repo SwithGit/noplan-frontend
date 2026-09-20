@@ -1,3 +1,4 @@
+import { getLocale } from '../../i18n/locale';
 import type { CoursePlace } from '../../types/noplan';
 
 export interface TripPlace {
@@ -33,7 +34,7 @@ export const minutes = (value: string) => Number(value.slice(0, 2)) * 60 + Numbe
 export const clock = (value: number) => `${String(Math.floor(value / 60)).padStart(2, '0')}:${String(value % 60).padStart(2, '0')}`;
 export const dayCount = (start: string, end: string) => Math.round((Date.parse(end) - Date.parse(start)) / 86400000) + 1;
 export const tripLength = (trip: TripDocument) => trip.days.length === 1 ? '당일치기' : `${trip.days.length - 1}박 ${trip.days.length}일`;
-export const shortDate = (date: string) => new Date(`${date}T12:00:00`).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', weekday: 'short' });
+export const shortDate = (date: string) => new Date(`${date}T12:00:00`).toLocaleDateString(getLocale(), { month: 'short', day: 'numeric', weekday: 'short' });
 export function tomorrow() { const date = new Date(); date.setDate(date.getDate() + 1); return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; }
 export function makeBlock(title = '새 일정', startTime = '09:00', endTime = '12:00', area = ''): TripBlock {
   return { id: newId(), title, startTime, endTime, area, notes: '', places: [] };

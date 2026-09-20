@@ -1,3 +1,4 @@
+import { t as uiText } from '../../i18n/translate';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchExploreCourses, toggleCourseLike } from '../../api/exploreApi';
@@ -145,14 +146,14 @@ export function ExploreTab({ active = true }: { active?: boolean }) {
   return (
     <div className="explore-screen">
       <header className="explore-header">
-        <div><span className="eyebrow">둘러보기</span><h1>{dong ? `${dong} 주변 코스` : '내 주변 코스'}</h1></div>
+        <div><span className="eyebrow">{uiText("둘러보기")}</span><h1>{uiText(dong ? `${dong} 주변 코스` : '내 주변 코스')}</h1></div>
       </header>
 
-      <section className="explore-neighborhood" aria-label="탐색 동네">
-        <div><span>내 동네</span><strong>{dong ? `${dong} 주변` : locating ? '현재 동네 찾는 중' : '동네를 설정해 주세요'}</strong></div>
+      <section className="explore-neighborhood" aria-label={uiText("탐색 동네")}>
+        <div><span>{uiText("내 동네")}</span><strong>{uiText(dong ? `${dong} 주변` : locating ? '현재 동네 찾는 중' : '동네를 설정해 주세요')}</strong></div>
         <div className="explore-neighborhood-actions">
-          <button aria-expanded={locationEditorOpen || !dong || Boolean(locationError)} type="button" onClick={toggleLocationEditor}>동네 변경</button>
-          <button disabled={locating} type="button" onClick={() => void locateNeighborhood()}>{locating ? '확인 중' : '현 위치'}</button>
+          <button aria-expanded={locationEditorOpen || !dong || Boolean(locationError)} type="button" onClick={toggleLocationEditor}>{uiText("동네 변경")}</button>
+          <button disabled={locating} type="button" onClick={() => void locateNeighborhood()}>{uiText(locating ? '확인 중' : '현 위치')}</button>
         </div>
       </section>
 
@@ -160,37 +161,37 @@ export function ExploreTab({ active = true }: { active?: boolean }) {
         <section className={`explore-location-fallback ${locationError ? 'has-error' : ''}`}>
           {locationError && <p role="alert">{locationError}</p>}
           <div>
-            <input aria-label="탐색할 동네" placeholder="예: 연남동" value={manualDong} onChange={(event) => setManualDong(event.target.value)} onKeyDown={(event) => {
+            <input aria-label={uiText("탐색할 동네")} placeholder={uiText("예: 연남동")} value={manualDong} onChange={(event) => setManualDong(event.target.value)} onKeyDown={(event) => {
               if (event.key === 'Enter') applyManualDong();
             }} />
-            <button type="button" onClick={applyManualDong}>동네 적용</button>
+            <button type="button" onClick={applyManualDong}>{uiText("동네 적용")}</button>
           </div>
         </section>
       )}
 
-      <section className="explore-course-search" aria-label="현재 동네 코스 검색">
-        <span>코스 검색</span>
+      <section className="explore-course-search" aria-label={uiText("현재 동네 코스 검색")}>
+        <span>{uiText("코스 검색")}</span>
         <label className="explore-search">
           <span aria-hidden="true" className="line-icon-search" />
-          <input aria-label="코스 제목 또는 장소 검색" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="코스 제목이나 장소 이름 검색" />
+          <input aria-label={uiText("코스 제목 또는 장소 검색")} value={query} onChange={(event) => setQuery(event.target.value)} placeholder={uiText("코스 제목이나 장소 이름 검색")} />
         </label>
       </section>
 
-      <div className="chip-row explore-sort" aria-label="정렬">
-        <Chip active={sort === 'likes'} onClick={() => setSort('likes')}>인기순</Chip>
-        <Chip active={sort === 'views'} onClick={() => setSort('views')}>조회순</Chip>
+      <div className="chip-row explore-sort" aria-label={uiText("정렬")}>
+        <Chip active={sort === 'likes'} onClick={() => setSort('likes')}>{uiText("인기순")}</Chip>
+        <Chip active={sort === 'views'} onClick={() => setSort('views')}>{uiText("조회순")}</Chip>
       </div>
 
-      {message && <p className="inline-message" role="status">{message}</p>}
-      {loading && <section className="list-state-card"><span className="loading-spinner" /><h2>코스를 불러오는 중이에요</h2></section>}
+      {message && <p className="inline-message" role="status">{uiText(message)}</p>}
+      {loading && <section className="list-state-card"><span className="loading-spinner" /><h2>{uiText("코스를 불러오는 중이에요")}</h2></section>}
       {!loading && loadError && (
-        <section className="list-state-card" role="alert"><h2>코스를 불러오지 못했어요</h2><p>{loadError}</p><button className="primary" type="button" onClick={() => void loadCourses()}>다시 시도</button></section>
+        <section className="list-state-card" role="alert"><h2>{uiText("코스를 불러오지 못했어요")}</h2><p>{loadError}</p><button className="primary" type="button" onClick={() => void loadCourses()}>{uiText("다시 시도")}</button></section>
       )}
       {!loading && !loadError && dong && courses.length === 0 && (
-        <section className="list-state-card"><h2>{dong}에 공개된 코스가 아직 없어요</h2><p>다른 동네를 입력하거나 현 위치를 다시 확인해 주세요.</p></section>
+        <section className="list-state-card"><h2>{dong}{uiText("에 공개된 코스가 아직 없어요")}</h2><p>{uiText("다른 동네를 입력하거나 현 위치를 다시 확인해 주세요.")}</p></section>
       )}
       {!loading && !loadError && courses.length > 0 && visibleCourses.length === 0 && (
-        <section className="list-state-card"><h2>검색 결과가 없어요</h2><p>장소 이름이나 동네 이름으로 다시 검색해 보세요.</p><button type="button" onClick={() => setQuery('')}>검색어 지우기</button></section>
+        <section className="list-state-card"><h2>{uiText("검색 결과가 없어요")}</h2><p>{uiText("장소 이름이나 동네 이름으로 다시 검색해 보세요.")}</p><button type="button" onClick={() => setQuery('')}>{uiText("검색어 지우기")}</button></section>
       )}
 
       <section className="explore-course-list" aria-live="polite">
@@ -202,14 +203,14 @@ export function ExploreTab({ active = true }: { active?: boolean }) {
               <button className="course-card-main" type="button" onClick={() => setSelectedCourse(course)}>
                 <PlaceVisual alt={places[0]?.name || course.title} color={places[0]?.color || '#eeecff'} imageUrl={course.review_image || places[0]?.imageUrl} type={places[0]?.type} detailType={places[0]?.detailType} />
                 <div>
-                  <span>{course.location || '서울'}</span>
-                  <strong>{course.title}</strong>
-                  <p>{places.length ? places.slice(0, 3).map((place) => place.title).join(' → ') : '장소 상세 정보 확인 필요'}</p>
+                  <span>{uiText(course.location || '서울')}</span>
+                  <strong>{uiText(course.title)}</strong>
+                  <p>{uiText(places.length ? places.slice(0, 3).map((place) => place.title).join(' → ') : '장소 상세 정보 확인 필요')}</p>
                 </div>
               </button>
               <div className="course-card-meta">
-                <span>{places.length}곳 · 약 {Math.max(1, Math.round(totalMinutes / 60))}시간</span>
-                <span>좋아요 {course.likes || 0} · 조회 {course.views || 0}</span>
+                <span>{places.length}{uiText("곳 · 약 ")}{Math.max(1, Math.round(totalMinutes / 60))}{uiText("시간")}</span>
+                <span>{uiText("좋아요 ")}{course.likes || 0}{uiText(" · 조회 ")}{course.views || 0}</span>
               </div>
             </article>
           );

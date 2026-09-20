@@ -1,3 +1,4 @@
+import { t as uiText } from '../../i18n/translate';
 import { useState, type ReactNode } from 'react';
 
 interface PlaceVisualProps {
@@ -45,7 +46,7 @@ export function PlaceVisual({ alt = '', color = '#E1F0FF', imageUrl, label, type
       ) : (
         <span className="place-category-icon"><CategoryIcon kind={iconKind(type, detailType)} /></span>
       )}
-      {label && <b>{label}</b>}
+      {label && <b>{uiText(label)}</b>}
     </div>
   );
 }

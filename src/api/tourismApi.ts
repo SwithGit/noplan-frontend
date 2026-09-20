@@ -1,3 +1,4 @@
+import { getLocale, type Locale } from '../i18n/locale';
 import { apiJson } from './client';
 
 export interface TourismRegion { id: string; name: string; districts: string[] }
@@ -6,6 +7,9 @@ export function getTourismRegions(signal?: AbortSignal) {
 }
 
 export interface TourismAttraction {
+  locale?: Locale;
+  localizedName?: string;
+  localizedAddress?: string;
   contentId: string;
   contentTypeId: '12' | '14' | '28' | '25' | '38' | '39';
   name: string;
@@ -26,6 +30,8 @@ export interface TourismAttraction {
 export type TourismSort = 'recommended' | 'popular' | 'name';
 export interface TourismRankingOptions { region?: string; destination?: string; sort?: TourismSort; profile?: 'member' | 'custom'; ageBand?: string; gender?: 'all' | 'male' | 'female' }
 export interface TourismSearchResult {
+  locale?: Locale;
+  translationStatus?: 'ok' | 'unavailable';
   items: TourismAttraction[]; page: number; hasMore: boolean; total?: number;
   effectiveSort?: TourismSort; rankingNote?: string; fallbackReason?: string | null;
   profile?: { ageBand: string | null; gender: 'male' | 'female' | null; source: 'member' | 'custom' | 'missing'; label: string | null };
@@ -33,7 +39,7 @@ export interface TourismSearchResult {
   scope?: { region: string; name: string; district: string; label: string; districts: string[] };
 }
 export function searchTourism(keyword: string, type: TourismAttraction['contentTypeId'] | 'all', page: number, signal?: AbortSignal, ranking: TourismRankingOptions = {}) {
-  const params = new URLSearchParams({ keyword, type, page: String(page) });
+  const params = new URLSearchParams({ keyword, type, page: String(page), locale: getLocale() });
   Object.entries(ranking).forEach(([key, value]) => { if (value !== undefined) params.set(key, value); });
   return apiJson<TourismSearchResult>(`/api/tourism/search?${params}`, { signal });
 }
@@ -41,6 +47,11 @@ export function searchTourism(keyword: string, type: TourismAttraction['contentT
 export interface TourismDetail {
   contentId: string;
   contentTypeId: TourismAttraction['contentTypeId'];
+  locale?: Locale;
+  requestedLocale?: Locale;
+  translationStatus?: 'translated' | 'missing' | 'unavailable';
+  localizedName?: string;
+  localizedAddress?: string;
   overview: string;
   homepage: string;
   facts: { label: string; value: string }[];
@@ -50,8 +61,8 @@ export interface TourismDetail {
   sourceLabel: string;
 }
 
-export function getTourismDetail(id: string, type: TourismAttraction['contentTypeId'], signal: AbortSignal) {
-  return apiJson<TourismDetail>(`/api/tourism/${encodeURIComponent(id)}?type=${type}`, {
+export function getTourismDetail(id: string, type: TourismAttraction['contentTypeId'], signal: AbortSignal, locale: Locale = getLocale()) {
+  return apiJson<TourismDetail>(`/api/tourism/${encodeURIComponent(id)}?type=${type}&locale=${locale}`, {
     signal: AbortSignal.any([signal, AbortSignal.timeout(15000)]),
   });
 }

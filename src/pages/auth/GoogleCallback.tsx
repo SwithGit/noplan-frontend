@@ -1,3 +1,4 @@
+import { t as uiText } from '../../i18n/translate';
 // GoogleCallback.tsx
 import { useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -52,8 +53,8 @@ function GoogleCallback() {
 
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column' }}>
-      <h2 style={{ color: '#555', marginBottom: '10px' }}>구글 로그인 처리 중입니다</h2>
-      <p style={{ color: '#777' }}>안전하게 로그인 정보를 확인하고 있습니다. 잠시만 기다려주세요.</p>
+      <h2 style={{ color: '#555', marginBottom: '10px' }}>{uiText("구글 로그인 처리 중입니다")}</h2>
+      <p style={{ color: '#777' }}>{uiText("안전하게 로그인 정보를 확인하고 있습니다. 잠시만 기다려주세요.")}</p>
     </div>
   );
 }

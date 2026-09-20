@@ -1,3 +1,4 @@
+import { t as uiText } from '../i18n/translate';
 import { useState, useEffect } from 'react';
 import type { ExploreCourse } from '../types/noplan';
 import { getLoggedInUser } from '../api/client';
@@ -108,9 +109,7 @@ function ExploreFeed({ isDark, onOpenPopup }: ExploreFeedProps) {
 
   return (
     <div style={{ padding: '20px 0 20px 20px', backgroundColor: bgColor, borderRadius: '25px', marginBottom: '25px' }}>
-      <h2 style={{ margin: '0 0 15px 0', fontSize: '19px', color: titleColor, fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
-        🔥 이번 주 가장 핫한 노플랜 코스
-      </h2>
+      <h2 style={{ margin: '0 0 15px 0', fontSize: '19px', color: titleColor, fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>{uiText("🔥 이번 주 가장 핫한 노플랜 코스")}</h2>
       
       {/* 🚀 가로 스크롤 컨테이너 */}
       <div style={{ 
@@ -149,15 +148,15 @@ function ExploreFeed({ isDark, onOpenPopup }: ExploreFeedProps) {
               ) : (
                 <div style={{ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: '#eee', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>👤</div>
               )}
-              <span style={{ fontSize: '13px', fontWeight: '600', color: nickColor}}>{course.user_nick || '노플래너'}</span>
+              <span style={{ fontSize: '13px', fontWeight: '600', color: nickColor}}>{uiText(course.user_nick || '노플래너')}</span>
             </div>
             
             <h3 style={{ fontSize: '17px', color: titleColor, margin: '0', height: '48px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', lineHeight: '1.4' }}>
-              {course.title}
+              {uiText(course.title)}
             </h3>
             
             <div style={{ display: 'flex', gap: '5px' }}>
-              <span style={{ fontSize: '10px', color: '#007AFF', backgroundColor: '#eef7ff', padding: '4px 8px', borderRadius: '10px', fontWeight: 'bold' }}>#노플랜추천</span>
+              <span style={{ fontSize: '10px', color: '#007AFF', backgroundColor: '#eef7ff', padding: '4px 8px', borderRadius: '10px', fontWeight: 'bold' }}>{uiText("#노플랜추천")}</span>
             </div>
 
             <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '10px', borderTop: '1px solid #f8f8f8' }}>

@@ -1,3 +1,4 @@
+import { t as uiText } from '../../i18n/translate';
 import { useEffect, useState } from 'react';
 import { CustomOverlayMap, Map, Polyline, ZoomControl } from 'react-kakao-maps-sdk';
 import type { RoutePoint } from './dayRouteModel';
@@ -37,12 +38,12 @@ export function DayRouteMap({ points, activeId, onSelect, focusActive = false, e
     const point = points.find(item => item.id === activeId);
     if (point) map.panTo(new kakao.maps.LatLng(point.lat, point.lng));
   }, [map, activeId, focusActive, points]);
-  if (!points.length || !ready) return <div className="day-route-map-empty"><span>DAY ROUTE</span><h3>{!points.length ? '장소를 담으면 동선이 보여요' : failed ? '지도를 불러오지 못했어요' : '지도를 연결하고 있어요'}</h3><p>{!points.length ? emptyHint : '각 장소의 카카오맵 링크로 위치를 확인할 수 있어요. 일정 순서 변경은 계속 사용할 수 있어요.'}</p>{points.map(point => <a key={point.id} href={`https://map.kakao.com/link/map/${encodeURIComponent(point.name)},${point.lat},${point.lng}`} target="_blank" rel="noreferrer">{point.number}. {point.name} ↗</a>)}</div>;
+  if (!points.length || !ready) return <div className="day-route-map-empty"><span>DAY ROUTE</span><h3>{uiText(!points.length ? '장소를 담으면 동선이 보여요' : failed ? '지도를 불러오지 못했어요' : '지도를 연결하고 있어요')}</h3><p>{uiText(!points.length ? emptyHint : '각 장소의 카카오맵 링크로 위치를 확인할 수 있어요. 일정 순서 변경은 계속 사용할 수 있어요.')}</p>{points.map(point => <a key={point.id} href={`https://map.kakao.com/link/map/${encodeURIComponent(point.name)},${point.lat},${point.lng}`} target="_blank" rel="noreferrer">{point.number}. {point.name} ↗</a>)}</div>;
   return <Map center={points[0]} style={{ width: '100%', height: '100%' }} onCreate={setMap}>
     <ZoomControl position="RIGHT" />
     <Polyline path={points} strokeWeight={3} strokeColor="#8860c5" strokeOpacity={.8} strokeStyle="shortdash" />
     {points.map(point => <CustomOverlayMap key={point.id} position={point} yAnchor={1} zIndex={activeId === point.id ? 3 : 1} clickable>
-      <button type="button" className={`day-route-pin ${activeId === point.id ? 'active' : ''}`} onClick={() => onSelect(point.id)} aria-label={`${point.number}. ${point.name} 일정 보기`}><b>{point.number}</b><span>{point.name}</span></button>
+      <button type="button" className={`day-route-pin ${activeId === point.id ? 'active' : ''}`} onClick={() => onSelect(point.id)} aria-label={uiText(`${point.number}. ${point.name} 일정 보기`)}><b>{point.number}</b><span>{point.name}</span></button>
     </CustomOverlayMap>)}
   </Map>;
 }

@@ -1,3 +1,4 @@
+import { t as uiText } from '../../i18n/translate';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { listTrips } from '../../api/tripsApi';
@@ -39,15 +40,15 @@ export function AddEventToTrip({event,user,onClose}:{event:TravelEvent;user:User
     }
     try{writeDraft(next,user?.userId);navigate(tripRoute(next.id),{state:{initialTrip:next,focusDayId:selectedDay,focusBlockId:selectedBlock}});}catch{setError('브라우저에 초안을 저장하지 못했어요. 저장 공간을 확인해 주세요.');}
   };
-  return <TripDialog title="내 여행에 담기" onClose={onClose}><form className="trip-form" onSubmit={e=>{e.preventDefault();add();}}>
-    <div className="event-add-summary"><strong>{event.title}</strong><p>{event.startDate} — {event.endDate}</p><small>관람 시간: {event.hours||'공식 안내 확인 필요'}</small></div>
-    <label>담을 여행<select value={tripId} onChange={e=>{setTripId(e.target.value);setDayId('');setBlockId('');setError('');}}><option value="new">새 당일 여행 만들기</option>{trips.map(t=><option key={t.id} value={t.id}>{t.document.title} · {t.document.startDate}{t.version===0?' (초안)':''}</option>)}</select></label>
-    {loading&&<p role="status">계정의 여행을 불러오고 있어요…</p>}
-    {loadError&&<div className="trip-alert" role="alert">계정의 여행을 불러오지 못했어요. <button type="button" onClick={()=>{setLoading(true);setRevision(v=>v+1);}}>다시 불러오기</button></div>}
-    {tripId==='new'?<label>방문 날짜<input type="date" required min={event.startDate>koreaToday()?event.startDate:koreaToday()} max={event.endDate} value={date} onChange={e=>setDate(e.target.value)}/></label>:days.length?<><label>여행 날짜<select value={day?.id||''} onChange={e=>{setDayId(e.target.value);setBlockId('');}}>{days.map(d=><option key={d.id} value={d.id}>{d.date}</option>)}</select></label><label>일정 구간<select value={block?.id||''} onChange={e=>setBlockId(e.target.value)}>{day?.blocks.map(b=><option key={b.id} value={b.id}>{b.startTime}–{b.endTime} · {b.title}</option>)}</select></label></>:<p className="trip-alert">이 여행은 행사 기간과 겹치지 않아요. 다른 여행을 선택해 주세요.</p>}
-    <label>예상 관람 시간 (분)<input required type="number" min={10} max={600} step={5} value={duration} onChange={e=>setDuration(Number(e.target.value))}/><small>기본 60분은 직접 조정하는 계획값이에요.</small></label>
-    {block&&usedMinutes(block)+duration+(block.places.length?15:0)>minutes(block.endTime)-minutes(block.startTime)&&<p className="trip-alert">선택한 구간보다 길어요. 담은 뒤 구간 시간을 조정해 주세요.</p>}
-    <p className="event-help">초안에 담고 편집기로 이동해요. 관람 시간·휴관·예약 여부를 확인하고, 계정 보관은 편집기에서 ‘여행 저장’을 눌러주세요.</p>
-    {error&&<p className="trip-alert" role="alert">{error}</p>}<button className="trip-button primary" type="submit" disabled={tripId!=='new'&&!block}>담고 일정 확인하기</button>
+  return <TripDialog title={uiText("내 여행에 담기")} onClose={onClose}><form className="trip-form" onSubmit={e=>{e.preventDefault();add();}}>
+    <div className="event-add-summary"><strong>{uiText(event.title)}</strong><p>{event.startDate} — {event.endDate}</p><small>{uiText("관람 시간: ")}{uiText(event.hours||'공식 안내 확인 필요')}</small></div>
+    <label>{uiText("담을 여행")}<select value={tripId} onChange={e=>{setTripId(e.target.value);setDayId('');setBlockId('');setError('');}}><option value="new">{uiText("새 당일 여행 만들기")}</option>{trips.map(t=><option key={t.id} value={t.id}>{uiText(t.document.title)} · {t.document.startDate}{uiText(t.version===0?' (초안)':'')}</option>)}</select></label>
+    {loading&&<p role="status">{uiText("계정의 여행을 불러오고 있어요…")}</p>}
+    {loadError&&<div className="trip-alert" role="alert">{uiText("계정의 여행을 불러오지 못했어요. ")}<button type="button" onClick={()=>{setLoading(true);setRevision(v=>v+1);}}>{uiText("다시 불러오기")}</button></div>}
+    {tripId==='new'?<label>{uiText("방문 날짜")}<input type="date" required min={event.startDate>koreaToday()?event.startDate:koreaToday()} max={event.endDate} value={date} onChange={e=>setDate(e.target.value)}/></label>:days.length?<><label>{uiText("여행 날짜")}<select value={day?.id||''} onChange={e=>{setDayId(e.target.value);setBlockId('');}}>{days.map(d=><option key={d.id} value={d.id}>{d.date}</option>)}</select></label><label>{uiText("일정 구간")}<select value={block?.id||''} onChange={e=>setBlockId(e.target.value)}>{day?.blocks.map(b=><option key={b.id} value={b.id}>{b.startTime}–{b.endTime} · {uiText(b.title)}</option>)}</select></label></>:<p className="trip-alert">{uiText("이 여행은 행사 기간과 겹치지 않아요. 다른 여행을 선택해 주세요.")}</p>}
+    <label>{uiText("예상 관람 시간 (분)")}<input required type="number" min={10} max={600} step={5} value={duration} onChange={e=>setDuration(Number(e.target.value))}/><small>{uiText("기본 60분은 직접 조정하는 계획값이에요.")}</small></label>
+    {block&&usedMinutes(block)+duration+(block.places.length?15:0)>minutes(block.endTime)-minutes(block.startTime)&&<p className="trip-alert">{uiText("선택한 구간보다 길어요. 담은 뒤 구간 시간을 조정해 주세요.")}</p>}
+    <p className="event-help">{uiText("초안에 담고 편집기로 이동해요. 관람 시간·휴관·예약 여부를 확인하고, 계정 보관은 편집기에서 ‘여행 저장’을 눌러주세요.")}</p>
+    {error&&<p className="trip-alert" role="alert">{uiText(error)}</p>}<button className="trip-button primary" type="submit" disabled={tripId!=='new'&&!block}>{uiText("담고 일정 확인하기")}</button>
   </form></TripDialog>;
 }

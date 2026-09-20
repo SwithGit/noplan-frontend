@@ -1,3 +1,4 @@
+import { t as uiText } from '../../i18n/translate';
 import { SignupDemographics } from '../../components/SignupDemographics';
 // GoogleSignup.tsx
 import { useState, useEffect } from 'react';
@@ -83,39 +84,29 @@ function GoogleSignup() {
   return (
     <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '30px', paddingBottom: '50px' }}>
       <div style={{ padding: '40px', backgroundColor: 'white', borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', width: '400px', display: 'flex', flexDirection: 'column' }}>
-        <h2 style={{ color: '#000000', textAlign: 'center', marginBottom: '10px' }}>추가 정보 입력</h2>
+        <h2 style={{ color: '#000000', textAlign: 'center', marginBottom: '10px' }}>{uiText("추가 정보 입력")}</h2>
         <SignupDemographics birthdate={birthdate} gender={gender} onBirthdate={setBirthdate} onGender={setGender} />
-        <p style={{ textAlign: 'center', color: '#666', marginBottom: '30px', fontSize: '14px' }}>
-          안전한 서비스 이용을 위해 추가 정보를 입력해주세요.
-        </p>
+        <p style={{ textAlign: 'center', color: '#666', marginBottom: '30px', fontSize: '14px' }}>{uiText("안전한 서비스 이용을 위해 추가 정보를 입력해주세요.")}</p>
 
-        <input type="text" placeholder="노플랜에서 사용할 닉네임" value={nickname} onChange={(e) => setNickname(e.target.value)} style={inputStyle} />
-        <input type="tel" placeholder="연락처 (예: 010-1234-5678)" value={phone} onChange={(e) => setPhone(e.target.value)} style={inputStyle} />
+        <input type="text" placeholder={uiText("노플랜에서 사용할 닉네임")} value={nickname} onChange={(e) => setNickname(e.target.value)} style={inputStyle} />
+        <input type="tel" placeholder={uiText("연락처 (예: 010-1234-5678)")} value={phone} onChange={(e) => setPhone(e.target.value)} style={inputStyle} />
 
-        <p style={{ fontWeight: 'bold', fontSize: '14px', marginBottom: '10px', marginTop: '10px', color: '#333' }}>여행 스타일</p>
+        <p style={{ fontWeight: 'bold', fontSize: '14px', marginBottom: '10px', marginTop: '10px', color: '#333' }}>{uiText("여행 스타일")}</p>
         <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
           <button 
             onClick={() => setTravelStyle('J')} 
             style={{ flex: 1, padding: '12px', borderRadius: '8px', border: travelStyle === 'J' ? '2px solid #4285F4' : '1px solid #ccc', backgroundColor: travelStyle === 'J' ? '#E8F0FE' : 'white', cursor: 'pointer', fontWeight: 'bold', color: '#333' }}
-          >
-            철저한 계획파 (J)
-          </button>
+          >{uiText("철저한 계획파 (J)")}</button>
           <button 
             onClick={() => setTravelStyle('P')} 
             style={{ flex: 1, padding: '12px', borderRadius: '8px', border: travelStyle === 'P' ? '2px solid #4285F4' : '1px solid #ccc', backgroundColor: travelStyle === 'P' ? '#E8F0FE' : 'white', cursor: 'pointer', fontWeight: 'bold', color: '#333' }}
-          >
-            자유로운 즉흥파 (P)
-          </button>
+          >{uiText("자유로운 즉흥파 (P)")}</button>
         </div>
 
         <label style={{ display: 'flex', alignItems: 'center', marginBottom: '20px', fontSize: '14px', cursor: 'pointer', color: '#555' }}>
-          <input type="checkbox" checked={agreeTerms} onChange={(e) => setAgreeTerms(e.target.checked)} style={{ marginRight: '10px', cursor: 'pointer' }} />
-          [필수] 개인정보 수집 및 이용 동의
-        </label>
+          <input type="checkbox" checked={agreeTerms} onChange={(e) => setAgreeTerms(e.target.checked)} style={{ marginRight: '10px', cursor: 'pointer' }} />{uiText("[필수] 개인정보 수집 및 이용 동의")}</label>
 
-        <button onClick={handleSignup} style={{ padding: '15px', backgroundColor: '#4285F4', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer' }}>
-          구글 계정으로 가입 완료
-        </button>
+        <button onClick={handleSignup} style={{ padding: '15px', backgroundColor: '#4285F4', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer' }}>{uiText("구글 계정으로 가입 완료")}</button>
       </div>
     </div>
   );

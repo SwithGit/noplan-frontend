@@ -1,3 +1,4 @@
+import { t as uiText } from '../../i18n/translate';
 import { useNavigate } from 'react-router-dom';
 
 interface AppTopBarProps {
@@ -12,16 +13,16 @@ export function AppTopBar({ actionLabel, onAction, subtitle, title }: AppTopBarP
 
   return (
     <header className="app-top-bar">
-      <button aria-label="뒤로가기" className="icon-button" type="button" onClick={() => navigate(-1)}>
+      <button aria-label={uiText("뒤로가기")} className="icon-button" type="button" onClick={() => navigate(-1)}>
         <span className="icon-chevron-left" />
       </button>
       <div className="top-title">
-        <strong>{title}</strong>
-        {subtitle && <span>{subtitle}</span>}
+        <strong>{uiText(title)}</strong>
+        {subtitle && <span>{uiText(subtitle)}</span>}
       </div>
       {actionLabel ? (
         <button className="soft-action" type="button" onClick={onAction}>
-          {actionLabel}
+          {uiText(actionLabel)}
         </button>
       ) : (
         <span className="top-spacer" />

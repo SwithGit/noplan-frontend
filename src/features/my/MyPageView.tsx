@@ -1,3 +1,4 @@
+import { t as uiText } from '../../i18n/translate';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getSharedCourse } from '../../api/courseApi';
@@ -155,15 +156,15 @@ export function MyPageView({ onLogout, user, active = true }: MyPageViewProps) {
       <div className="my-screen logged-out-my-screen">
         <section className="login-empty">
           <img alt="" className="login-nopi" src={nopiIconImage} />
-          <span className="eyebrow">내 코스 보관함</span>
-          <h1>마음에 든 코스를 다시 만나세요</h1>
-          <p>로그인하면 추천 기록과 저장한 코스를 한곳에서 이어볼 수 있어요.</p>
-          <button className="primary-bottom-button static" type="button" onClick={() => navigate(ROUTES.login)}>로그인하기</button>
+          <span className="eyebrow">{uiText("내 코스 보관함")}</span>
+          <h1>{uiText("마음에 든 코스를 다시 만나세요")}</h1>
+          <p>{uiText("로그인하면 추천 기록과 저장한 코스를 한곳에서 이어볼 수 있어요.")}</p>
+          <button className="primary-bottom-button static" type="button" onClick={() => navigate(ROUTES.login)}>{uiText("로그인하기")}</button>
         </section>
-        <section className="login-benefits" aria-label="로그인 혜택">
-          <article><strong>저장</strong><span>마음에 든 코스를 보관해요</span></article>
-          <article><strong>이어보기</strong><span>최근 본 코스를 다시 열어요</span></article>
-          <article><strong>한곳에서</strong><span>내 코스 기록을 모아봐요</span></article>
+        <section className="login-benefits" aria-label={uiText("로그인 혜택")}>
+          <article><strong>{uiText("저장")}</strong><span>{uiText("마음에 든 코스를 보관해요")}</span></article>
+          <article><strong>{uiText("이어보기")}</strong><span>{uiText("최근 본 코스를 다시 열어요")}</span></article>
+          <article><strong>{uiText("한곳에서")}</strong><span>{uiText("내 코스 기록을 모아봐요")}</span></article>
         </section>
       </div>
     );
@@ -178,26 +179,24 @@ export function MyPageView({ onLogout, user, active = true }: MyPageViewProps) {
   return (
     <div className="my-screen">
       <header className="my-compact-header">
-        <div className="my-title-row"><h1>마이</h1><button type="button" onClick={() => setSettingsOpen((open) => !open)}>설정</button></div>
+        <div className="my-title-row"><h1>{uiText("마이")}</h1><button type="button" onClick={() => setSettingsOpen((open) => !open)}>{uiText("설정")}</button></div>
         <div className="my-profile-row">
           <div className="profile-avatar">{user.profileURL ? <img alt="" src={user.profileURL} /> : <span>{user.userNick.slice(0, 1)}</span>}</div>
-          <div><strong>{user.userNick}님</strong><p>{summary.email || user.userId}</p></div>
+          <div><strong>{user.userNick}{uiText("님")}</strong><p>{summary.email || user.userId}</p></div>
         </div>
         {settingsOpen && (
-          <section className="my-settings-panel" aria-label="계정 설정">
-            <span>계정 설정</span>
-            <button className="text-action" type="button" onClick={onLogout}>로그아웃</button>
+          <section className="my-settings-panel" aria-label={uiText("계정 설정")}>
+            <span>{uiText("계정 설정")}</span>
+            <button className="text-action" type="button" onClick={onLogout}>{uiText("로그아웃")}</button>
           </section>
         )}
       </header>
 
-      <Link className="trip-my-link" to={ROUTES.trips}><strong>내 여행 노트</strong><span>날짜별 일정을 이어서 계획해요 →</span></Link>
-      <nav aria-label="내 코스 목록" className="my-course-tabs">
-        <button aria-pressed={activeTab === 'saved'} className={activeTab === 'saved' ? 'active' : ''} type="button" onClick={() => selectTab('saved')}>
-          저장한 코스{savedCourses.length > 0 ? ` ${savedCourses.length}` : ''}
+      <Link className="trip-my-link" to={ROUTES.trips}><strong>{uiText("내 여행 노트")}</strong><span>{uiText("날짜별 일정을 이어서 계획해요 →")}</span></Link>
+      <nav aria-label={uiText("내 코스 목록")} className="my-course-tabs">
+        <button aria-pressed={activeTab === 'saved'} className={activeTab === 'saved' ? 'active' : ''} type="button" onClick={() => selectTab('saved')}>{uiText("저장한 코스")}{savedCourses.length > 0 ? ` ${savedCourses.length}` : ''}
         </button>
-        <button aria-pressed={activeTab === 'recent'} className={activeTab === 'recent' ? 'active' : ''} type="button" onClick={() => selectTab('recent')}>
-          최근 본 코스{recentCourses.length > 0 ? ` ${recentCourses.length}` : ''}
+        <button aria-pressed={activeTab === 'recent'} className={activeTab === 'recent' ? 'active' : ''} type="button" onClick={() => selectTab('recent')}>{uiText("최근 본 코스")}{recentCourses.length > 0 ? ` ${recentCourses.length}` : ''}
         </button>
       </nav>
 
@@ -205,11 +204,11 @@ export function MyPageView({ onLogout, user, active = true }: MyPageViewProps) {
 
       <section className="my-course-section" ref={listRef}>
         {loading ? (
-          <div className="list-state-card compact"><span className="loading-spinner" /><p>코스를 불러오는 중이에요</p></div>
+          <div className="list-state-card compact"><span className="loading-spinner" /><p>{uiText("코스를 불러오는 중이에요")}</p></div>
         ) : activeCourses.length === 0 ? (
           <div className="my-empty-state">
-            <p>{activeTab === 'saved' ? '아직 저장한 코스가 없어요. 탐색에서 마음에 드는 서울 코스를 찾아보세요.' : '최근 본 코스가 아직 없어요.'}</p>
-            {activeTab === 'saved' && <button type="button" onClick={() => navigate(ROUTES.explore)}>탐색으로 이동</button>}
+            <p>{uiText(activeTab === 'saved' ? '아직 저장한 코스가 없어요. 탐색에서 마음에 드는 서울 코스를 찾아보세요.' : '최근 본 코스가 아직 없어요.')}</p>
+            {activeTab === 'saved' && <button type="button" onClick={() => navigate(ROUTES.explore)}>{uiText("탐색으로 이동")}</button>}
           </div>
         ) : (
           <div className="my-course-list">
@@ -219,12 +218,12 @@ export function MyPageView({ onLogout, user, active = true }: MyPageViewProps) {
               return (
                 <article className="my-course-card" key={`${activeTab}-${course.id}`}>
                   <PlaceVisual alt={places[0]?.name || course.title} color={places[0]?.color || '#eeecff'} imageUrl={course.review_image || places[0]?.imageUrl} type={places[0]?.type} detailType={places[0]?.detailType} />
-                  <div><span>{course.location || '서울'}</span><strong>{course.title}</strong><p>{places.length ? `${places.length}곳 · ${places.slice(0, 2).map((place) => place.title).join(' → ')}` : '상세 정보 불러오기 필요'}</p>{error && <small role="alert">{error}</small>}</div>
+                  <div><span>{uiText(course.location || '서울')}</span><strong>{uiText(course.title)}</strong><p>{uiText(places.length ? `${places.length}곳 · ${places.slice(0, 2).map((place) => place.title).join(' → ')}` : '상세 정보 불러오기 필요')}</p>{error && <small role="alert">{uiText(error)}</small>}</div>
                   <div className="my-course-card-actions">
-                    <button disabled={openingCourseId === course.id} type="button" onClick={() => void openCourse(course, activeTab)}>{openingCourseId === course.id ? '여는 중' : error ? '재시도' : '코스로 열기'}</button>
+                    <button disabled={openingCourseId === course.id} type="button" onClick={() => void openCourse(course, activeTab)}>{uiText(openingCourseId === course.id ? '여는 중' : error ? '재시도' : '코스로 열기')}</button>
                     {activeTab === 'saved' && (
                       <button className="publish" disabled={Boolean(course.is_public)} type="button" onClick={() => openPublishDialog(course)}>
-                        {course.is_public ? '탐색 등록됨' : '탐색에 등록'}
+                        {uiText(course.is_public ? '탐색 등록됨' : '탐색에 등록')}
                       </button>
                     )}
                   </div>
@@ -240,11 +239,11 @@ export function MyPageView({ onLogout, user, active = true }: MyPageViewProps) {
           if (event.target === event.currentTarget) closePublishDialog();
         }}>
           <section aria-labelledby="publish-course-title" aria-modal="true" className="publish-course-dialog" role="dialog">
-            <header><div><span>탐색에 등록</span><h2 id="publish-course-title">{publishingCourse.title}</h2></div><button aria-label="닫기" disabled={publishing} type="button" onClick={closePublishDialog}>×</button></header>
-            <p>이 코스를 어느 동네 사람들에게 보여줄지 확인해 주세요.</p>
-            <label><span>코스 동네</span><input ref={publishInputRef} placeholder="예: 연남동" value={publishDong} onChange={(event) => setPublishDong(event.target.value)} /></label>
+            <header><div><span>{uiText("탐색에 등록")}</span><h2 id="publish-course-title">{uiText(publishingCourse.title)}</h2></div><button aria-label={uiText("닫기")} disabled={publishing} type="button" onClick={closePublishDialog}>×</button></header>
+            <p>{uiText("이 코스를 어느 동네 사람들에게 보여줄지 확인해 주세요.")}</p>
+            <label><span>{uiText("코스 동네")}</span><input ref={publishInputRef} placeholder={uiText("예: 연남동")} value={publishDong} onChange={(event) => setPublishDong(event.target.value)} /></label>
             {publishMessage && <p className="inline-message warning" role="alert">{publishMessage}</p>}
-            <div className="publish-course-actions"><button disabled={publishing} type="button" onClick={closePublishDialog}>취소</button><button className="primary" disabled={publishing} type="button" onClick={() => void submitPublish()}>{publishing ? '등록 중' : '탐색에 등록'}</button></div>
+            <div className="publish-course-actions"><button disabled={publishing} type="button" onClick={closePublishDialog}>{uiText("취소")}</button><button className="primary" disabled={publishing} type="button" onClick={() => void submitPublish()}>{uiText(publishing ? '등록 중' : '탐색에 등록')}</button></div>
           </section>
         </div>
       )}

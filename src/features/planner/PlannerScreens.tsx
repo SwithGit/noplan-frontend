@@ -1,3 +1,4 @@
+import { t as uiText } from '../../i18n/translate';
 import './result-screen.css';
 import { CourseOptionCards } from './CourseOptionCards';
 import { kakaoPlaceUrl } from '../../utils/placeMap';
@@ -341,9 +342,9 @@ export function PlannerHome({ active = true }: { active?: boolean }) {
       <header className="home-header">
         <button className="location-pill" type="button" onClick={handleCurrentLocation}>
           <span />
-          {locationStatus === 'locating' ? '위치 찾는 중' : displayLocationLabel(condition)}
+          {uiText(locationStatus === 'locating' ? '위치 찾는 중' : displayLocationLabel(condition))}
         </button>
-        <button aria-label="메뉴" className="menu-button" type="button">
+        <button aria-label={uiText("메뉴")} className="menu-button" type="button">
           <span />
           <span />
           <span />
@@ -352,35 +353,33 @@ export function PlannerHome({ active = true }: { active?: boolean }) {
 
       <section className="home-hero">
         <div>
-          <span className="eyebrow">오늘</span>
-          <h1>어디 갈까?</h1>
-          <p>상황만 알려줘. 코스는 내가 골라볼게.</p>
+          <span className="eyebrow">{uiText("오늘")}</span>
+          <h1>{uiText("어디 갈까?")}</h1>
+          <p>{uiText("상황만 알려줘. 코스는 내가 골라볼게.")}</p>
         </div>
         <img alt="" src={homeNopiImage} />
       </section>
 
       <section className="prompt-card">
-        <label htmlFor="home-prompt">어떤 약속인가요?</label>
+        <label htmlFor="home-prompt">{uiText("어떤 약속인가요?")}</label>
         <div>
           <input
             id="home-prompt"
-            placeholder="예: 건대입구역에서 친구랑 조용한 카페"
+            placeholder={uiText("예: 건대입구역에서 친구랑 조용한 카페")}
             value={text}
             onChange={(event) => setText(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === 'Enter') submit();
             }}
           />
-          <button aria-label="시작" type="button" onClick={submit}>
+          <button aria-label={uiText("시작")} type="button" onClick={submit}>
             ↑
           </button>
         </div>
       </section>
 
       <p className="home-service-area-note">
-        <span aria-hidden="true">i</span>
-        등록된 주변 장소가 없으면 실시간 검색으로 코스를 찾아요. 도보 기준이며 가격·리뷰 확인이 필요할 수 있어요.
-      </p>
+        <span aria-hidden="true">i</span>{uiText("등록된 주변 장소가 없으면 실시간 검색으로 코스를 찾아요. 도보 기준이며 가격·리뷰 확인이 필요할 수 있어요.")}</p>
 
       {locationMessage && <p className="home-location-note">{locationMessage}</p>}
 
@@ -404,28 +403,28 @@ export function PlannerHome({ active = true }: { active?: boolean }) {
           navigate(ROUTES.plannerChat);
         }}
       >
-        <span>입력 없이 고르기</span>
-        <strong>빠른 추천 받기</strong>
+        <span>{uiText("입력 없이 고르기")}</span>
+        <strong>{uiText("빠른 추천 받기")}</strong>
       </button>
 
       <section className="recommend-grid">
         <article className="mini-card warm">
-          <span>오늘의 퀘스트</span>
-          <strong>근처 산책<br />스탬프 받기</strong>
+          <span>{uiText("오늘의 퀘스트")}</span>
+          <strong>{uiText("근처 산책")}<br />{uiText("스탬프 받기")}</strong>
         </article>
         <article className="mini-card mint">
-          <span>지금 추천</span>
-          <strong>실내 중심<br />짧은 코스</strong>
+          <span>{uiText("지금 추천")}</span>
+          <strong>{uiText("실내 중심")}<br />{uiText("짧은 코스")}</strong>
         </article>
       </section>
 
       <button className="course-preview" type="button" onClick={() => navigate(ROUTES.courseMap)}>
         <PlaceVisual color="#E6F7F0" />
         <div>
-          <strong>{plan.title}</strong>
+          <strong>{uiText(plan.title)}</strong>
           <span>{plan.durationText}</span>
         </div>
-        <b>지금</b>
+        <b>{uiText("지금")}</b>
       </button>
     </div>
   );
@@ -607,26 +606,26 @@ export function ChatStart() {
       <QuickChatHeader activeStep={activeStep} onBack={goBack} />
 
       <section className="quick-chat-content">
-        <nav aria-label="완료한 조건" className="chat-summary-chips">
+        <nav aria-label={uiText("완료한 조건")} className="chat-summary-chips">
           {stepSummaries.map((step, index) => step.complete && index < activeStep ? (
             <button key={step.label} onClick={() => setActiveStep(index)} type="button">
-              <span>{step.label}</span>
+              <span>{uiText(step.label)}</span>
               <strong>{step.value}</strong>
             </button>
           ) : null)}
         </nav>
 
         <QuickBotMessage>
-          {[
+          {uiText([
             '어디에서 시작할지 알려줘.',
             '출발할 시간을 골라줘.',
             '누구와 함께하는지 알려줘.',
             '하고 싶은 걸 최대 3개 골라줘.',
             '마지막으로 얼마나 놀지 정해보자.',
-          ][activeStep]}
+          ][activeStep])}
         </QuickBotMessage>
 
-        {activeStep === 0 && <QuickQuestion title="어디에서 출발할까요?">
+        {activeStep === 0 && <QuickQuestion title={uiText("어디에서 출발할까요?")}>
           <button
             aria-pressed={locationSelectionSource === 'current' && Boolean(condition.location)}
             className={`wide-option ${locationSelectionSource === 'current' && condition.location ? 'selected' : ''} ${locationStatus === 'locating' ? 'loading' : ''}`}
@@ -647,7 +646,7 @@ export function ChatStart() {
           </button>
           {(locationStatus === 'error' || statusMessage) && (
             <div className="location-fallback-options">
-              <p>{statusMessage || '현재 위치를 못 찾았어요. 관광지·역 이름이나 주소를 직접 입력해 주세요.'}</p>
+              <p>{uiText(statusMessage || '현재 위치를 못 찾았어요. 관광지·역 이름이나 주소를 직접 입력해 주세요.')}</p>
               <div>{['건대입구역', '강남역', '잠실역', '종로'].map((area) => (
                 <button aria-pressed={condition.location === area} key={area} onClick={() => chooseFallbackArea(area)} type="button">{area}</button>
               ))}</div>
@@ -655,10 +654,10 @@ export function ChatStart() {
           )}
         </QuickQuestion>}
 
-        {activeStep === 1 && <QuickQuestion title="언제 출발하시나요?">
+        {activeStep === 1 && <QuickQuestion title={uiText("언제 출발하시나요?")}>
           <div className="single-step-options">
             {['지금', '오늘 저녁', '오늘 밤'].map((option) => (
-              <button aria-pressed={condition.time === option} className={`chip-button ${condition.time === option ? 'selected' : ''}`} key={option} onClick={() => applyQuickCondition('time', option)} type="button">{option}</button>
+              <button aria-pressed={condition.time === option} className={`chip-button ${condition.time === option ? 'selected' : ''}`} key={option} onClick={() => applyQuickCondition('time', option)} type="button">{uiText(option)}</button>
             ))}
             <button
               aria-pressed={Boolean(condition.time && !['지금', '오늘 저녁', '오늘 밤'].includes(condition.time))}
@@ -666,13 +665,13 @@ export function ChatStart() {
               onClick={() => setDateTimeSheetMode('date')}
               type="button"
             >
-              {condition.time && !['지금', '오늘 저녁', '오늘 밤'].includes(condition.time) ? condition.time : '날짜·시간 직접 선택'}
+              {uiText(condition.time && !['지금', '오늘 저녁', '오늘 밤'].includes(condition.time) ? condition.time : '날짜·시간 직접 선택')}
             </button>
           </div>
         </QuickQuestion>}
 
-        {activeStep === 2 && <QuickQuestion title="누구와 함께 가시나요?">
-          <p className="option-label">인원 선택</p>
+        {activeStep === 2 && <QuickQuestion title={uiText("누구와 함께 가시나요?")}>
+          <p className="option-label">{uiText("인원 선택")}</p>
           <div className="option-grid four">
             {peopleOptions.map((option) => (
               <button
@@ -687,7 +686,7 @@ export function ChatStart() {
             ))}
           </div>
 
-          <p className="option-label">동행 선택 (선택사항)</p>
+          <p className="option-label">{uiText("동행 선택 (선택사항)")}</p>
           <div className="option-grid four companion-grid">
             {companionOptions.map((option) => (
               <button
@@ -698,16 +697,16 @@ export function ChatStart() {
                 type="button"
               >
                 <img alt="" src={companionImages[option]} />
-                <b>{option}</b>
+                <b>{uiText(option)}</b>
               </button>
             ))}
           </div>
           {selectedPeople && selectedPeople !== '혼자' && (
-            <button aria-pressed={!selectedCompanion} className={`wide-option pale ${!selectedCompanion ? 'selected' : ''}`} onClick={() => updateCompanion(selectedPeople, '')} type="button">관계 선택 안 함</button>
+            <button aria-pressed={!selectedCompanion} className={`wide-option pale ${!selectedCompanion ? 'selected' : ''}`} onClick={() => updateCompanion(selectedPeople, '')} type="button">{uiText("관계 선택 안 함")}</button>
           )}
         </QuickQuestion>}
 
-        {activeStep === 3 && <QuickQuestion title="오늘 뭐 하고 싶나요?" subtitle={`1개 이상, 최대 ${MAX_PLACE_SELECTIONS}개까지 고를 수 있어요.`}>
+        {activeStep === 3 && <QuickQuestion title={uiText("오늘 뭐 하고 싶나요?")} subtitle={uiText(`1개 이상, 최대 ${MAX_PLACE_SELECTIONS}개까지 고를 수 있어요.`)}>
           <div className="option-grid five compact">
             {placeOptions.map((place) => (
               <button
@@ -724,7 +723,7 @@ export function ChatStart() {
 
           {selectedPlaces.map((selection) => (
             <div className="purpose-detail-group" key={selection.category}>
-              <p className="option-label">{selection.category} 세부 선택</p>
+              <p className="option-label">{selection.category}{uiText(" 세부 선택")}</p>
               <div className="sub-option-panel">
                 {placeDetailOptions[selection.category].map((option) => (
                   <button
@@ -742,7 +741,7 @@ export function ChatStart() {
           ))}
         </QuickQuestion>}
 
-        {activeStep === 4 && <QuickQuestion title="언제까지 즐길까요?" subtitle="이동과 선택한 활동의 체류 시간을 함께 고려해 코스를 찾아요.">
+        {activeStep === 4 && <QuickQuestion title={uiText("언제까지 즐길까요?")} subtitle={uiText("이동과 선택한 활동의 체류 시간을 함께 고려해 코스를 찾아요.")}>
           <div className="option-grid duration-grid">
             {durationOptions.map((option) => (
               <button
@@ -761,9 +760,9 @@ export function ChatStart() {
             ))}
           </div>
           <label className={`duration-time-field ${condition.duration.startsWith('종료 ') ? 'selected' : ''}`}>
-            <span>종료 시간 선택</span>
+            <span>{uiText("종료 시간 선택")}</span>
             <input
-              aria-label="종료 시간"
+              aria-label={uiText("종료 시간")}
               onChange={(event) => {
                 const duration = event.target.value ? `종료 ${event.target.value}` : '';
                 const nextCondition = { ...condition, duration };
@@ -780,7 +779,7 @@ export function ChatStart() {
 
         <div className="chat-step-footer">
           <button className="primary-result-button" disabled={!stepComplete} type="button" onClick={advance}>
-            {activeStep === 4 ? '조건 확인하기' : '다음'}
+            {uiText(activeStep === 4 ? '조건 확인하기' : '다음')}
           </button>
         </div>
       </section>
@@ -818,14 +817,14 @@ function QuickChatHeader({ activeStep, onBack }: QuickChatHeaderProps) {
 
   return (
     <header className="chat-header">
-      <button aria-label="뒤로 가기" className="round-back" onClick={onBack} type="button">
+      <button aria-label={uiText("뒤로 가기")} className="round-back" onClick={onBack} type="button">
         ‹
       </button>
       <div>
-        <h1>노피와 코스 찾기</h1>
-        <p>한 번에 하나씩 알려주세요</p>
+        <h1>{uiText("노피와 코스 찾기")}</h1>
+        <p>{uiText("한 번에 하나씩 알려주세요")}</p>
       </div>
-      <div aria-label={`진행률 ${activeStep + 1} / ${totalSteps}`} className="progress-row">
+      <div aria-label={uiText(`진행률 ${activeStep + 1} / ${totalSteps}`)} className="progress-row">
         {Array.from({ length: totalSteps }, (_, index) => (
           <span className={index <= activeStep ? 'done' : ''} key={index} />
         ))}
@@ -959,17 +958,17 @@ function ConditionEditSheet({
   return (
     <>
       <div aria-modal="true" className="date-time-overlay" role="dialog">
-        <button aria-label="조건 수정 닫기" className="date-time-backdrop" onClick={onClose} type="button" />
+        <button aria-label={uiText("조건 수정 닫기")} className="date-time-backdrop" onClick={onClose} type="button" />
         <section className="condition-edit-sheet" ref={dialogRef}>
           {section === 'location' && (
             <>
-              <h2>어디서 출발하세요?</h2>
+              <h2>{uiText("어디서 출발하세요?")}</h2>
               <button
                 className={`edit-option ${locationBusy ? 'selected' : ''}`}
                 onClick={() => void chooseCurrentLocation()}
                 type="button"
               >
-                <span>{locationBusy ? '현재 위치 확인 중...' : '현재 위치'}</span>
+                <span>{uiText(locationBusy ? '현재 위치 확인 중...' : '현재 위치')}</span>
                 {locationBusy && <b>›</b>}
               </button>
               <label className="edit-address-field">
@@ -979,7 +978,7 @@ function ConditionEditSheet({
                     setDraftLocationLabel(compactLocationLabel(event.target.value));
                     setDraftLocationSource('manual');
                   }}
-                  placeholder="주소 입력"
+                  placeholder={uiText("주소 입력")}
                   type="text"
                   value={draftLocation}
                 />
@@ -996,14 +995,14 @@ function ConditionEditSheet({
 
           {section === 'time' && (
             <>
-              <h2>언제 출발하시나요?</h2>
+              <h2>{uiText("언제 출발하시나요?")}</h2>
               <button
                 aria-pressed={draftTime === '지금'}
                 className={`edit-option ${draftTime === '지금' ? 'selected' : ''}`}
                 onClick={() => setDraftTime((previous) => (previous === '지금' ? '' : '지금'))}
                 type="button"
               >
-                <span>지금</span>
+                <span>{uiText("지금")}</span>
                 {draftTime === '지금' && <b>›</b>}
               </button>
               <button
@@ -1012,7 +1011,7 @@ function ConditionEditSheet({
                 onClick={() => setDateTimeSheetMode('date')}
                 type="button"
               >
-                <span>{draftTime && draftTime !== '지금' ? draftTime : '날짜 / 시간 선택'}</span>
+                <span>{uiText(draftTime && draftTime !== '지금' ? draftTime : '날짜 / 시간 선택')}</span>
                 {draftTime && draftTime !== '지금' && <b>›</b>}
               </button>
             </>
@@ -1020,7 +1019,7 @@ function ConditionEditSheet({
 
           {section === 'people' && (
             <>
-              <h2>누구와 함께하시나요?</h2>
+              <h2>{uiText("누구와 함께하시나요?")}</h2>
               <div className="edit-grid four">
                 {peopleOptions.map((option) => (
                   <button
@@ -1038,7 +1037,7 @@ function ConditionEditSheet({
                   </button>
                 ))}
               </div>
-              <p className="edit-subtitle">동행 선택 (선택사항)</p>
+              <p className="edit-subtitle">{uiText("동행 선택 (선택사항)")}</p>
               <div className="edit-grid four">
                 {companionOptions.map((option) => (
                   <button
@@ -1057,8 +1056,8 @@ function ConditionEditSheet({
 
           {section === 'place' && (
             <>
-              <h2>오늘 뭐 하고 싶나요?</h2>
-              <p className="edit-subtitle">최대 {MAX_PLACE_SELECTIONS}개까지 고를 수 있어요.</p>
+              <h2>{uiText("오늘 뭐 하고 싶나요?")}</h2>
+              <p className="edit-subtitle">{uiText("최대 ")}{MAX_PLACE_SELECTIONS}{uiText("개까지 고를 수 있어요.")}</p>
               <div className="edit-grid three">
                 {placeOptions.map((place) => (
                   <button
@@ -1082,7 +1081,7 @@ function ConditionEditSheet({
               </div>
               {draftPlaces.map((selection) => (
                 <div className="purpose-detail-group" key={selection.category}>
-                  <p className="edit-subtitle">{selection.category} 세부 선택</p>
+                  <p className="edit-subtitle">{selection.category}{uiText(" 세부 선택")}</p>
                   <div className="edit-grid cuisine">
                     {placeDetailOptions[selection.category].map((option) => (
                       <button
@@ -1107,8 +1106,8 @@ function ConditionEditSheet({
 
           {section === 'duration' && (
             <>
-              <h2>얼마나 놀까요?</h2>
-              <p className="edit-subtitle">이동 시간을 포함해 즐길 시간을 선택해 주세요.</p>
+              <h2>{uiText("얼마나 놀까요?")}</h2>
+              <p className="edit-subtitle">{uiText("이동 시간을 포함해 즐길 시간을 선택해 주세요.")}</p>
               <div className="edit-grid four">
                 {durationOptions.map((option) => (
                   <button
@@ -1123,9 +1122,9 @@ function ConditionEditSheet({
                 ))}
               </div>
               <label className={`duration-time-field ${draftDuration.startsWith('종료 ') ? 'selected' : ''}`}>
-                <span>종료 시간 선택</span>
+                <span>{uiText("종료 시간 선택")}</span>
                 <input
-                  aria-label="종료 시간"
+                  aria-label={uiText("종료 시간")}
                   onChange={(event) => setDraftDuration(event.target.value ? `종료 ${event.target.value}` : '')}
                   type="time"
                   value={draftDuration.startsWith('종료 ') ? draftDuration.slice(3) : ''}
@@ -1135,9 +1134,7 @@ function ConditionEditSheet({
             </>
           )}
 
-          <button className="condition-apply-button" disabled={isApplyDisabled} onClick={applyEdit} type="button">
-            적용하기
-          </button>
+          <button className="condition-apply-button" disabled={isApplyDisabled} onClick={applyEdit} type="button">{uiText("적용하기")}</button>
         </section>
       </div>
 
@@ -1185,29 +1182,24 @@ function DateTimeSheet({ initialValue, mode, onClose, onConfirm, onModeChange }:
 
   return (
     <div aria-modal="true" className="date-time-overlay" role="dialog">
-      <button aria-label="날짜 시간 선택 닫기" className="date-time-backdrop" onClick={onClose} type="button" />
+      <button aria-label={uiText("날짜 시간 선택 닫기")} className="date-time-backdrop" onClick={onClose} type="button" />
       <section className="date-time-sheet" ref={dialogRef}>
-        <h2>언제 출발하시나요?</h2>
+        <h2>{uiText("언제 출발하시나요?")}</h2>
 
-        <div aria-label="날짜 시간 선택" className="date-time-tabs" role="tablist">
-          <button className={mode === 'date' ? 'active' : ''} onClick={() => onModeChange('date')} type="button">
-            날짜 선택
-          </button>
-          <button className={mode === 'time' ? 'active' : ''} onClick={() => onModeChange('time')} type="button">
-            시간 선택
-          </button>
+        <div aria-label={uiText("날짜 시간 선택")} className="date-time-tabs" role="tablist">
+          <button className={mode === 'date' ? 'active' : ''} onClick={() => onModeChange('date')} type="button">{uiText("날짜 선택")}</button>
+          <button className={mode === 'time' ? 'active' : ''} onClick={() => onModeChange('time')} type="button">{uiText("시간 선택")}</button>
         </div>
 
         {mode === 'date' ? (
           <div className="calendar-panel">
             <div className="calendar-month">
-              <button aria-label="이전 달" onClick={() => moveMonth(-1)} type="button">
+              <button aria-label={uiText("이전 달")} onClick={() => moveMonth(-1)} type="button">
                 ‹
               </button>
               <strong>
-                {displayMonth.getFullYear()}년 {displayMonth.getMonth() + 1}월
-              </strong>
-              <button aria-label="다음 달" onClick={() => moveMonth(1)} type="button">
+                {displayMonth.getFullYear()}{uiText("년 ")}{displayMonth.getMonth() + 1}{uiText("월")}</strong>
+              <button aria-label={uiText("다음 달")} onClick={() => moveMonth(1)} type="button">
                 ›
               </button>
             </div>
@@ -1220,7 +1212,7 @@ function DateTimeSheet({ initialValue, mode, onClose, onConfirm, onModeChange }:
               {calendarCells.map((day, index) =>
                 day ? (
                   <button
-                    aria-label={`${day.getFullYear()}년 ${day.getMonth() + 1}월 ${day.getDate()}일 선택`}
+                    aria-label={uiText(`${day.getFullYear()}년 ${day.getMonth() + 1}월 ${day.getDate()}일 선택`)}
                     className={isSameDate(day, selectedDate) ? 'selected' : ''}
                     key={day.toISOString()}
                     onClick={() => setSelectedDate(day)}
@@ -1244,9 +1236,9 @@ function DateTimeSheet({ initialValue, mode, onClose, onConfirm, onModeChange }:
                 PM
               </button>
             </div>
-            <div aria-label="시간 선택" className="time-select-groups">
+            <div aria-label={uiText("시간 선택")} className="time-select-groups">
               <div className="time-option-group">
-                <p>시</p>
+                <p>{uiText("시")}</p>
                 <div className="time-option-grid hour-grid">
                   {hourOptions.map((hour) => (
                     <button
@@ -1261,7 +1253,7 @@ function DateTimeSheet({ initialValue, mode, onClose, onConfirm, onModeChange }:
                 </div>
               </div>
               <div className="time-option-group">
-                <p>분</p>
+                <p>{uiText("분")}</p>
                 <div className="time-option-grid minute-grid">
                   {minuteOptions.map((minute) => (
                     <button
@@ -1280,13 +1272,11 @@ function DateTimeSheet({ initialValue, mode, onClose, onConfirm, onModeChange }:
         )}
 
         <div className="selected-date-time">
-          <span>선택된 날짜 및 시간</span>
+          <span>{uiText("선택된 날짜 및 시간")}</span>
           <strong>{selectedDateTimeLabel}</strong>
         </div>
 
-        <button className="date-time-confirm" onClick={() => onConfirm(selectedDateTimeLabel)} type="button">
-          날짜 / 시간 선택하기
-        </button>
+        <button className="date-time-confirm" onClick={() => onConfirm(selectedDateTimeLabel)} type="button">{uiText("날짜 / 시간 선택하기")}</button>
       </section>
     </div>
   );
@@ -1305,7 +1295,7 @@ function AddressInputSheet({ onChange, onClose, onConfirm, value }: AddressInput
 
   return (
     <div aria-modal="true" className="date-time-overlay" role="dialog">
-      <button aria-label="주소 입력 닫기" className="date-time-backdrop" onClick={onClose} type="button" />
+      <button aria-label={uiText("주소 입력 닫기")} className="date-time-backdrop" onClick={onClose} type="button" />
       <form
         className="address-sheet"
         ref={dialogRef}
@@ -1314,24 +1304,20 @@ function AddressInputSheet({ onChange, onClose, onConfirm, value }: AddressInput
           onConfirm();
         }}
       >
-        <h2>출발지를 입력해주세요</h2>
+        <h2>{uiText("출발지를 입력해주세요")}</h2>
         <label className="address-field">
-          <span>주소 또는 장소</span>
+          <span>{uiText("주소 또는 장소")}</span>
           <input
             autoFocus
             onChange={(event) => onChange(event.target.value)}
-            placeholder="예: OO역, OO동"
+            placeholder={uiText("예: OO역, OO동")}
             type="text"
             value={value}
           />
         </label>
         <div className="address-sheet-actions">
-          <button className="address-cancel-button" onClick={onClose} type="button">
-            취소
-          </button>
-          <button className="date-time-confirm" disabled={!trimmedValue} type="submit">
-            주소 선택하기
-          </button>
+          <button className="address-cancel-button" onClick={onClose} type="button">{uiText("취소")}</button>
+          <button className="date-time-confirm" disabled={!trimmedValue} type="submit">{uiText("주소 선택하기")}</button>
         </div>
       </form>
     </div>
@@ -1347,8 +1333,8 @@ interface QuickQuestionProps {
 function QuickQuestion({ children, subtitle, title }: QuickQuestionProps) {
   return (
     <section className="question-block">
-      <h2>{title}</h2>
-      {subtitle && <p className="question-subtitle">{subtitle}</p>}
+      <h2>{uiText(title)}</h2>
+      {subtitle && <p className="question-subtitle">{uiText(subtitle)}</p>}
       {children}
     </section>
   );
@@ -1475,27 +1461,27 @@ export function ConditionConfirm() {
 
   return (
     <div className="condition-confirm-screen non-home-screen">
-      <AppTopBar title="조건 확인" subtitle="Nopi가 이해한 내용을 다듬어줘" />
-      {/전시|영화|공연|팝업|미술관|박물관|문화/.test(condition.rawText)&&<p className="inline-message">문화·전시는 별도로 둘러볼 수 있어요. <Link to={ROUTES.events}>문화·행사 보러 가기 →</Link></p>}
-      <NopiBubble title="마지막으로 조건을 확인해줘." body="바꾸고 싶은 항목만 누르면 돼." />
-      {firstMissingSection && <p className="inline-message warning">필수 조건이 비어 있어요. 표시된 항목을 먼저 선택해 주세요.</p>}
+      <AppTopBar title={uiText("조건 확인")} subtitle={uiText("Nopi가 이해한 내용을 다듬어줘")} />
+      {/전시|영화|공연|팝업|미술관|박물관|문화/.test(condition.rawText)&&<p className="inline-message">{uiText("문화·전시는 별도로 둘러볼 수 있어요. ")}<Link to={ROUTES.events}>{uiText("문화·행사 보러 가기 →")}</Link></p>}
+      <NopiBubble title={uiText("마지막으로 조건을 확인해줘.")} body="바꾸고 싶은 항목만 누르면 돼." />
+      {firstMissingSection && <p className="inline-message warning">{uiText("필수 조건이 비어 있어요. 표시된 항목을 먼저 선택해 주세요.")}</p>}
 
       <section className="screen-section">
-        <h2>정리된 조건</h2>
+        <h2>{uiText("정리된 조건")}</h2>
         <div className="condition-summary-list">
           {conditionRows.map((row) => (
             <div className="condition-row-group" key={row.id}>
               <ConditionCard
                 color={row.id === firstMissingSection ? '#cf4d5b' : '#5b5ce2'}
-                label={row.label}
+                label={uiText(row.label)}
                 onClick={() => setEditSection(row.id)}
                 value={row.value}
               />
               {row.id === 'location' && (
                 <div className="condition-location-retry">
-                  <span>현재 위치가 정확하지 않나요?</span>
+                  <span>{uiText("현재 위치가 정확하지 않나요?")}</span>
                   <button className="location-refresh-button" type="button" onClick={() => void retryCurrentLocation()}>
-                    {locationStatus === 'locating' ? '위치 확인 중' : '현재 위치 다시 잡기'}
+                    {uiText(locationStatus === 'locating' ? '위치 확인 중' : '현재 위치 다시 잡기')}
                   </button>
                 </div>
               )}
@@ -1507,13 +1493,13 @@ export function ConditionConfirm() {
 
       {shouldAskCoreIntent && (
         <section className="screen-section core-intent-question" aria-labelledby="core-intent-title">
-          <span className="core-intent-eyebrow">선택하면 더 잘 맞춰드려요</span>
+          <span className="core-intent-eyebrow">{uiText("선택하면 더 잘 맞춰드려요")}</span>
           <h2 id="core-intent-title">
-            {mainCategoryLabel === '카페/디저트'
+            {uiText(mainCategoryLabel === '카페/디저트'
               ? '카페에서 가장 하고 싶은 것은 무엇인가요?'
-              : `${mainCategoryLabel}에서 가장 중요한 것은 무엇인가요?`}
+              : `${mainCategoryLabel}에서 가장 중요한 것은 무엇인가요?`)}
           </h2>
-          <p>선택사항이에요. 맞는 장소를 우선 추천하며, 태그 정보가 부족해도 다른 조건에 맞는 장소를 찾아요.</p>
+          <p>{uiText("선택사항이에요. 맞는 장소를 우선 추천하며, 태그 정보가 부족해도 다른 조건에 맞는 장소를 찾아요.")}</p>
           <div className="chip-row core-intent-options">
             {coreIntentOptions.map((option) => (
               <Chip
@@ -1525,7 +1511,7 @@ export function ConditionConfirm() {
                   coreIntentSkipped: false,
                 })}
               >
-                {option.label}
+                {uiText(option.label)}
               </Chip>
             ))}
             <Chip
@@ -1535,9 +1521,7 @@ export function ConditionConfirm() {
                 coreIntentExplicit: false,
                 coreIntentSkipped: true,
               })}
-            >
-              아무거나
-            </Chip>
+            >{uiText("아무거나")}</Chip>
           </div>
         </section>
       )}
@@ -1545,7 +1529,7 @@ export function ConditionConfirm() {
       <AccuracyPreferences condition={condition} onChange={accuracy => { setCondition({ accuracy }); setAccuracyError(''); }} />
       {accuracyError && <p className="inline-message warning" role="alert">{accuracyError}</p>}
       <section className="screen-section">
-        <h2>더 맞춰볼까요?</h2>
+        <h2>{uiText("더 맞춰볼까요?")}</h2>
         <div className="chip-row">
           {tuningOptions.map((option) => (
             <Chip
@@ -1566,11 +1550,9 @@ export function ConditionConfirm() {
         </div>
       </section>
 
-      {searchError && <p className="inline-message warning">이전 검색: {searchError}</p>}
+      {searchError && <p className="inline-message warning">{uiText("이전 검색: ")}{searchError}</p>}
 
-      <button className="primary-bottom-button condition-search-button" type="button" onClick={startSearch}>
-        이 조건으로 코스 찾기
-      </button>
+      <button className="primary-bottom-button condition-search-button" type="button" onClick={startSearch}>{uiText("이 조건으로 코스 찾기")}</button>
 
       {editSection && (
         <ConditionEditSheet
@@ -1606,13 +1588,13 @@ function ConditionCard({
 
   return (
     <button
-      aria-label={`${label} ${isEmpty ? '추가하기' : '수정하기'}`}
+      aria-label={uiText(`${label} ${isEmpty ? '추가하기' : '수정하기'}`)}
       className={`condition-card ${className} ${isEmpty ? 'empty' : ''}`}
       onClick={onClick}
       type="button"
     >
       <span style={{ background: color }} />
-      <small style={{ color }}>{label}</small>
+      <small style={{ color }}>{uiText(label)}</small>
       <strong>{displayValue}</strong>
       <b aria-hidden="true">›</b>
     </button>
@@ -1622,8 +1604,8 @@ function ConditionCard({
 function PriceUnknownCandidates({places}: {places: CoursePlan['priceUnknownPlaces']}) {
   if(!places?.length)return null;
   return <details className="candidate-disclosure">
-    <summary>가격 확인이 필요한 후보 <span>{places.length}곳</span></summary>
-    <p>아래 장소는 예산을 계산할 수 없어 추천 코스에서 제외했어요. 영업시간과 동선도 최종 확인되지 않았어요.</p>
+    <summary>{uiText("가격 확인이 필요한 후보 ")}<span>{places.length}{uiText("곳")}</span></summary>
+    <p>{uiText("아래 장소는 예산을 계산할 수 없어 추천 코스에서 제외했어요. 영업시간과 동선도 최종 확인되지 않았어요.")}</p>
     {places.map((place,index)=><p key={`${place.catalogPlaceId}-${index}`}><strong>{place.name}</strong> · {place.basis}</p>)}
   </details>;
 }
@@ -1631,8 +1613,8 @@ function PriceUnknownCandidates({places}: {places: CoursePlan['priceUnknownPlace
 function UnverifiedCandidates({places}: {places: CoursePlan['unverifiedPlaces']}) {
   if(!places?.length)return null;
   return <details className="candidate-disclosure">
-    <summary>영업·경로 확인이 필요한 후보 <span>{places.length}곳</span></summary>
-    <p>아래 장소는 확인된 추천과 구분해 표시해요. 이 목록만으로 영업 중이거나 코스 전체 조건을 충족한다고 볼 수는 없어요.</p>
+    <summary>{uiText("영업·경로 확인이 필요한 후보 ")}<span>{places.length}{uiText("곳")}</span></summary>
+    <p>{uiText("아래 장소는 확인된 추천과 구분해 표시해요. 이 목록만으로 영업 중이거나 코스 전체 조건을 충족한다고 볼 수는 없어요.")}</p>
     {places.map((p,i)=><p key={`${p.catalogPlaceId}-${i}`}><strong>{p.name}</strong> · {p.basis}</p>)}
   </details>;
 }
@@ -1702,25 +1684,25 @@ export function SearchingScreen() {
 
   return (
     <div className="searching-screen non-home-screen">
-      <AppTopBar title={searchFailed ? "조건 확인이 필요해요" : "코스 찾는 중"} subtitle={searchFailed ? "아래 실패 이유를 확인해 주세요" : "조건에 맞는 장소를 고르고 있어"} />
-      <NopiBubble title={searchFailed ? "코스를 찾지 못했어." : searchSteps[Math.min(progressStep,4)].nopi} body={searchFailed ? searchError : progressStep===4 ? verificationText : searchSteps[Math.min(progressStep,4)].detail} />
+      <AppTopBar title={uiText(searchFailed ? "조건 확인이 필요해요" : "코스 찾는 중")} subtitle={uiText(searchFailed ? "아래 실패 이유를 확인해 주세요" : "조건에 맞는 장소를 고르고 있어")} />
+      <NopiBubble title={uiText(searchFailed ? "코스를 찾지 못했어." : searchSteps[Math.min(progressStep,4)].nopi)} body={searchFailed ? searchError : progressStep===4 ? verificationText : searchSteps[Math.min(progressStep,4)].detail} />
       <p className="search-live-status" role="status" aria-live="polite">
-        {searchFailed
+        {uiText(searchFailed
           ? '조건에 맞는 코스를 완성하지 못했어요.'
-          : progressStep===5 ? '코스 검증이 완료됐어요.' : `${searchSteps[progressStep].label} 확인 중 · ${progressStep + 1} / 5`}
+          : progressStep===5 ? '코스 검증이 완료됐어요.' : `${searchSteps[progressStep].label} 확인 중 · ${progressStep + 1} / 5`)}
       </p>
 
       {searchTakingLong && isSearching && (
-        <p className="inline-message warning">평소보다 확인이 길어지고 있어요. 영업시간과 위치 정보를 조금 더 살펴보고 있어요.</p>
+        <p className="inline-message warning">{uiText("평소보다 확인이 길어지고 있어요. 영업시간과 위치 정보를 조금 더 살펴보고 있어요.")}</p>
       )}
 
       <section className="reading-card">
-        <strong>요청한 조건</strong>
+        <strong>{uiText("요청한 조건")}</strong>
         {condition.accuracy?.budgetPerPerson != null && <p className="inline-message">
-          {condition.accuracy.budgetPerPerson != null && (condition.accuracy.budgetPerPerson === 0 ? '예산 제한 없음' : `1인 ${condition.accuracy.budgetPerPerson.toLocaleString()}원`)}
-          {/술/.test(condition.mood) && ` · ${{any:'주류 무관',soju:'소주',beer:'맥주',wine:'와인',cocktail:'칵테일·하이볼'}[condition.accuracy.alcoholPreference || 'any']} ${condition.accuracy.drinkServings ?? 2}주문단위`}
-          {Boolean(condition.accuracy.excludedDetails?.length) && ` · 제외: ${condition.accuracy.excludedDetails?.join(', ')}`}
-          {condition.extras.includes('도보 짧게') && ' · 도보 짧게'}
+          {uiText(condition.accuracy.budgetPerPerson != null && (condition.accuracy.budgetPerPerson === 0 ? '예산 제한 없음' : `1인 ${condition.accuracy.budgetPerPerson.toLocaleString()}원`))}
+          {uiText(/술/.test(condition.mood) && ` · ${{any:'주류 무관',soju:'소주',beer:'맥주',wine:'와인',cocktail:'칵테일·하이볼'}[condition.accuracy.alcoholPreference || 'any']} ${condition.accuracy.drinkServings ?? 2}주문단위`)}
+          {uiText(Boolean(condition.accuracy.excludedDetails?.length) && ` · 제외: ${condition.accuracy.excludedDetails?.join(', ')}`)}
+          {uiText(condition.extras.includes('도보 짧게') && ' · 도보 짧게')}
         </p>}
         <div className="condition-check-row">
           {[locationText,condition.time,condition.companion,condition.mood].map((value, index) => (
@@ -1736,7 +1718,7 @@ export function SearchingScreen() {
       </section>
 
       <section className="screen-section">
-        <h2>{searchFailed ? '요청 내용' : '이 조건으로 확인 중이에요'}</h2>
+        <h2>{uiText(searchFailed ? '요청 내용' : '이 조건으로 확인 중이에요')}</h2>
         <div className="search-check-list">
           {searchSteps.map((step, index) => (
             <article
@@ -1746,8 +1728,8 @@ export function SearchingScreen() {
             >
               <span>{index<progressStep?'✓':index + 1}</span>
               <div>
-                <strong>{step.label}</strong>
-                <p>{step.label==='코스' ? (searchFailed?'코스 검증을 완료하지 못했어요.':verificationText) : index===progressStep ? step.detail : step.value}</p>
+                <strong>{uiText(step.label)}</strong>
+                <p>{uiText(step.label==='코스' ? (searchFailed?'코스 검증을 완료하지 못했어요.':verificationText) : index===progressStep ? step.detail : step.value)}</p>
               </div>
             </article>
           ))}
@@ -1761,22 +1743,22 @@ export function SearchingScreen() {
 
       {searchFailed ? (
         <section className="search-failure-card" role="alert">
-          <span>{plan.constraintFailureCode==='walking_service_rate_limited'?'경로 서비스 호출 한도':'검색 실패'}</span>
-          <h2>{plan.constraintFailureCode==='walking_service_rate_limited'?'도보 경로 확인이 일시 중단됐어요':'이번 조건으로 코스를 완성하지 못했어요'}</h2>
+          <span>{uiText(plan.constraintFailureCode==='walking_service_rate_limited'?'경로 서비스 호출 한도':'검색 실패')}</span>
+          <h2>{uiText(plan.constraintFailureCode==='walking_service_rate_limited'?'도보 경로 확인이 일시 중단됐어요':'이번 조건으로 코스를 완성하지 못했어요')}</h2>
           <p>{searchError}</p>
           {plan.constraintFailureCode!=='walking_service_rate_limited' && <>
             <PriceUnknownCandidates places={plan.priceUnknownPlaces}/>
             <UnverifiedCandidates places={plan.unverifiedPlaces}/>
           </>}
-          {plan.requestedWindow && <p>계산한 일정: {new Date(plan.requestedWindow.startAt).toLocaleString('ko-KR', {timeZone:'Asia/Seoul',month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'})} → {new Date(plan.requestedWindow.endAt).toLocaleString('ko-KR', {timeZone:'Asia/Seoul',month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'})} · {plan.requestedWindow.availableMinutes}분</p>}
+          {plan.requestedWindow && <p>{uiText("계산한 일정: ")}{new Date(plan.requestedWindow.startAt).toLocaleString('ko-KR', {timeZone:'Asia/Seoul',month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'})} → {new Date(plan.requestedWindow.endAt).toLocaleString('ko-KR', {timeZone:'Asia/Seoul',month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'})} · {plan.requestedWindow.availableMinutes}{uiText("분")}</p>}
           <div>
-            <button type="button" onClick={() => navigate(ROUTES.plannerCondition, { replace: true })}>조건 수정</button>
-            <button className="primary" type="button" onClick={() => void retrySearch()}>{plan.constraintFailureCode==='walking_service_rate_limited'?'경로 서비스 다시 확인':'같은 조건으로 다시 찾기'}</button>
+            <button type="button" onClick={() => navigate(ROUTES.plannerCondition, { replace: true })}>{uiText("조건 수정")}</button>
+            <button className="primary" type="button" onClick={() => void retrySearch()}>{uiText(plan.constraintFailureCode==='walking_service_rate_limited'?'경로 서비스 다시 확인':'같은 조건으로 다시 찾기')}</button>
           </div>
         </section>
       ) : (
         <section className="screen-section">
-          <h2>곧 추천 코스가 나와요</h2>
+          <h2>{uiText("곧 추천 코스가 나와요")}</h2>
           <SkeletonCard />
           <SkeletonCard />
         </section>
@@ -1885,43 +1867,43 @@ export function ResultScreen() {
 
   return (
     <div className="result-screen non-home-screen">
-      <AppTopBar title="추천 코스" subtitle={`${locationText} · ${condition.time} · ${condition.companion} · ${condition.mood}`} />
+      <AppTopBar title={uiText("추천 코스")} subtitle={uiText(`${locationText} · ${condition.time} · ${condition.companion} · ${condition.mood}`)} />
       {hasCourse && (
         <NopiBubble
-          title={plan.adjustmentNotice
+          title={uiText(plan.adjustmentNotice
             ? '코스를 이렇게 조정했어.'
-            : plan.partial ? '확인된 장소까지만 골랐어.' : '선택한 활동을 모두 담았어.'}
+            : plan.partial ? '확인된 장소까지만 골랐어.' : '선택한 활동을 모두 담았어.')}
           body={plan.adjustmentNotice
             || (plan.partial ? '검증되지 않은 일정은 빼고, 바로 갈 수 있는 장소만 남겼어.' : '이동 거리와 영업시간, 선택한 목적을 함께 확인했어.')}
           compact
         />
       )}
-      {hasCourse && plan.partial && !plan.adjustmentNotice && <p className="inline-message warning">일부 조건을 통과한 장소가 부족해 확인된 일정만 보여드려요.</p>}
+      {hasCourse && plan.partial && !plan.adjustmentNotice && <p className="inline-message warning">{uiText("일부 조건을 통과한 장소가 부족해 확인된 일정만 보여드려요.")}</p>}
 
-      {hasCourse && plan.courseOptions && <section className="screen-section course-options" aria-label="추천 코스 비교">
-        <div className="result-section-heading"><div><span className="result-eyebrow">나에게 맞는 하루</span><h2>어떤 코스로 떠날까요?</h2></div><span className="result-count">{plan.courseOptions.length}개 코스</span></div>
-        <p className="result-intro">마음에 드는 코스를 선택하면 아래에서 일정을 볼 수 있어요.</p>
-        {plan.courseOptions.length<3 && plan.comparison?.hoursUnknown && <p>영업시간을 확인하지 못해 제외한 후보가 있어요. 미확인 장소를 포함하려면 조건 수정에서 허용할 수 있어요.</p>}
+      {hasCourse && plan.courseOptions && <section className="screen-section course-options" aria-label={uiText("추천 코스 비교")}>
+        <div className="result-section-heading"><div><span className="result-eyebrow">{uiText("나에게 맞는 하루")}</span><h2>{uiText("어떤 코스로 떠날까요?")}</h2></div><span className="result-count">{plan.courseOptions.length}{uiText("개 코스")}</span></div>
+        <p className="result-intro">{uiText("마음에 드는 코스를 선택하면 아래에서 일정을 볼 수 있어요.")}</p>
+        {plan.courseOptions.length<3 && plan.comparison?.hoursUnknown && <p>{uiText("영업시간을 확인하지 못해 제외한 후보가 있어요. 미확인 장소를 포함하려면 조건 수정에서 허용할 수 있어요.")}</p>}
         <CourseOptionCards options={plan.courseOptions} selectedId={plan.selectedOptionId} disabled={saveStatus==='saving'} onSelect={id=>{
           if(plan.selectedOptionId===id)return;
           selectPlanOption(id);setSaveStatus('idle');setSaveMessage('');setFeedbackScore(0);setFeedbackConcern('');setFeedbackSubmitted(false);
         }}/>
-        <details className="result-disclosure"><summary>코스는 어떻게 골랐나요?</summary><p>{plan.comparison?.examinedCourses ?? plan.courseOptions.length}개 조합을 확인했어요. {plan.courseOptions[0]?.ranking.basis} 기준으로 비교했으며 일부 장소는 겹칠 수 있어요. {plan.comparison?.limited ? '확인 한도 내에서 비교한 결과예요.' : ''}</p></details>
+        <details className="result-disclosure"><summary>{uiText("코스는 어떻게 골랐나요?")}</summary><p>{plan.comparison?.examinedCourses ?? plan.courseOptions.length}{uiText("개 조합을 확인했어요. ")}{plan.courseOptions[0]?.ranking.basis}{uiText(" 기준으로 비교했으며 일부 장소는 겹칠 수 있어요. ")}{uiText(plan.comparison?.limited ? '확인 한도 내에서 비교한 결과예요.' : '')}</p></details>
       </section>}
 
       {hasCourse && !plan.courseOptions?.length ? (
         <article className="result-card">
-          <span className="rank-pill">{plan.partial ? '부분 추천' : '선택한 코스'}</span>
-          <h1>{plan.title}</h1>
+          <span className="rank-pill">{uiText(plan.partial ? '부분 추천' : '선택한 코스')}</span>
+          <h1>{uiText(plan.title)}</h1>
           <p>{plan.durationText}</p>
           {plan.accuracySummary && <div className="accuracy-result">
-            <span>1인 예상 비용</span>
-            <strong className="result-total">{plan.accuracySummary.costKnown
+            <span>{uiText("1인 예상 비용")}</span>
+            <strong className="result-total">{uiText(plan.accuracySummary.costKnown
               ? `${plan.accuracySummary.estimatedMin?.toLocaleString()}~${plan.accuracySummary.estimatedMax?.toLocaleString()}원`
-              : '가격 확인 필요'}</strong>
-            <div className="result-facts"><span>활동 {plan.accuracySummary.fulfilledCount}/{plan.accuracySummary.requiredCount} 포함</span>{walkingMinutes != null && <span>총 도보 약 {walkingMinutes}분</span>}</div>
-            <details className="result-disclosure"><summary>예상 비용·방문 전 확인사항</summary>
-              <p>메뉴 가격과 선택한 주문량으로 계산한 예상 비용이에요.</p>
+              : '가격 확인 필요')}</strong>
+            <div className="result-facts"><span>{uiText("활동 ")}{plan.accuracySummary.fulfilledCount}/{plan.accuracySummary.requiredCount}{uiText(" 포함")}</span>{walkingMinutes != null && <span>{uiText("총 도보 약 ")}{walkingMinutes}{uiText("분")}</span>}</div>
+            <details className="result-disclosure"><summary>{uiText("예상 비용·방문 전 확인사항")}</summary>
+              <p>{uiText("메뉴 가격과 선택한 주문량으로 계산한 예상 비용이에요.")}</p>
               {plan.accuracySummary.warnings.map(warning => <p key={warning}>{warning}</p>)}
             </details>
           </div>}
@@ -1930,18 +1912,18 @@ export function ResultScreen() {
       ) : !hasCourse ? (
         <article className="result-card">
           <span className="rank-pill">{failureContent.badge}</span>
-          <h1>{failureContent.title}</h1>
+          <h1>{uiText(failureContent.title)}</h1>
           <p>{failureContent.body}</p>
         </article>
       ) : null}
 
       {hasCourse && (
         <section className="screen-section result-itinerary">
-          <div className="result-section-heading"><div><span className="result-eyebrow">선택한 코스 · {plan.durationText}</span><h2>오늘의 일정</h2></div><span>{plan.courseData.length}곳</span></div>
+          <div className="result-section-heading"><div><span className="result-eyebrow">{uiText("선택한 코스 · ")}{plan.durationText}</span><h2>{uiText("오늘의 일정")}</h2></div><span>{plan.courseData.length}{uiText("곳")}</span></div>
           {Boolean(plan.courseOptions?.length) && <div className="itinerary-overview" aria-live="polite">
-            <span>{plan.title}</span>
-            {plan.accuracySummary && <details className="result-disclosure"><summary>예상 비용·방문 전 확인사항</summary>
-              <p>선택한 활동 {plan.accuracySummary.fulfilledCount}/{plan.accuracySummary.requiredCount} 포함 · 메뉴 가격과 주문량 기준 예상 비용이에요.</p>
+            <span>{uiText(plan.title)}</span>
+            {plan.accuracySummary && <details className="result-disclosure"><summary>{uiText("예상 비용·방문 전 확인사항")}</summary>
+              <p>{uiText("선택한 활동 ")}{plan.accuracySummary.fulfilledCount}/{plan.accuracySummary.requiredCount}{uiText(" 포함 · 메뉴 가격과 주문량 기준 예상 비용이에요.")}</p>
               {plan.accuracySummary.warnings.map(warning=><p key={warning}>{warning}</p>)}
             </details>}
             {crowding && <CrowdingStatus snapshot={crowding} compact/>}
@@ -1950,30 +1932,28 @@ export function ResultScreen() {
             {plan.courseData.map((place, index) => (
               <article className="result-stop" key={`${plan.selectedOptionId}-${place.id}-${index}`}>
                 <div className="stop-transfer"><span className="stop-number">{index+1}</span><div>
-                  <strong className="stop-clock">{place.scheduledStart ? new Date(place.scheduledStart).toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'numeric',minute:'2-digit'}) : place.time || `${index+1}번째 장소`}</strong>
-                  <span>{index===0 ? '출발지에서' : '이전 장소에서'} · {place.moveText || '이동 정보 확인'}</span>
+                  <strong className="stop-clock">{uiText(place.scheduledStart ? new Date(place.scheduledStart).toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'numeric',minute:'2-digit'}) : place.time || `${index+1}번째 장소`)}</strong>
+                  <span>{uiText(index===0 ? '출발지에서' : '이전 장소에서')} · {uiText(place.moveText || '이동 정보 확인')}</span>
                 </div></div>
                 <div className="stop-card">
-                  <button className="stop-open" type="button" aria-label={`${place.name} 상세 보기`} onClick={() => {
+                  <button className="stop-open" type="button" aria-label={uiText(`${place.name} 상세 보기`)} onClick={() => {
                     if (selectCurrentPlan()) navigate(coursePlaceRoute(index));
                   }}>
                     <PlaceVisual alt={place.name} color={place.color} imageUrl={place.imageUrl} type={place.type} detailType={place.detailType} />
                     <div className="result-place-copy">
-                      <small className="stop-category">{place.mealRole === 'dinner' ? '저녁 식사·반주' : {food:'맛집',cafe:'카페',hotplace:'산책·구경',drink:'술집',activity:'놀거리'}[place.type] || place.detailType || '장소'}{place.autoAdded ? ' · 추가 일정' : ''}</small>
+                      <small className="stop-category">{uiText(place.mealRole === 'dinner' ? '저녁 식사·반주' : {food:'맛집',cafe:'카페',hotplace:'산책·구경',drink:'술집',activity:'놀거리'}[place.type] || place.detailType || '장소')}{uiText(place.autoAdded ? ' · 추가 일정' : '')}</small>
                       <strong>{place.searchKeyword || place.title || place.name}</strong>
-                      {place.durationMinutes ? <small>약 {Math.max(1, Math.floor(place.durationMinutes))}분 머물기</small> : null}
-                      <span className={`stop-status ${place.businessStatus==='open'?'is-open':''}`}>{place.businessStatus==='open'?'방문 시간 영업 확인':place.businessStatus==='closed'?'영업 종료':'영업시간 확인 필요'}</span>
+                      {place.durationMinutes ? <small>{uiText("약 ")}{Math.max(1, Math.floor(place.durationMinutes))}{uiText("분 머물기")}</small> : null}
+                      <span className={`stop-status ${place.businessStatus==='open'?'is-open':''}`}>{uiText(place.businessStatus==='open'?'방문 시간 영업 확인':place.businessStatus==='closed'?'영업 종료':'영업시간 확인 필요')}</span>
                     </div>
                     <span className="stop-arrow" aria-hidden="true">›</span>
                   </button>
-                  {place.businessStatus !== 'open' && place.businessStatus !== 'closed' && <p className="stop-hours-warning">
-                    영업시간 미확인 · 방문 전 확인해 주세요.
-                    <a href={kakaoPlaceUrl(place)} target="_blank" rel="noopener noreferrer">카카오맵에서 영업시간 확인 ↗</a>
+                  {place.businessStatus !== 'open' && place.businessStatus !== 'closed' && <p className="stop-hours-warning">{uiText("영업시간 미확인 · 방문 전 확인해 주세요.")}<a href={kakaoPlaceUrl(place)} target="_blank" rel="noopener noreferrer">{uiText("카카오맵에서 영업시간 확인 ↗")}</a>
                   </p>}
-                  {place.estimatedCost && <p className="stop-price"><span>1인 예상</span><strong>{place.estimatedCost.status==='estimated' ? place.estimatedCost.min===place.estimatedCost.max ? `${place.estimatedCost.min?.toLocaleString()}원` : `${place.estimatedCost.min?.toLocaleString()}~${place.estimatedCost.max?.toLocaleString()}원` : '가격 확인 필요'}</strong></p>}
-                  {place.type !== 'hotplace' && (place.catalogRating != null || place.catalogReviewCount != null) && <p className="stop-rating">{place.catalogRating != null && <>★ {place.catalogRating.toFixed(1)} </>}<span>{place.catalogReviewCount != null && <>리뷰 {place.catalogReviewCount.toLocaleString('ko-KR')} · </>}노플랜 수집 정보</span></p>}
+                  {place.estimatedCost && <p className="stop-price"><span>{uiText("1인 예상")}</span><strong>{uiText(place.estimatedCost.status==='estimated' ? place.estimatedCost.min===place.estimatedCost.max ? `${place.estimatedCost.min?.toLocaleString()}원` : `${place.estimatedCost.min?.toLocaleString()}~${place.estimatedCost.max?.toLocaleString()}원` : '가격 확인 필요')}</strong></p>}
+                  {place.type !== 'hotplace' && (place.catalogRating != null || place.catalogReviewCount != null) && <p className="stop-rating">{place.catalogRating != null && <>★ {place.catalogRating.toFixed(1)} </>}<span>{place.catalogReviewCount != null && <>{uiText("리뷰 ")}{place.catalogReviewCount.toLocaleString('ko-KR')} · </>}{uiText("노플랜 수집 정보")}</span></p>}
                   <CrowdingStatus compact snapshot={place.crowding}/>
-                  {(Boolean(place.estimatedCost?.menuExamples?.length) || Boolean(place.estimatedCost?.assumptions?.length)) && <details className="result-disclosure stop-evidence"><summary>예산 기준 메뉴·가격 가정</summary>
+                  {(Boolean(place.estimatedCost?.menuExamples?.length) || Boolean(place.estimatedCost?.assumptions?.length)) && <details className="result-disclosure stop-evidence"><summary>{uiText("예산 기준 메뉴·가격 가정")}</summary>
                     {Boolean(place.estimatedCost?.menuExamples?.length) && <p>{place.estimatedCost?.menuExamples?.slice(0,3).join(' · ')}</p>}
                     {place.estimatedCost?.assumptions?.map(text=><p key={text}>{text}</p>)}
                   </details>}
@@ -1982,10 +1962,10 @@ export function ResultScreen() {
             ))}
           </div>
           {plan.courseData.some((place) => place.walkingRouteSource === 'google_routes') && (
-            <p className="walking-route-notice">Google Maps 도보 경로 기준이며 실제 보행 환경과 다를 수 있어요.</p>
+            <p className="walking-route-notice">{uiText("Google Maps 도보 경로 기준이며 실제 보행 환경과 다를 수 있어요.")}</p>
           )}
           {plan.courseData.some((place) => place.walkingRouteSource === 'tmap_pedestrian') && (
-            <p className="walking-route-notice">TMAP 도보 경로 기준이며 실제 보행 환경과 다를 수 있어요.</p>
+            <p className="walking-route-notice">{uiText("TMAP 도보 경로 기준이며 실제 보행 환경과 다를 수 있어요.")}</p>
           )}
         </section>
       )}
@@ -1995,26 +1975,25 @@ export function ResultScreen() {
       <UnverifiedCandidates places={plan.unverifiedPlaces}/>
       {hasCourse && (
         <details className="mvp-feedback-panel result-feedback">
-          <summary>이 코스, 마음에 드나요? <span>의견 남기기</span></summary>
-          <p className="feedback-question">이 코스로 나가보고 싶은 정도를 골라주세요.</p>
+          <summary>{uiText("이 코스, 마음에 드나요? ")}<span>{uiText("의견 남기기")}</span></summary>
+          <p className="feedback-question">{uiText("이 코스로 나가보고 싶은 정도를 골라주세요.")}</p>
           {feedbackSubmitted ? (
-            <p>고마워요. 다음 추천을 다듬는 데 반영할게요.</p>
+            <p>{uiText("고마워요. 다음 추천을 다듬는 데 반영할게요.")}</p>
           ) : (
             <>
-              <div className="feedback-score" aria-label="외출 의향 점수">
-                {[1, 2, 3, 4, 5].map((score) => <button className={feedbackScore === score ? 'active' : ''} aria-pressed={feedbackScore===score} aria-label={`${score}점`} key={score} type="button" onClick={() => setFeedbackScore(score)}>{score}</button>)}
+              <div className="feedback-score" aria-label={uiText("외출 의향 점수")}>
+                {[1, 2, 3, 4, 5].map((score) => <button className={feedbackScore === score ? 'active' : ''} aria-pressed={feedbackScore===score} aria-label={uiText(`${score}점`)} key={score} type="button" onClick={() => setFeedbackScore(score)}>{score}</button>)}
               </div>
-              <label>가장 불편하거나 못 믿겠던 부분
-                <select value={feedbackConcern} onChange={(event) => setFeedbackConcern(event.target.value)}>
-                  <option value="">선택하지 않음</option>
-                  <option value="place_fit">장소가 조건과 안 맞음</option>
-                  <option value="route">동선이 불편함</option>
-                  <option value="hours">영업시간이 불안함</option>
-                  <option value="trust">추천 근거가 부족함</option>
-                  <option value="choice">선택지가 부족함</option>
+              <label>{uiText("가장 불편하거나 못 믿겠던 부분")}<select value={feedbackConcern} onChange={(event) => setFeedbackConcern(event.target.value)}>
+                  <option value="">{uiText("선택하지 않음")}</option>
+                  <option value="place_fit">{uiText("장소가 조건과 안 맞음")}</option>
+                  <option value="route">{uiText("동선이 불편함")}</option>
+                  <option value="hours">{uiText("영업시간이 불안함")}</option>
+                  <option value="trust">{uiText("추천 근거가 부족함")}</option>
+                  <option value="choice">{uiText("선택지가 부족함")}</option>
                 </select>
               </label>
-              <button className="feedback-submit" disabled={!feedbackScore} type="button" onClick={() => void submitFeedback()}>피드백 보내기</button>
+              <button className="feedback-submit" disabled={!feedbackScore} type="button" onClick={() => void submitFeedback()}>{uiText("피드백 보내기")}</button>
             </>
           )}
         </details>
@@ -2030,24 +2009,20 @@ export function ResultScreen() {
         {hasCourse ? (
           <>
             {plan.partial ? (
-              <button type="button" onClick={() => void retrySearch(true)}>범위를 넓혀 다시 찾기</button>
+              <button type="button" onClick={() => void retrySearch(true)}>{uiText("범위를 넓혀 다시 찾기")}</button>
             ) : (
               <button className="m-desktop-only" disabled={saveStatus === 'saving' || saveStatus === 'saved'} type="button" onClick={() => void handleSave()}>
-                {saveStatus === 'saving' ? '저장 중' : saveStatus === 'saved' ? '저장됨' : '저장'}
+                {uiText(saveStatus === 'saving' ? '저장 중' : saveStatus === 'saved' ? '저장됨' : '저장')}
               </button>
             )}
             <button className="primary" type="button" onClick={() => {
               if (selectCurrentPlan()) navigate(ROUTES.courseMap);
-            }}>
-              이 코스로 출발
-            </button>
+            }}>{uiText("이 코스로 출발")}</button>
           </>
         ) : (
           <>
-            <button type="button" onClick={() => navigate(ROUTES.plannerCondition)}>조건 수정</button>
-            <button className="primary" type="button" onClick={() => void retrySearch()}>
-              같은 조건으로 다시 찾기
-            </button>
+            <button type="button" onClick={() => navigate(ROUTES.plannerCondition)}>{uiText("조건 수정")}</button>
+            <button className="primary" type="button" onClick={() => void retrySearch()}>{uiText("같은 조건으로 다시 찾기")}</button>
           </>
         )}
       </div>

@@ -1,3 +1,4 @@
+import { t as uiText } from '../i18n/translate';
 import { useState } from 'react';
 
 interface Place {
@@ -24,7 +25,7 @@ function Gallery({ places, onDelete }: GalleryProps) {
 
   return (
     <div>
-      <h1 style={{ textAlign: 'center', color: '#1a1a1a', marginBottom: '40px' }}>울산 명소 3D 갤러리</h1>
+      <h1 style={{ textAlign: 'center', color: '#1a1a1a', marginBottom: '40px' }}>{uiText("울산 명소 3D 갤러리")}</h1>
       <div style={{ 
         display: 'grid', 
         gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 

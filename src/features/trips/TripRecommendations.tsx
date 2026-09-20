@@ -1,3 +1,4 @@
+import { t as uiText } from '../../i18n/translate';
 import { useEffect, useRef, useState } from 'react';
 import { generateCourse } from '../../api/plannerApi';
 import { AccuracyPreferences } from '../planner/AccuracyPreferences';
@@ -42,16 +43,16 @@ export function TripRecommendations({ trip, day, block, disabled = false, onAppl
       setMessage([`기존 장소 ${block.places.length}곳을 유지하고 ${places.length}곳을 추가해요.`, cost?.costKnown ? `추가 일정의 1인 예상 비용 ${cost.estimatedMin?.toLocaleString()}~${cost.estimatedMax?.toLocaleString()}원.` : '추가 일정의 비용 확인이 필요해요.', ...(cost?.warnings || [])].join(' '));
     } catch (cause) { if (token === requestId.current) { setState('error'); setMessage(cause instanceof Error ? cause.message : '추천을 불러오지 못했어요. 다시 시도해 주세요.'); } }
   };
-  return <section className="trip-ai-panel" aria-label="이 구간 AI 추천">
-    <div className="trip-ai-heading"><span><TripIcon name="spark" /></span><div><h3>빈 시간은 노피에게</h3><p>{trip.transport === 'car' ? '자동차로 이동 · 주변 10km에서 찾아요.' : trip.transport === 'walk' ? '도보로 이동 · 주변 1.5km에서 찾아요.' : '대중교통 일정은 직접 장소를 담아주세요.'}</p></div></div>
-    <div className="trip-ai-context"><span><TripIcon name="pin" />{location}</span><span><TripIcon name="clock" />{available > 0 ? `${clock(start)}–${clock(limit)} · ${available}분 여유` : '구간에 남은 시간이 없어요'}</span></div>
-    <label className="trip-field">어떤 시간을 보내고 싶나요?<select value={purpose} onChange={event => { setPurpose(event.target.value); setPreview([]); setState('idle'); setMessage(''); }} disabled={disabled || state === 'loading'}><option>카페/디저트</option><option>맛집</option><option>산책/구경</option><option>놀거리</option><option>맛집 · 카페/디저트</option><option>술/야간</option><option>맛집 · 술/야간</option></select></label>
-    <p className="trip-muted">아래 예산은 이번에 추가로 추천받는 일정만 기준으로 해요.</p>
+  return <section className="trip-ai-panel" aria-label={uiText("이 구간 AI 추천")}>
+    <div className="trip-ai-heading"><span><TripIcon name="spark" /></span><div><h3>{uiText("빈 시간은 노피에게")}</h3><p>{uiText(trip.transport === 'car' ? '자동차로 이동 · 주변 10km에서 찾아요.' : trip.transport === 'walk' ? '도보로 이동 · 주변 1.5km에서 찾아요.' : '대중교통 일정은 직접 장소를 담아주세요.')}</p></div></div>
+    <div className="trip-ai-context"><span><TripIcon name="pin" />{location}</span><span><TripIcon name="clock" />{uiText(available > 0 ? `${clock(start)}–${clock(limit)} · ${available}분 여유` : '구간에 남은 시간이 없어요')}</span></div>
+    <label className="trip-field">{uiText("어떤 시간을 보내고 싶나요?")}<select value={purpose} onChange={event => { setPurpose(event.target.value); setPreview([]); setState('idle'); setMessage(''); }} disabled={disabled || state === 'loading'}><option value={"카페/디저트"}>{uiText("카페/디저트")}</option><option value={"맛집"}>{uiText("맛집")}</option><option value={"산책/구경"}>{uiText("산책/구경")}</option><option value={"놀거리"}>{uiText("놀거리")}</option><option value={"맛집 · 카페/디저트"}>{uiText("맛집 · 카페/디저트")}</option><option value={"술/야간"}>{uiText("술/야간")}</option><option value={"맛집 · 술/야간"}>{uiText("맛집 · 술/야간")}</option></select></label>
+    <p className="trip-muted">{uiText("아래 예산은 이번에 추가로 추천받는 일정만 기준으로 해요.")}</p>
     <fieldset className="trip-accuracy-wrapper" disabled={disabled || state === 'loading'}><AccuracyPreferences condition={condition} onChange={value => { setAccuracy(value); setPreview([]); setState('idle'); setMessage(''); }} /></fieldset>
-    {!supported && <p className="trip-muted">AI 주변 추천은 도보·자가용·렌터카 일정에서 사용할 수 있어요. 대중교통 일정에는 장소를 직접 담아주세요.</p>}
-    <button className="trip-button primary" disabled={disabled || !supported || available < 30 || state === 'loading'} onClick={() => void recommend()} type="button"><TripIcon name="spark" />{state === 'loading' ? '코스를 찾고 있어요…' : '이 구간 추천받기'}</button>
-    {message && <p className={state === 'error' ? 'trip-alert' : 'trip-ai-message'} role={state === 'error' ? 'alert' : 'status'}>{message}</p>}
-    {state === 'ready' && <div className="trip-suggestions"><span className="trip-eyebrow">변경 미리보기</span>{preview.map(place => <article key={place.id}><span className="trip-place-marker"><TripIcon name="pin" /></span><div><strong>{place.name}</strong><small>{place.type} · 체류 {place.durationMinutes}분{place.travelMinutes != null && ` · 이동·대기 ${place.travelMinutes}분`}</small></div><TripIcon name="plus" /></article>)}<button className="trip-button primary" disabled={disabled || snapshot !== fingerprint} onClick={() => { onApply(preview, snapshot); setPreview([]); setState('idle'); setMessage('선택한 구간에 담았어요.'); }} type="button">이 구간에 담기 <TripIcon name="check" /></button>{snapshot !== fingerprint && <p className="trip-alert">일정이 바뀌어 다시 추천이 필요해요.</p>}</div>}
-    <p className="trip-footnote">고정 장소와 다른 구간은 유지해요. 다음 일정까지의 이동·예약 시간은 적용 전 확인해 주세요.</p>
+    {!supported && <p className="trip-muted">{uiText("AI 주변 추천은 도보·자가용·렌터카 일정에서 사용할 수 있어요. 대중교통 일정에는 장소를 직접 담아주세요.")}</p>}
+    <button className="trip-button primary" disabled={disabled || !supported || available < 30 || state === 'loading'} onClick={() => void recommend()} type="button"><TripIcon name="spark" />{uiText(state === 'loading' ? '코스를 찾고 있어요…' : '이 구간 추천받기')}</button>
+    {message && <p className={state === 'error' ? 'trip-alert' : 'trip-ai-message'} role={state === 'error' ? 'alert' : 'status'}>{uiText(message)}</p>}
+    {state === 'ready' && <div className="trip-suggestions"><span className="trip-eyebrow">{uiText("변경 미리보기")}</span>{preview.map(place => <article key={place.id}><span className="trip-place-marker"><TripIcon name="pin" /></span><div><strong>{place.name}</strong><small>{uiText(place.type)}{uiText(" · 체류 ")}{place.durationMinutes}{uiText("분")}{uiText(place.travelMinutes != null && ` · 이동·대기 ${place.travelMinutes}분`)}</small></div><TripIcon name="plus" /></article>)}<button className="trip-button primary" disabled={disabled || snapshot !== fingerprint} onClick={() => { onApply(preview, snapshot); setPreview([]); setState('idle'); setMessage('선택한 구간에 담았어요.'); }} type="button">{uiText("이 구간에 담기 ")}<TripIcon name="check" /></button>{snapshot !== fingerprint && <p className="trip-alert">{uiText("일정이 바뀌어 다시 추천이 필요해요.")}</p>}</div>}
+    <p className="trip-footnote">{uiText("고정 장소와 다른 구간은 유지해요. 다음 일정까지의 이동·예약 시간은 적용 전 확인해 주세요.")}</p>
   </section>;
 }
