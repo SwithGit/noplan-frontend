@@ -201,6 +201,11 @@
 .m-detail-places a .m-icon { width: 14px; }
 .m-detail > .m-primary { width: 100%; }
 .m-settings { display: grid; gap: 15px; }
+.m-settings-language { padding-bottom:18px; border-bottom:1px solid #ebe5f4; }
+.m-settings-language h3 { margin:0 0 12px; font-size:14px; }
+.m-settings-language .language-trigger { width:100%; min-height:46px; }
+.m-settings-language .language-trigger > span:last-child { margin-left:auto; }
+.m-settings-language .language-menu { position:static; width:100%; margin-top:10px; box-shadow:none; }
 .m-settings p, .m-settings a:not(.m-primary) { color: #8d759d; font-size: 13px; }
 .m-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 @media (max-width: 1023px) {

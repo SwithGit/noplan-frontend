@@ -5,24 +5,23 @@ import { PublicText, PublicTranslationNote } from '../../i18n/PublicText';
 import { t as uiText } from '../../i18n/translate';
 import {getLocale} from '../../i18n/locale';
 import {useEffect,useState} from 'react';
-import {Link,useSearchParams,useLocation} from 'react-router-dom';
+import {Link,useSearchParams} from 'react-router-dom';
 import {fetchEvents} from '../../api/eventsApi';
 import {eventRoute} from '../../routes';
 import {TripIcon} from '../trips/TripIcon';
 import {EventImage} from './EventImage';
 import {eventDate,eventKinds,eventStatus,koreaToday,type EventResult} from './eventModel';
 import {useDesktop} from '../mobile/useDesktop';
-import {usePlanner} from '../planner/PlannerContext';
+import {WeeklyEvents} from './WeeklyEvents';
 import {eventDistance} from './courseNearby';
 import './events.css';
+import './mobileEvents.css';
 
 const regions=['서울','경기','인천','강원','부산','대구','대전','광주','울산','세종','충북','충남','전북','전남','경북','경남','제주'];
-const regionForAddress=(address:string)=>regions.find(region=>address.startsWith(region))||({'충청북도':'충북','충청남도':'충남','전라북도':'전북','전라남도':'전남','경상북도':'경북','경상남도':'경남'} as Record<string,string>)[address.split(' ')[0]]||'';
 export function EventsPage(){
-  const desktop=useDesktop(),location=useLocation();
-  const {condition,detectCurrentLocation}=usePlanner();
-  const [locating,setLocating]=useState(false),[locationMessage,setLocationMessage]=useState(''),[filtersOpen,setFiltersOpen]=useState(false);
-  const [params,setParams]=useSearchParams(!desktop&&!location.search?{region:regionForAddress(condition.location)||'서울',from:koreaToday(),to:koreaToday()}:undefined);const query=params.toString();
+  const desktop=useDesktop();
+  const [filtersOpen,setFiltersOpen]=useState(false);
+  const [params,setParams]=useSearchParams();const query=params.toString();
   const nearby=Boolean(params.get('near'));
   const [revision,setRevision]=useState(0),[response,setResponse]=useState<{key:string;result:EventResult|null;error:string}>({key:'',result:null,error:''});
   const requestKey=`${query}:${revision}`,loading=response.key!==requestKey,result=loading?null:response.result,error=loading?'':response.error;
@@ -31,18 +30,15 @@ export function EventsPage(){
   const setSearch=(value:string)=>setSearchState({query,value});
   useEffect(()=>{let cancelled=false;fetchEvents(new URLSearchParams(query)).then(data=>{if(!cancelled)setResponse({key:requestKey,result:data,error:''});}).catch(cause=>{if(!cancelled)setResponse({key:requestKey,result:null,error:cause instanceof Error?cause.message:'행사를 불러오지 못했어요.'});});return()=>{cancelled=true;};},[query,requestKey]);
   const update=(patch:Record<string,string>)=>{const next=new URLSearchParams(params);next.delete('page');Object.entries(patch).forEach(([key,value])=>value?next.set(key,value):next.delete(key));setParams(next);};
-  const locate=async()=>{setLocating(true);setLocationMessage('');try{const found=await detectCurrentLocation({updateCondition:false});const region=regionForAddress(found.address);if(!region)throw new Error('지역을 직접 선택해 주세요.');update({region,near:''});}catch{setLocationMessage('현재 위치를 확인하지 못했어요. 지역을 직접 선택해 주세요.');}finally{setLocating(false);}};
-  const reset=()=>{setSearch('');setParams(desktop?{}:{region:regionForAddress(condition.location)||'서울',from:koreaToday(),to:koreaToday()});};
+  const reset=()=>{setSearch('');setParams({});};
   const weekend=()=>{const now=new Date(`${koreaToday()}T00:00:00Z`),offset=(6-now.getUTCDay()+7)%7;now.setUTCDate(now.getUTCDate()+offset);const from=now.toISOString().slice(0,10);now.setUTCDate(now.getUTCDate()+1);update({from,to:now.toISOString().slice(0,10)});};
   const from=params.get('from')||'',to=params.get('to')||'';
   return <div className={`events-page ${!desktop?'mobile-events':''} ${filtersOpen?'filters-open':''}`}>
-    {!desktop&&<MobileHeading eyebrow="CULTURE & EVENTS" title={<>{uiText("문화·행사")}<br/><em>{uiText("새로운 발견")}</em></>} description={uiText("전시 한 편, 축제 하루.")}/>}
+    {!desktop&&<MobileHeading eyebrow="CULTURE & EVENTS" title={uiText("문화·행사")} description={uiText("전시 한 편, 축제 하루.\n오늘의 여행에 새로운 경험을 더해요.")}/>}
     <header className="events-hero"><div><span className="event-eyebrow">A REASON TO GO</span><h1>{uiText("그날, 그곳에서만")}<br/><em>{uiText("만날 수 있는 여행.")}</em></h1><p>{uiText("전시 한 편, 축제 하루. 마음에 드는 경험을 여행에 담아보세요.")}</p></div><div className="events-hero-art" aria-hidden="true"><span>FESTIVAL</span><TripIcon name="calendar"/><b>{uiText("새로운 발견")}<br/>{uiText("좋은 하루")}</b><small>EXHIBITION & CULTURE</small></div></header>
     <section className="event-search-panel" aria-label={uiText("축제·전시 검색")}>
       <div className="event-search-heading"><h2>{uiText(nearby?'코스 주변 행사':desktop?'축제·전시 찾아보기':'둘러볼 지역·날짜')}</h2><span>{uiText("전국 축제 · 서울 문화행사")}</span></div>
       {nearby&&<div className="event-nearby-context"><p>{uiText("코스 각 장소에서 직선 1km 이내 · 코스 방문 날짜 기준")}</p><button type="button" onClick={reset}>{uiText("다른 지역·날짜로 찾기")}</button></div>}
-      {!desktop&&!nearby&&<button className="event-location-button" type="button" disabled={locating} onClick={()=>void locate()}><TripIcon name="pin"/>{uiText(locating?'위치 확인 중…':'현 위치')}</button>}
-      {locationMessage&&<p className="event-help" role="status">{locationMessage}</p>}
       <form className={`event-search-row ${nearby?'nearby-mode':''}`} onSubmit={e=>{e.preventDefault();update({q:search});}}>
         <label className="event-region-field">{uiText("지역")}<select aria-label={uiText("행사 지역")} value={params.get('region')||''} onChange={e=>update({region:e.target.value})}><option value="">{uiText("전국")}</option>{regions.map(region=><option key={region} value={region}>{uiText(region)}</option>)}</select></label>
         <label className="event-date-field">{uiText(!desktop&&!filtersOpen?'방문일':'방문 시작일')}<LocalizedDateInput aria-label={uiText("행사 시작일")} type="date" min={koreaToday()} value={from} onChange={e=>update({from:e.target.value,...(!desktop&&!filtersOpen||to&&e.target.value>to?{to:e.target.value}:{})})}/></label>
@@ -52,8 +48,9 @@ export function EventsPage(){
       {!desktop&&!nearby&&<button className="event-filter-toggle" type="button" aria-expanded={filtersOpen} onClick={()=>setFiltersOpen(value=>!value)}>{uiText(filtersOpen?'상세 검색 접기':'상세 검색 · 기간 / 이름 / 무료')} <TripIcon name="arrow"/></button>}
       <div className="event-quick-dates">{!nearby&&<><span>{uiText("날짜 빠르게 선택")}</span><button type="button" onClick={()=>update({from:koreaToday(),to:koreaToday()})}>{uiText("오늘")}</button><button type="button" onClick={weekend}>{uiText("이번 토·일")}</button></>}<label className="event-free-filter"><input type="checkbox" checked={params.get('free')==='true'} onChange={e=>update({free:e.target.checked?'true':''})}/>{uiText("무료로 확인된 행사")}</label><button type="button" onClick={reset}>{uiText("전체 조건 초기화")}</button></div>
     </section>
-    <div className="event-toolbar"><div className="event-kind-tabs" aria-label={uiText("행사 유형")}>{Object.entries({all:'전체',...eventKinds}).map(([key,label])=><button type="button" key={key} aria-pressed={(params.get('kind')||'all')===key} onClick={()=>update({kind:key==='all'?'':key})}>{uiText(label)}</button>)}</div><label className="event-sort">{uiText("정렬")}<select value={params.get('sort')||'upcoming'} aria-label={uiText("행사 정렬")} onChange={e=>update({sort:e.target.value})}><option value="upcoming">{uiText(nearby?'가까운 거리순':'가까운 일정순')}</option><option value="ending">{uiText("곧 종료순")}</option></select></label></div>
-    <div className="event-result-heading"><p>{loading?uiText('행사를 찾고 있어요…'):<>{uiText(nearby?'코스 주변에서 만날':!desktop&&from===koreaToday()&&to===from?'오늘 만날 수 있는':'지금부터 만날 수 있는')} <strong>{result?.total||0}{uiText("개의 경험")}</strong></>}</p><span>{uiText("기간 중 표시와 실제 입장 가능 여부는 달라요.")}</span></div>
+    <div className="event-toolbar"><div className="event-kind-tabs" aria-label={uiText("행사 유형")}>{Object.entries({all:'전체',...eventKinds}).map(([key,label])=><button type="button" key={key} aria-pressed={(params.get('kind')||'all')===key} onClick={()=>update({kind:key==='all'?'':key})}>{uiText(label)}</button>)}</div>{desktop&&<label className="event-sort">{uiText("정렬")}<select value={params.get('sort')||'upcoming'} aria-label={uiText("행사 정렬")} onChange={e=>update({sort:e.target.value})}><option value="upcoming">{uiText(nearby?'가까운 거리순':'가까운 일정순')}</option><option value="ending">{uiText("곧 종료순")}</option></select></label>}</div>
+    {!desktop&&!nearby&&<WeeklyEvents/>}
+    <div className="event-result-heading"><p>{loading?uiText('행사를 찾고 있어요…'):<>{uiText(nearby?'코스 주변에서 만날':!desktop&&from===koreaToday()&&to===from?'오늘 만날 수 있는':'지금부터 만날 수 있는')} <strong>{result?.total||0}{uiText("개의 경험")}</strong></>}</p>{desktop?<span>{uiText("기간 중 표시와 실제 입장 가능 여부는 달라요.")}</span>:<label className="event-sort">{uiText("정렬")}<select value={params.get('sort')||'upcoming'} aria-label={uiText("행사 정렬")} onChange={e=>update({sort:e.target.value})}><option value="upcoming">{uiText(nearby?'가까운 거리순':'가까운 일정순')}</option><option value="ending">{uiText("곧 종료순")}</option></select></label>}</div>
     {result?.sources.some(s=>s.stale||!s.available)&&<p className="event-notice" role="status">{uiText("일부 제공기관의 최신 정보를 불러오지 못했어요. 현재 확보한 행사 정보를 보여드려요.")}</p>}
     {loading?<div className="event-grid" role="status" aria-label={uiText("행사 불러오는 중")}>{Array.from({length:6},(_,i)=><div className="event-skeleton" key={i}><div/><span/><span/></div>)}</div>:error?<div className="event-empty" role="alert"><TripIcon name="calendar"/><h2>{uiText("잠시, 행사를 불러오지 못했어요")}</h2><p>{uiText(error)}</p><button className="trip-button primary" onClick={()=>setRevision(v=>v+1)} type="button">{uiText("다시 불러오기")}</button></div>:result?.events.length?<><div className="event-grid">{result.events.map(event=><article className="event-card-shell" key={event.id}><Link className="event-card" to={eventRoute(event.id)}><div className="event-card-poster"><EventImage event={event}/><span className={`event-status ${eventStatus(event)==='기간 중'?'ongoing':''}`}>{uiText(eventStatus(event))}</span></div><div className="event-card-copy"><div className="event-card-meta"><span>{uiText(eventKinds[event.kind])}</span><span>{uiText(event.district||event.region||'지역 확인')}</span>{event.isFree===true&&<span>{uiText("무료")}</span>}</div><h3>{<PublicText source={{kind:'event',id:event.id}} text={event.title}/>}</h3>{event.nearby&&<p className="event-nearby-distance">{event.nearby.placeIndex}{uiText("번째 장소에서 직선 ")}{eventDistance(event.nearby.distanceMeters)}</p>}<p className="event-dates"><TripIcon name="calendar"/>{eventDate(event.startDate)} — {eventDate(event.endDate)}</p><p className="event-venue"><TripIcon name="pin"/>{<PublicText source={{kind:'event',id:event.id}} text={event.venue||event.address||'장소 안내 확인'}/>}</p><div className="event-card-footer"><small>{uiText(event.sourceLabel)}</small><PublicTranslationNote source={{kind:'event',id:event.id}}/><span>{uiText("자세히 보기 ")}<TripIcon name="arrow"/></span></div></div></Link><FavoriteButton item={eventFavorite(event)} compact/></article>)}</div><nav className="event-pagination" aria-label={uiText("행사 페이지")}><button className="trip-button" type="button" disabled={result.page===1} onClick={()=>update({page:String(result.page-1)})}>{uiText("이전")}</button><span>{result.page} / {Math.ceil(result.total/result.pageSize)}</span><button className="trip-button" type="button" disabled={result.page*result.pageSize>=result.total} onClick={()=>update({page:String(result.page+1)})}>{uiText("다음")}</button></nav></>:<div className="event-empty"><TripIcon name="calendar"/><h2>{uiText(nearby?'코스 주변에 맞는 행사가 아직 없어요':'조건에 맞는 행사가 아직 없어요')}</h2><p>{uiText("다른 날짜나 지역으로 찾아보세요.")}</p><button className="trip-button" type="button" onClick={reset}>{uiText(desktop?'전체 행사 보기':'기본 조건으로 보기')}</button></div>}
     {result&&<footer className="event-source-note">{uiText("한국관광공사 TourAPI · 서울문화포털 제공. 제공기관에 등록된 행사 기준이며 전체 민간 전시·팝업을 포함하지는 않아요.")}<br/>{uiText(result.sources.filter(s=>s.fetchedAt).map(s=>`${uiText(s.provider==='tourapi'?'관광공사':'서울시')} ${uiText('확인')} : ${new Date(s.fetchedAt!).toLocaleString(getLocale())}`).join(' · '))}</footer>}

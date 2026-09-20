@@ -1,4 +1,9 @@
 export const mobileMessages: Record<string, readonly [string,string,string]> = {
+  "전시 한 편, 축제 하루.\n오늘의 여행에 새로운 경험을 더해요.": ["An exhibition, a festival.\nAdd a new experience to your day.","一场展览，一日庆典。\n为今天的旅程增添新体验。","展示ひとつ、お祭り一日。\n今日の旅に新しい体験を。"],
+  "이번 주 추천": ["This week’s picks","本周推荐","今週のおすすめ"],
+  "전국에서 골라본 이번 주의 경험": ["This week’s experiences across Korea","精选全国本周活动","全国から選んだ今週の体験"],
+  "이번 주 추천을 불러오지 못했어요.": ["Could not load this week’s picks.","无法加载本周推荐。","今週のおすすめを読み込めませんでした。"],
+  "이번 주에 진행하는 행사가 아직 없어요. 아래에서 다음 일정을 찾아보세요.": ["No events for this week yet. Browse upcoming dates below.","暂无本周活动，请在下方查看未来日程。","今週のイベントはまだありません。下から今後の予定を探してみてください。"],
   '내 코스': ['My routes','我的路线','マイコース'],
   '코스': ['Routes','路线','コース'],
   '코스 추천받기': ['Get a route','获取推荐路线','コースを提案してもらう'],
