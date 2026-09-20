@@ -1,3 +1,4 @@
+import type { TravelNeeds } from './travelNeeds';
 import { t as uiText } from '../../i18n/translate';
 import { useState } from 'react';
 import type { TourismAttraction } from '../../api/tourismApi';
@@ -8,8 +9,8 @@ import { tourismNode } from './nopiModel';
 import { excludedPlace, validatePickedPlace } from './placeIdentity';
 import type { TripPlace } from './tripModel';
 
-export function PlacePicker({ destination, initial, context, excluded = {}, onClose, onSelect }: {
-  destination: string; initial?: TripPlace; context: string; excluded?: Record<string, string>;
+export function PlacePicker({ needs, destination, initial, context, excluded = {}, onClose, onSelect }: {
+  needs?: TravelNeeds; destination: string; initial?: TripPlace; context: string; excluded?: Record<string, string>;
   onClose: () => void; onSelect: (place: TripPlace, attraction?: TourismAttraction) => void;
 }) {
   const [direct, setDirect] = useState(Boolean(initial && !initial.tourism));
@@ -19,6 +20,6 @@ export function PlacePicker({ destination, initial, context, excluded = {}, onCl
     if (duplicate) throw Error(`${duplicate} · 이미 담은 장소예요.`);
     onSelect(place, attraction);
   };
-  return direct ? <DirectPlacePicker destination={destination} initial={initial} context={uiText(context)} excluded={excluded} onClose={onClose} onRecommended={() => setDirect(false)} onSelect={select} />
-    : <TourismPicker destination={destination} initial={initial?.tourism ? attractionFromPlace(initial) : undefined} initialDuration={initial?.durationMinutes || 75} context={uiText(context)} disabledPlaces={excluded} onClose={onClose} onDirectSearch={() => setDirect(true)} onSelect={(attraction, duration) => select(tourismNode(attraction, duration).place, attraction)} />;
+  return direct ? <DirectPlacePicker needs={needs} destination={destination} initial={initial} context={uiText(context)} excluded={excluded} onClose={onClose} onRecommended={() => setDirect(false)} onSelect={select} />
+    : <TourismPicker needs={needs} destination={destination} initial={initial?.tourism ? attractionFromPlace(initial) : undefined} initialDuration={initial?.durationMinutes || 75} context={uiText(context)} disabledPlaces={excluded} onClose={onClose} onDirectSearch={() => setDirect(true)} onSelect={(attraction, duration) => select(tourismNode(attraction, duration).place, attraction)} />;
 }

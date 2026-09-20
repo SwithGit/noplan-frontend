@@ -1,3 +1,7 @@
+import { TravelNeedsForm } from './TravelNeedsForm';
+import { TravelSupportPanel } from './TravelSupportPanel';
+import { normalizeNeeds, hasTravelNeeds, evaluateNeeds, type TravelNeeds } from './travelNeeds';
+import { getSupportCatalog, getDiscovery } from '../../api/travelSupportApi';
 import { TourismText } from '../../i18n/TourismText';
 import { t as uiText } from '../../i18n/translate';
 import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from 'react';
@@ -22,11 +26,13 @@ import './nopiPlanner.css';
 type Catalog = Omit<TourismSearchResult, 'items'> & { items: NopiAttraction[] };
 export function NopiCoursePlanner({ document: sourceDocument, dayId: initialDayId, disabled, onClose, onApply }: {
   document: TripDocument; dayId: string; disabled: boolean; onClose: () => void;
-  onApply: (days: TripDay[], baseline: string, overview: boolean, activeDayId: string) => void;
+  onApply: (days: TripDay[], baseline: string, overview: boolean, activeDayId: string, needs: TravelNeeds) => void;
 }) {
   // Keep one editing snapshot; the workspace checks it against live shared state
   // before applying, so concurrent changes cannot silently overwrite a trip.
   const [document] = useState(sourceDocument);
+  const [needs, setNeeds] = useState(() => normalizeNeeds(sourceDocument.needs));
+  const needsEdited = JSON.stringify(needs) !== JSON.stringify(normalizeNeeds(document.needs));
   const [dayId, setDayId] = useState(initialDayId);
   const day = document.days.find(item => item.id === dayId)!;
   const dayIndex = document.days.indexOf(day);
@@ -40,7 +46,7 @@ export function NopiCoursePlanner({ document: sourceDocument, dayId: initialDayI
   const [profile, setProfile] = useState({ mode: 'member', age: '', gender: 'all' });
   const [commonExpanded, setCommonExpanded] = useState(true);
   const [daySettingsOpen, setDaySettingsOpen] = useState(true);
-  const options: NopiOptions = { date: day.date, start: draft.start, end: draft.end, transport: draft.transport, ...common };
+  const options: NopiOptions = { date: day.date, start: draft.start, end: draft.end, transport: draft.transport, needs, ...common };
   const { nodes: draftNodes, routesResponse, manualTravel, variant, error, notice: generationNotice } = draft;
   const setError = (error: string) => patchDay({ error });
   const setManualTravel = (value: SetStateAction<Record<string, number>>) => patchDay(previous => ({ manualTravel: typeof value === 'function' ? value(previous.manualTravel) : value, edited: true }));
@@ -50,7 +56,7 @@ export function NopiCoursePlanner({ document: sourceDocument, dayId: initialDayI
   const [busy, setBusy] = useState(false);
   const [retry, setRetry] = useState(0);
   const [catalogRetry, setCatalogRetry] = useState(0);
-  const edited = Object.values(drafts).some(item => item.edited);
+  const edited = needsEdited || Object.values(drafts).some(item => item.edited);
   const generation = useRef<AbortController | null>(null);
   const routeCache = useRef(new Map<string, DayRouteResult[]>());
   const cards = useRef(new Map<string, HTMLElement>());
@@ -100,10 +106,25 @@ export function NopiCoursePlanner({ document: sourceDocument, dayId: initialDayI
     controller.signal.addEventListener('abort', () => diagnostic.finish('cancelled'), { once: true });
     setBusy(true); patchDay({ error: '', notice: '' });
     try {
-      const result = await generateNearbyCourse(catalog.items, options, exclusions, (transport, legs, signal) => getDayRoutes(transport, legs, signal, diagnostic.operationId), controller.signal, variant);
+      const destination = common.district ? ((catalog.scope?.name || document.destination) + ' ' + common.district) : document.destination;
+      const [support, discovery] = await Promise.all([
+        getSupportCatalog(destination, needs, controller.signal),
+        getDiscovery(destination, undefined, controller.signal).catch(() => undefined),
+      ]);
+      controller.signal.throwIfAborted();
+      const byId = new Map(support.items.map(item => [item.contentId, item]));
+      if (hasTravelNeeds(needs) && support.unavailable && !support.items.some(item => evaluateNeeds(item, needs).eligible)) throw Error('여행 조건 정보를 불러오지 못했어요. 잠시 후 다시 확인해 주세요.');
+      controller.signal.throwIfAborted();
+      const centers = new Map(discovery?.items.map(p => [p.contentId, p.centralRank]) || []);
+      const anchor = discovery?.items.find(p => !(p.contentTypeId === '38' && (p.classification === 'SH01' || /백화점|더현대/.test(p.name))) && evaluateNeeds(byId.get(p.contentId), needs).eligible);
+      const related = anchor ? await getDiscovery(destination, anchor.contentId, controller.signal).catch(() => undefined) : undefined;
+      controller.signal.throwIfAborted();
+      const relatedRanks = new Map(related?.items.map(p => [p.contentId, p.relatedRank]) || []);
+      const candidates = catalog.items.map(place => ({ ...place, support: byId.get(place.contentId), centralRank: centers.get(place.contentId), relatedRank: relatedRanks.get(place.contentId) }));
+      const result = await generateNearbyCourse(candidates, options, exclusions, (transport, legs, signal) => getDayRoutes(transport, legs, signal, diagnostic.operationId), controller.signal, variant);
       if (controller.signal.aborted) return;
       diagnostic.finish('success', { resultCount: result.nodes.length, placeIds: result.nodes.flatMap(node => node.place.tourism ? [node.place.tourism.contentId] : []), distanceMeters: Math.round(result.meters), partial: Boolean(result.notice) });
-      patchDay({ nodes: result.nodes, manualTravel: {}, edited: true, variant: variant + 1, notice: result.notice }); setActive(result.nodes[0].place.id); setCommonExpanded(false); setDaySettingsOpen(false);
+      patchDay({ nodes: result.nodes, manualTravel: {}, edited: true, variant: variant + 1, notice: [result.notice, support.partial ? '일부 장소의 조건만 확인했어요. 필수 조건은 유지하고, 확인된 선호 시설을 우선 반영했어요.' : '', discovery?.status !== 'ok' ? '관광지 연결 정보 없이 기본 추천으로 구성했어요.' : ''].filter(Boolean).join(' ') }); setActive(result.nodes[0].place.id); setCommonExpanded(false); setDaySettingsOpen(false);
       const key = JSON.stringify({ transport: options.transport, legs: courseLegs(result.nodes) });
       routeCache.current.set(key, result.routes);
       patchDay({ routesResponse: { key, routes: result.routes } });
@@ -118,8 +139,8 @@ export function NopiCoursePlanner({ document: sourceDocument, dayId: initialDayI
         return source ? { ...node, planning: source.planning } : node;
       }) }]));
       const nextDays = buildNopiDays(document, hydrated);
-      if (!nextDays.length && !document.days.some(d => d.blocks.some(b => b.places.length))) throw Error('먼저 날짜를 골라 코스를 만들어 주세요.');
-      onApply(nextDays, baseline, overview, dayId);
+      if (!nextDays.length && !needsEdited && !document.days.some(d => d.blocks.some(b => b.places.length))) throw Error('먼저 날짜를 골라 코스를 만들어 주세요.');
+      onApply(nextDays, baseline, overview, dayId, needs);
     } catch (cause) { setError(cause instanceof Error ? cause.message : '일정을 반영하지 못했어요.'); }
   };
   const disabledPlaces = { ...exclusions };
@@ -138,6 +159,7 @@ export function NopiCoursePlanner({ document: sourceDocument, dayId: initialDayI
             <label>{uiText("연령")}<select aria-label={uiText("노피 추천 연령")} value={profile.mode === 'member' ? 'member' : profile.age} onChange={e => setProfile({ ...profile, mode: e.target.value === 'member' ? 'member' : 'custom', age: e.target.value === 'member' ? '' : e.target.value })}><option value="member">{uiText("내 회원정보")}</option>{['10', '20', '30', '40', '50', '60', '70'].map(value => <option key={value} value={value}>{uiText(value === '10' ? '10대 이하' : value === '70' ? '70대 이상' : `${value}대`)}</option>)}</select></label>
             <label>{uiText("성별")}<select aria-label={uiText("노피 추천 성별")} disabled={profile.mode === 'member'} value={profile.mode === 'member' ? catalog?.profile?.gender || 'all' : profile.gender} onChange={e => setProfile({ ...profile, gender: e.target.value })}><option value="all">{uiText("전체")}</option><option value="female">{uiText("여성")}</option><option value="male">{uiText("남성")}</option></select></label>
           </fieldset> : <p className="nopi-common-summary">{uiText(common.purpose)} · {uiText(common.district || ((catalog?.scope?.label || document.destination) + ' 전체'))} · {uiText(profile.mode === 'member' ? catalog?.profile?.label || '내 회원정보' : `${profile.age}대 · ${profile.gender === 'female' ? '여성' : profile.gender === 'male' ? '남성' : '성별 전체'}`)}</p>}
+          {commonExpanded && <TravelNeedsForm value={needs} onChange={setNeeds} disabled={busy || disabled} />}
         </section>
         <section className="nopi-days-panel" aria-label={uiText("날짜별 추천 조건")}>
           <div className="nopi-section-heading"><div><h3>{uiText("날짜별 일정")}</h3><span>{uiText("하루씩, 우리에게 맞게")}</span></div><small>{uiText("만든 코스는 유지하고, 바꾼 공통 조건은 다음 추천부터 적용해요.")}</small></div>
@@ -166,6 +188,7 @@ export function NopiCoursePlanner({ document: sourceDocument, dayId: initialDayI
               {node.imageUrl && <small className="nopi-photo-credit">{uiText("사진 © 한국관광공사")}{uiText(node.imageLicense === 'Type3' ? ' · 공공누리 3유형' : node.imageLicense === 'Type1' ? ' · 공공누리 1유형' : '')}</small>}
               {!routeLoading && wait > 0 && <p className="nopi-reason">{wait}{uiText("분 여유 · 예정된 방문 시간에 맞춰 이동해요.")}</p>}{node.reason && <p className="nopi-reason">{uiText(node.reason)}</p>}
               {node.planning && <details className="nopi-facts"><summary>{uiText("운영시간·메뉴 확인")}</summary>{node.planning.menu && <p>{uiText("메뉴 · ")}{node.planning.menu}</p>}<p>{uiText("운영 · ")}{uiText(node.planning.hours || '정보 없음')}</p><p>{uiText("휴무 · ")}{uiText(node.planning.closed || '정보 없음')}</p><small>{uiText("임시 휴무·예약 여부는 지도에서 확인해 주세요.")}</small></details>}
+              <TravelSupportPanel contentId={node.place.tourism?.contentId} needs={needs} />
               <div className="nopi-stop-actions"><label>{uiText("머무는 시간")}<input type="number" aria-label={uiText(`${node.place.name} 체류시간`)} min={node.place.type === '카페' ? 30 : 10} max={600} value={node.place.durationMinutes} disabled={busy} onChange={e => updateNodes(nodes.map((item, i) => i === index ? { ...item, place: { ...item.place, durationMinutes: Number(e.target.value) } } : item))} />{uiText("분")}</label><button type="button" className="trip-text-link" disabled={busy} onClick={() => setPicker(index)}>{uiText("장소 변경·상세")}</button><a href={`https://map.naver.com/p/search/${encodeURIComponent(`${node.place.name} ${node.place.address}`)}`} target="_blank" rel="noreferrer">{uiText("지도 ↗")}</a><div><button type="button" aria-label={uiText(`${node.place.name} 위로`)} disabled={busy || !index} onClick={() => { const copy = [...nodes]; [copy[index - 1], copy[index]] = [copy[index], copy[index - 1]]; updateNodes(copy); }}><TripIcon name="up" /></button><button type="button" aria-label={uiText(`${node.place.name} 아래로`)} disabled={busy || index === nodes.length - 1} onClick={() => { const copy = [...nodes]; [copy[index + 1], copy[index]] = [copy[index], copy[index + 1]]; updateNodes(copy); }}><TripIcon name="down" /></button><button type="button" aria-label={uiText(`${node.place.name} 제거`)} disabled={busy} onClick={() => updateNodes(nodes.filter((_, i) => i !== index))}><TripIcon name="close" /></button></div></div>
             </article>
           </div>)}
@@ -174,8 +197,8 @@ export function NopiCoursePlanner({ document: sourceDocument, dayId: initialDayI
           {!routeLoading && schedule.errors.length > 0 && nodes.length > 0 && <div className="trip-alert" role="status">{uiText(schedule.errors[0])}</div>}
         </section>
       </div> : <div className="nopi-setup-empty"><img src={nopi} alt="" /><div><strong>{uiText("이날의 첫 코스를 만들어볼까요?")}</strong><span>{uiText("위 버튼으로 추천받거나 가고 싶은 장소를 직접 담아보세요.")}</span></div><button className="trip-button" type="button" disabled={busy || disabled} onClick={() => setPicker(0)}>{uiText("장소 담기")}</button></div>}
-      <footer className="nopi-footer"><div><strong>{uiText(changedDayCount ? `${changedDayCount}일의 코스 · 반영 준비 중` : `${document.days.length}일의 여행을 하루씩 채워요`)}</strong><span>{uiText("날짜 카드를 눌러 다른 날도 만들고, 작성한 일정을 한 번에 반영해요.")}</span></div><button className="trip-button" type="button" disabled={busy || routeLoading || disabled || !changedDayCount} onClick={() => apply(false)}>{uiText("작성한 일정 반영")}</button><button className="trip-button primary" type="button" disabled={busy || routeLoading || disabled || (!changedDayCount && !document.days.some(d => d.blocks.some(b => b.places.length)))} onClick={() => apply(true)}>{uiText("반영하고 전체 일정 보기")}<TripIcon name="arrow" /></button></footer>
+      <footer className="nopi-footer"><div><strong>{uiText(changedDayCount ? `${changedDayCount}일의 코스 · 반영 준비 중` : `${document.days.length}일의 여행을 하루씩 채워요`)}</strong><span>{uiText("날짜 카드를 눌러 다른 날도 만들고, 작성한 일정을 한 번에 반영해요.")}</span></div><button className="trip-button" type="button" disabled={busy || routeLoading || disabled || (!changedDayCount && !needsEdited)} onClick={() => apply(false)}>{uiText("작성한 일정 반영")}</button><button className="trip-button primary" type="button" disabled={busy || routeLoading || disabled || (!changedDayCount && !document.days.some(d => d.blocks.some(b => b.places.length)))} onClick={() => apply(true)}>{uiText("반영하고 전체 일정 보기")}<TripIcon name="arrow" /></button></footer>
     </TripDialog>
-    {picker != null && <PlacePicker destination={document.destination} initial={selectedNode?.place} excluded={disabledPlaces} context={uiText(`DAY ${dayIndex + 1} · ${selectedNode ? '장소 변경' : '새 장소 담기'}`)} onClose={() => setPicker(null)} onSelect={(place, attraction) => { const node: CourseNode = attraction ? tourismNode(catalog?.items.find(item => item.contentId === attraction.contentId) || attraction, place.durationMinutes) : { place }; updateNodes(picker < nodes.length ? nodes.map((item, index) => index === picker ? { ...node, originalNotes: replacementNotes(item.originalNotes) } : item) : [...nodes, node]); setActive(node.place.id); setPicker(null); }} />}
+    {picker != null && <PlacePicker needs={needs} destination={document.destination} initial={selectedNode?.place} excluded={disabledPlaces} context={uiText(`DAY ${dayIndex + 1} · ${selectedNode ? '장소 변경' : '새 장소 담기'}`)} onClose={() => setPicker(null)} onSelect={(place, attraction) => { const node: CourseNode = attraction ? tourismNode(catalog?.items.find(item => item.contentId === attraction.contentId) || attraction, place.durationMinutes) : { place }; updateNodes(picker < nodes.length ? nodes.map((item, index) => index === picker ? { ...node, originalNotes: replacementNotes(item.originalNotes) } : item) : [...nodes, node]); setActive(node.place.id); setPicker(null); }} />}
   </>;
 }

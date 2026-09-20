@@ -1,7 +1,7 @@
 const ts=require('typescript'),fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const load=(file,deps={})=>{const exports={};vm.runInNewContext(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports,require:id=>deps[id]});return exports;};
 const dictionary=load('src/i18n/messages.ts'),mobile=load('src/i18n/mobileMessages.ts'),site=load('src/i18n/siteMessages.ts'),reviewed=load('src/i18n/reviewedMessages.ts');
-const {translate}=load('src/i18n/translate.ts',{'./locale':{getLocale:()=> 'ko'},'./messages':dictionary,'./mobileMessages':mobile,'./siteMessages':site,'./reviewedMessages':reviewed});
+const {translate}=load('src/i18n/translate.ts',{'./locale':{getLocale:()=> 'ko'},'./messages':dictionary,'./mobileMessages':mobile,'./siteMessages':site,'./reviewedMessages':reviewed,'./travelMessages':load('src/i18n/travelMessages.ts')});
 for(const locale of ['en','ja','zh-CN']) {
   assert.notEqual(translate('새 여행 만들기',locale),'새 여행 만들기');
   assert.notEqual(translate('도보',locale),'도보');
@@ -22,3 +22,5 @@ const {normalizeDongInput}=load('src/utils/location.ts');
 for(const name of ['연남동','Yeonnam-dong','延南洞']) assert.equal(normalizeDongInput(name),'연남동');
 assert.equal(normalizeDongInput('unknown private address'),'');
 console.log('Localized neighborhood input preserves canonical Korean location');
+
+for(const [key,values] of Object.entries(load('src/i18n/travelMessages.ts').travelMessages))for(const locale of ['en','zh-CN','ja']){assert.equal(values.length,3);assert.equal(/[가-힣]/.test(translate(key,locale)),false,locale+': '+key);}console.log('Travel condition UI translated in English, Chinese and Japanese');

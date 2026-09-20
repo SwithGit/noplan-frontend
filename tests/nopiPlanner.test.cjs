@@ -1,6 +1,6 @@
 const test = require('node:test'), assert = require('node:assert/strict');
 const fs = require('node:fs'), vm = require('node:vm'), ts = require('typescript'), crypto = require('node:crypto');
-function load(path, deps = {}) { const box = { exports: {}, crypto, Error, require: name => { if (deps[name]) return deps[name]; throw Error(name); } }; vm.runInNewContext(ts.transpileModule(fs.readFileSync(path, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, box); return box.exports; }
+function load(path, deps = {}) { const box = { exports: {}, crypto, Error, require: name => { if (deps[name]) return deps[name]; if(name==='./travelNeeds')return load('src/features/trips/travelNeeds.ts'); if(name==='../../i18n/locale')return {getLocale:()=> 'ko'}; throw Error(name); } }; vm.runInNewContext(ts.transpileModule(fs.readFileSync(path, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, box); return box.exports; }
 const trip = load('src/features/trips/tripModel.ts');
 const identity = load('src/features/trips/placeIdentity.ts', { './tripModel': trip });
 const policy = load('src/features/trips/coursePolicy.ts');
@@ -348,4 +348,31 @@ test('multi-day apply validates all drafts before returning, rejects stale route
   drafts[second.id].edited = false; assert.equal(draftModel.buildNopiDays(doc, drafts).length, 1);
   drafts[second.id].nodes = [model.tourismNode(catalog[0], 60)]; drafts[second.id].edited = true;
   assert.throws(() => draftModel.buildNopiDays(doc, drafts), /이미/);
+});
+
+const travelNeeds=load('src/features/trips/travelNeeds.ts');
+const support=()=>({contentId:'1',checkedAt:'2026-09-20',pet:{status:'ok',allowed:'conditional',species:['dog'],maxKg:10,exclusiveMax:true,weightRestricted:true,indoor:'unknown',facts:[]},access:{status:'ok',facilities:{entrance:{state:'yes',text:'휠체어 접근 가능'}}}});
+test('required unknown facilities never enter auto routes; preference remains optional',()=>{
+  const needs=travelNeeds.emptyNeeds();needs.facilities.entrance='required';
+  assert.equal(travelNeeds.evaluateNeeds(undefined,needs).eligible,false);
+  assert.equal(travelNeeds.evaluateNeeds(support(),needs).eligible,true);
+  needs.facilities.entrance='prefer';assert.equal(travelNeeds.evaluateNeeds(undefined,needs).eligible,true);
+});
+test('pet weight boundary, species and indoor unknown conditions cannot be silently relaxed',()=>{
+  const needs=travelNeeds.emptyNeeds();needs.pet={enabled:true,species:'dog',weightKg:9,indoor:false};
+  assert.equal(travelNeeds.evaluateNeeds(support(),needs).eligible,true);
+  for(const patch of [{weightKg:10},{weightKg:null},{species:'cat'},{indoor:true}])assert.equal(travelNeeds.evaluateNeeds(support(),{...needs,pet:{...needs.pet,...patch}}).eligible,false);
+});
+test('strict facility routes can be shorter but still pass real distance checks and exclude unknown stops',async()=>{
+  const needs=travelNeeds.emptyNeeds();needs.facilities.entrance='required';
+  const sparse=catalog.map((p,i)=>({...p,...(i<2?{support:support()}:{})}));
+  const query=async(_transport,legs)=>({legs:legs.map(leg=>({id:leg.id,status:'ok',distanceMeters:500,durationMinutes:8}))});
+  const result=await routing.generateNearbyCourse(sparse,{...options,needs},{},query,new AbortController().signal);
+  assert.equal(result.nodes.length,2);assert.ok(result.nodes.every(n=>['1','2'].includes(n.place.tourism.contentId)));
+  await assert.rejects(()=>routing.generateNearbyCourse(sparse,{...options,needs},{},async(_t,legs)=>({legs:legs.map(l=>({id:l.id,status:'ok',distanceMeters:1200,durationMinutes:20}))}),new AbortController().signal));
+  assert.throws(()=>model.suggestCourse(catalog,{...options,needs},{}),/필수 조건/);
+});
+test('central and related ranks cannot pull an isolated stop outside the distance limit',()=>{
+ const nodes=model.suggestCourse([...catalog,{...place('900','12',36),centralRank:1,relatedRank:1}],options,{});
+ assert.ok(nodes.every(n=>n.place.tourism.contentId!=='900'));
 });

@@ -1,7 +1,9 @@
+import { normalizeNeeds, type TravelNeeds } from './travelNeeds';
 import type { TourismAttraction } from '../../api/tourismApi';
 import { tomorrow, type TripDocument } from './tripModel';
 
 export interface TripCreationDraft {
+  needs?: TravelNeeds;
   destination: string; startDate: string; endDate: string;
   transport: TripDocument['transport']; outbound: TripDocument['outbound']; companion: string;
   attraction?: TourismAttraction; visitDuration: number; visitDate: string; visitSlot: number;
@@ -26,7 +28,7 @@ export function readTripCreation(userId?: string): TripCreationDraft {
       || ![0, 1, 2].includes(saved.visitSlot) || typeof saved.visitDate !== 'string') return defaults;
     if (saved.attraction && (typeof saved.attraction.name !== 'string' || typeof saved.attraction.contentId !== 'string'
       || !['12', '14', '28', '25', '38', '39'].includes(saved.attraction.contentTypeId) || !Number.isFinite(saved.attraction.lat) || !Number.isFinite(saved.attraction.lng))) return defaults;
-    return saved;
+    return { ...saved, ...(saved.needs ? { needs: normalizeNeeds(saved.needs) } : {}) };
   } catch { return defaults; }
 }
 export function writeTripCreation(value: TripCreationDraft, userId?: string) {

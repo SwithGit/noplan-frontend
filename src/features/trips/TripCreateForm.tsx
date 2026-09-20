@@ -1,3 +1,6 @@
+import { TravelNeedsForm } from './TravelNeedsForm';
+import { normalizeNeeds } from './travelNeeds';
+import { TravelDiscovery } from './TravelDiscovery';
 import { t as uiText } from '../../i18n/translate';
 import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -22,6 +25,7 @@ export function TripCreateForm({ user }: { user: UserSession | null }) {
   const [transport, setTransport] = useState(initial.transport);
   const selectTransport = (value: TripDocument['transport']) => { setTransport(value); try { localStorage.setItem(`noplan.trip.transport:${user?.userId || 'guest'}`, value); } catch { /* Optional preference. */ } };
   const [outbound, setOutbound] = useState(initial.outbound);
+  const [needs, setNeeds] = useState(() => normalizeNeeds(initial.needs));
   const [companion, setCompanion] = useState(initial.companion);
   const [openDetail, setOpenDetail] = useState<'province' | 'district' | 'companion' | 'outbound' | 'transport' | null>(null);
   const [regions, setRegions] = useState<TourismRegion[]>([]);
@@ -52,14 +56,14 @@ export function TripCreateForm({ user }: { user: UserSession | null }) {
     }
   };
   useEffect(() => {
-    writeTripCreation({ destination, startDate, endDate, transport, outbound, companion, attraction, visitDuration, visitDate, visitSlot }, user?.userId);
-  }, [destination, startDate, endDate, transport, outbound, companion, attraction, visitDuration, visitDate, visitSlot, user?.userId]);
+    writeTripCreation({ destination, startDate, endDate, transport, outbound, companion, needs, attraction, visitDuration, visitDate, visitSlot }, user?.userId);
+  }, [destination, startDate, endDate, transport, outbound, companion, needs, attraction, visitDuration, visitDate, visitSlot, user?.userId]);
   const create = (event: FormEvent) => {
     event.preventDefault();
     try {
       if (!selectedDestination) throw new Error('여행할 시·도와 시·군·구를 선택해 주세요.');
       const selectedRegion = formatDestination(selectedDestination.region, selectedDestination.district);
-      const trip = createTrip({ title: `${selectedRegion}에서 보내는 ${dayCount(startDate, endDate) === 1 ? '하루' : `${dayCount(startDate, endDate)}일`}`.slice(0, 100), destination: selectedRegion, startDate, endDate, transport, outbound, companion });
+      const trip = createTrip({ title: `${selectedRegion}에서 보내는 ${dayCount(startDate, endDate) === 1 ? '하루' : `${dayCount(startDate, endDate)}일`}`.slice(0, 100), destination: selectedRegion, startDate, endDate, transport, outbound, companion, needs });
       const targetDay = trip.document.days.find(day => day.date === (visitDate || startDate));
       const targetBlock = targetDay?.blocks[visitSlot];
       if (attraction) {
@@ -115,10 +119,12 @@ export function TripCreateForm({ user }: { user: UserSession | null }) {
             ]} />
         </div>
       </fieldset>
+      <TravelNeedsForm value={needs} onChange={setNeeds} />
+      <TravelDiscovery destination={destination} onSelect={place => { setAttraction(place); setPickingTourism(true); }} />
       <div className="trip-home-tourism"><div><span className="trip-eyebrow">{uiText("여행의 중심이 될 곳")}</span><h3>{uiText(attraction?.name || '꼭 가고 싶은 관광지가 있나요?')}</h3><p>{uiText(attraction ? `${attraction.address} · 관람 ${visitDuration}분` : '관광지를 고르면 오전·오후·저녁의 중심 일정으로 담아드려요.')}</p></div><div className="tourism-home-actions"><button className="trip-button" type="button" disabled={!selectedDestination} onClick={() => setPickingTourism(true)}><TripIcon name="pin" />{uiText(attraction ? '관광지 변경' : '관광지부터 고르기')}</button>{attraction && <button className="trip-text-link" type="button" onClick={() => setAttraction(undefined)}>{uiText("선택 해제")}</button>}</div>{attraction && <div className="trip-form-row tourism-home-schedule"><label className="trip-field">{uiText("방문 날짜")}<input type="date" required min={startDate} max={endDate} value={visitDate || startDate} onChange={e => setVisitDate(e.target.value)} /></label><label className="trip-field">{uiText("방문 구간")}<select value={visitSlot} onChange={e => setVisitSlot(Number(e.target.value))}><option value={0}>{uiText("오전 · 09:00–12:00")}</option><option value={1}>{uiText("오후 · 13:00–17:00")}</option><option value={2}>{uiText("저녁 · 18:00–21:00")}</option></select></label></div>}</div>
       <div className="trip-create-submit"><span><b>{uiText(transportLabels[transport])}</b>{uiText("로 여행해요")}<small>{uiText(transport === 'transit' ? '대중교통 자동 추천은 준비 중이에요.' : `자동 코스는 장소 사이 실제 이동 ${courseDistanceLabel(transport)} 이내로 연결해요.`)}</small></span><button className="trip-button primary" type="submit">{uiText("이 조건으로 일정 시작하기 ")}<TripIcon name="arrow" /></button></div>
     </form>
-    {pickingTourism && <TourismPicker destination={destination} initial={attraction} initialDuration={visitDuration} context={uiText("선택할 여행 구간")} onClose={() => setPickingTourism(false)} onSelect={(place, duration) => { setAttraction(place); setVisitDuration(duration); setPickingTourism(false); }} />}
+    {pickingTourism && <TourismPicker needs={needs} destination={destination} initial={attraction} initialDuration={visitDuration} context={uiText("선택할 여행 구간")} onClose={() => setPickingTourism(false)} onSelect={(place, duration) => { setAttraction(place); setVisitDuration(duration); setPickingTourism(false); }} />}
     {error && <div className="trip-alert trip-create-error" role="alert">{uiText(error)}</div>}
   </>;
 }

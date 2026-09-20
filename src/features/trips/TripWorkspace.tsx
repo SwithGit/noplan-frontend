@@ -146,10 +146,10 @@ export function TripWorkspace({ user }: { user: UserSession | null }) {
         </div> : <div className="trip-inspector-body"><p className="trip-muted">{uiText("일정 구간을 추가하면 노피가 도와드릴게요.")}</p></div>}
       </aside>
     </div>}
-    {dialog === 'planner' && <NopiCoursePlanner document={document} dayId={day.id} disabled={saving || conflict || blocked} onClose={() => setDialog(null)} onApply={(nextDays, baseline, overview, activeDayId) => {
+    {dialog === 'planner' && <NopiCoursePlanner document={document} dayId={day.id} disabled={saving || conflict || blocked} onClose={() => setDialog(null)} onApply={(nextDays, baseline, overview, activeDayId, needs) => {
       if (saving || conflict || blocked) throw new Error('저장 또는 동기화가 끝난 뒤 다시 반영해 주세요.');
       if (JSON.stringify(document) !== baseline) throw new Error('여행 일정이 바뀌었어요. 코스 만들기를 다시 열어 주세요.');
-      if (nextDays.length) change({ ...document, days: document.days.map(item => nextDays.find(next => next.id === item.id) || item) });
+      change({ ...document, needs, days: document.days.map(item => nextDays.find(next => next.id === item.id) || item) });
       setDayId(activeDayId);
       setBlockId((nextDays.find(item => item.id === activeDayId) || document.days.find(item => item.id === activeDayId))?.blocks[0]?.id || '');
       setDialog(overview ? 'overview' : null);
@@ -163,7 +163,7 @@ export function TripWorkspace({ user }: { user: UserSession | null }) {
       setDialog(null);
     }} />}
     {dialog === 'sharing' && <TripSharing trip={trip} onClose={() => setDialog(null)} />}
-    {(dialog === 'tourism' || dialog === 'searchPlace') && pickerBlock && <PlacePicker destination={document.destination} initial={dialog === 'tourism' ? tourismAnchor || block?.places[0] : editingPlace} excluded={tripExclusions(document, undefined, (dialog === 'tourism' ? tourismAnchor || block?.places[0] : editingPlace)?.id)} context={uiText(`${shortDate(day.date)} · ${pickerBlock.title}`)} onClose={() => { setDialog(null); setPickerNewBlock(null); }} onSelect={place => {
+    {(dialog === 'tourism' || dialog === 'searchPlace') && pickerBlock && <PlacePicker needs={document.needs} destination={document.destination} initial={dialog === 'tourism' ? tourismAnchor || block?.places[0] : editingPlace} excluded={tripExclusions(document, undefined, (dialog === 'tourism' ? tourismAnchor || block?.places[0] : editingPlace)?.id)} context={uiText(`${shortDate(day.date)} · ${pickerBlock.title}`)} onClose={() => { setDialog(null); setPickerNewBlock(null); }} onSelect={place => {
       if (saving || conflict || blocked) throw new Error('동기화 상태를 확인한 뒤 다시 담아 주세요.');
       const newBlock = pickerNewBlock ? { ...pickerNewBlock, endTime: clock(Math.min(1439, minutes(pickerNewBlock.startTime) + Math.max(90, place.durationMinutes))) } : null;
       const source = newBlock ? { ...document, days: document.days.map(item => item.id === day.id ? { ...item, blocks: [...item.blocks, newBlock] } : item) } : document;

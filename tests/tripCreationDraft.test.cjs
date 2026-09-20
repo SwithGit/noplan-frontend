@@ -1,10 +1,11 @@
 const test = require('node:test'), assert = require('node:assert/strict');
 const fs = require('node:fs'), vm = require('node:vm'), ts = require('typescript');
 const compiled = ts.transpileModule(fs.readFileSync('src/features/trips/tripCreationDraft.ts', 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+const needsBox={exports:{}};vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/features/trips/travelNeeds.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,needsBox);const needsModule=needsBox.exports;
 const fixture = () => {
   const data = new Map(), local = new Map();
   const sessionStorage = { getItem: key => data.get(key) ?? null, setItem: (key, value) => data.set(key, value), removeItem: key => data.delete(key) };
-  const load = () => { const box = { exports: {}, sessionStorage, localStorage: { getItem: key => local.get(key) ?? null }, require: () => ({ tomorrow: () => '2026-09-20' }) }; vm.runInNewContext(compiled, box); return box.exports; };
+  const load = () => { const box = { exports: {}, sessionStorage, localStorage: { getItem: key => local.get(key) ?? null }, require: name => name === './travelNeeds' ? needsModule : ({ tomorrow: () => '2026-09-20' }) }; vm.runInNewContext(compiled, box); return box.exports; };
   return { data, local, sessionStorage, load };
 };
 test('home to creation retains every input, survives reload and isolates accounts', () => {
@@ -28,4 +29,11 @@ test('unavailable session storage still preserves navigation; corrupt data uses 
   assert.equal(store.readTripCreation('alice').destination, '서울');
   f.local.set('noplan.trip.transport:bob', 'car');
   assert.equal(store.readTripCreation('bob').transport, 'car');
+});
+
+test('pet and facility choices persist across reloads and remain account-specific',()=>{
+  const f=fixture(),store=f.load(),needs={pet:{enabled:true,species:'cat',weightKg:4.5,indoor:true},facilities:{entrance:'required',parking:'prefer'}};
+  store.writeTripCreation({...store.readTripCreation('alice'),needs},'alice');
+  assert.deepEqual(JSON.parse(JSON.stringify(f.load().readTripCreation('alice').needs)),needs);
+  assert.equal(f.load().readTripCreation('bob').needs,undefined);
 });

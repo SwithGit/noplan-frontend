@@ -1,3 +1,4 @@
+import { TravelSupportPanel } from './TravelSupportPanel';
 import { TourismText } from '../../i18n/TourismText';
 import { t as uiText } from '../../i18n/translate';
 import { useMemo, useRef, useState } from 'react';
@@ -91,6 +92,7 @@ export function TripDayWorkspace({ document, day, photos, disabled, onChange, on
                   <button type="button" className="trip-icon-button" aria-label={uiText(`$<TourismText place={place} /> 아래로`)} disabled={disabled || (index === 0 ? blockIndex === blocks.length - 1 : place.fixed || index === block.places.length - 1 || block.places[index + 1]?.fixed)} onClick={() => index === 0 ? move(block, 1) : moveInside(block, index, 1)}><TripIcon name="down" /></button>
                   <button type="button" className="trip-icon-button" aria-label={uiText(`$<TourismText place={place} /> 삭제`)} disabled={disabled} onClick={() => { if (window.confirm(`$<TourismText place={place} />을 일정에서 뺄까요? 되돌리기로 복구할 수 있어요.`)) changeDay(removeWorkspacePlace(day, place)); }}><TripIcon name="close" /></button>
                 </div></div>
+                <TravelSupportPanel contentId={place.tourism?.contentId} needs={document.needs} />
                 {index === 0 && notes && <details className="journey-stop-notes"><summary>{uiText("방문 정보·메모")}</summary><p>{notes}</p></details>}
                 {index === 0 && usedMinutes(block) > minutes(block.endTime) - minutes(block.startTime) && <p className="trip-alert">{uiText("체류·이동 시간이 구간을 넘어요. 시간을 조정해 주세요.")}</p>}
               </div>

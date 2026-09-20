@@ -1,3 +1,4 @@
+import { evaluateNeeds, hasTravelNeeds, type TravelNeeds, type TravelSupport } from './travelNeeds';
 import type { TourismAttraction } from '../../api/tourismApi';
 import type { DayRouteResult } from '../../api/dayRouteApi';
 import { clock, minutes, newId, type TripDay, type TripDocument, type TripPlace } from './tripModel';
@@ -6,9 +7,9 @@ import { excludedPlace, placeKeys } from './placeIdentity';
 
 export type Purpose = '발견' | '데이트' | '친구모임' | '가족여행' | '자연산책' | '문화여행';
 export interface PlanningFacts { menu: string; hours: string; closed: string }
-export interface NopiAttraction extends TourismAttraction { planning?: PlanningFacts | null }
+export interface NopiAttraction extends TourismAttraction { planning?: PlanningFacts | null; support?: TravelSupport; centralRank?: number; relatedRank?: number }
 export interface CourseNode { place: TripPlace; imageUrl?: string; imageLicense?: string; reason?: string; planning?: PlanningFacts | null; notBefore?: number; initialNotBefore?: number; originalNotes?: string }
-export interface NopiOptions { date: string; start: string; end: string; transport: TripDocument['transport']; purpose: Purpose; district: string }
+export interface NopiOptions { date: string; start: string; end: string; transport: TripDocument['transport']; purpose: Purpose; district: string; needs?: TravelNeeds }
 
 export function tourismNode(place: NopiAttraction, duration = 90): CourseNode {
   return { place: { id: newId(), name: place.name, address: place.address, type: foodKind(place) === 'cafe' ? '카페' : place.type, lat: place.lat, lng: place.lng, durationMinutes: duration, fixed: true, source: 'tourism', sourceUrl: place.sourceUrl, priceNeedsCheck: true, tourism: { contentId: place.contentId, contentTypeId: place.contentTypeId } }, imageUrl: place.imageUrl, imageLicense: place.imageLicense, planning: place.planning };
@@ -94,10 +95,10 @@ export function suggestCourse(catalog: NopiAttraction[], options: NopiOptions, e
   // Apply only to automatic suggestions; search and manually added stops stay available.
   const departmentStore = (place: NopiAttraction) => place.contentTypeId === '38'
     && (place.classification === 'SH01' || /백화점|더현대/.test(place.name.replace(/\s/g, '')));
-  const pool = catalog.filter(place => !departmentStore(place) && !excludedPlace({ ...place, tourism: { contentId: place.contentId, contentTypeId: place.contentTypeId } }, excluded) && place.contentTypeId !== '25' && (!options.district || place.district === options.district) && !closedOn(place, options.date)
+  const pool = catalog.filter(place => evaluateNeeds(place.support, options.needs).eligible && !departmentStore(place) && !excludedPlace({ ...place, tourism: { contentId: place.contentId, contentTypeId: place.contentTypeId } }, excluded) && place.contentTypeId !== '25' && (!options.district || place.district === options.district) && !closedOn(place, options.date)
     && !/캠핑|야영|골프|컨트리클럽|스키|썰매|물놀이장|수영장|등산|산$|산\(울산\)/.test(place.name) && Number.isFinite(place.lat) && Number.isFinite(place.lng));
   const maxCount = Math.max(1, ...pool.map(p => p.searchCount || 0)), maxShare = Math.max(1, ...pool.map(p => p.demographicShare || 0));
-  const scores = new Map(pool.map(p => [p.contentId, 1.4 * preference(p, options.purpose) + 1.6 * (p.demographicShare || 0) / maxShare + Math.log1p(p.searchCount || 0) / Math.log1p(maxCount)]));
+  const scores = new Map(pool.map(p => [p.contentId, 1.4 * preference(p, options.purpose) + Math.min(1.5, evaluateNeeds(p.support, options.needs).score * .3) + (p.centralRank ? .3 / Math.sqrt(p.centralRank) : 0) + (p.relatedRank ? .2 / Math.sqrt(p.relatedRank) : 0) + 1.6 * (p.demographicShare || 0) / maxShare + Math.log1p(p.searchCount || 0) / Math.log1p(maxCount)]));
   const score = (p: NopiAttraction) => scores.get(p.contentId)!;
   const pairDistances = new Map<string, number>();
   const metersBetween = (a: NopiAttraction, b: NopiAttraction) => {
@@ -200,6 +201,22 @@ export function suggestCourse(catalog: NopiAttraction[], options: NopiOptions, e
       if (!beam.length) break;
     }
     if (beam.length) return beam[0].items.map((p, index) => ({ ...tourismNode(p, durationFor(p)), reason: preference(p, options.purpose) ? `${options.purpose}에 어울리는 장소` : '가까운 동선으로 연결', ...(beam[0].mealStarts[index] ? { notBefore: beam[0].mealStarts[index] } : {}) }));
+  }
+  // A short, verified outing is useful when strict facility needs leave few places.
+  if (hasTravelNeeds(options.needs)) {
+    for (const first of ranked.filter(p => roleOf(p) === 'visit')) {
+      const firstTime = visitTime(minutes(options.start), durationFor(first), first.planning, options.date);
+      if (!firstTime.fits) continue;
+      const second = candidatesNear(first).find(p => {
+        const meters = metersBetween(first, p);
+        if (p.contentId === first.contentId || meters < AUTO_STOP_SEPARATION_METERS || rejectedEdges.has(edgeId(first.contentId, p.contentId))) return false;
+        const travel = Math.ceil(meters / (options.transport === 'walk' ? 65 : 400)) + (options.transport === 'car' ? 5 : 0);
+        const timing = visitTime(firstTime.arrival + durationFor(first) + travel, durationFor(p), p.planning, options.date);
+        return timing.fits && timing.arrival + durationFor(p) <= minutes(options.end);
+      });
+      if (second) return [first, second].map(p => ({ ...tourismNode(p, durationFor(p)), reason: '조건에 맞는 장소로 짧게 구성했어요. 식사 장소는 포함되지 않을 수 있어요.' }));
+    }
+    throw Error('확인한 후보 안에서 필수 조건과 이동거리 제한에 맞는 코스를 찾지 못했어요. 조건을 완화하지 않았어요. 다른 지역을 고르거나 장소를 직접 확인해 주세요.');
   }
   throw Error(`${courseDistanceLabel(options.transport)} 이내에서 연결할 가까운 장소가 부족해요. 거리를 넓히지 않았어요. 다른 권역을 선택하거나 직접 장소를 담아 주세요.`);
 }

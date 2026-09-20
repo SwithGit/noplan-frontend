@@ -43,6 +43,7 @@ export function beginPcOperation(action: PcAction, fields: PcFields = {}) {
 
 export function pcApiEndpoint(path: string) {
   const route = path.split('?')[0];
+  if (/^\/api\/tourism\/travel-support\/(places|catalog|discovery)$/.test(route)) return route;
   if (/^\/api\/tourism\/(search|nopi-catalog|day-route)$/.test(route)) return route;
   if (/^\/api\/tourism\/[^/]+$/.test(route)) return '/api/tourism/:id';
   if (/^\/api\/events(?:\/|$)/.test(route)) return '/api/events';

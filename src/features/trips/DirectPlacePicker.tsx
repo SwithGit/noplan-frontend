@@ -1,3 +1,4 @@
+import { hasTravelNeeds, type TravelNeeds } from './travelNeeds';
 import { t as uiText } from '../../i18n/translate';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Map, MapMarker, ZoomControl } from 'react-kakao-maps-sdk';
@@ -11,8 +12,8 @@ import './directPlacePicker.css';
 const readyNow = () => typeof kakao !== 'undefined' && Boolean(kakao.maps?.services?.Places);
 const categoryName: Record<string, string> = { FD6: '음식점', CE7: '카페', AT4: '관광지', CT1: '문화시설', AD5: '숙소' };
 const pointOf = (place?: TripPlace) => place?.lat != null && place.lng != null ? { lat: place.lat, lng: place.lng } : undefined;
-export function DirectPlacePicker({ destination, initial, context, excluded, onClose, onRecommended, onSelect }: {
-  destination: string; initial?: TripPlace; context: string; excluded: Record<string, string>;
+export function DirectPlacePicker({ needs, destination, initial, context, excluded, onClose, onRecommended, onSelect }: {
+  needs?: TravelNeeds; destination: string; initial?: TripPlace; context: string; excluded: Record<string, string>;
   onClose: () => void; onRecommended: () => void; onSelect: (place: TripPlace) => void;
 }) {
   const [ready, setReady] = useState(readyNow);
@@ -100,6 +101,7 @@ export function DirectPlacePicker({ destination, initial, context, excluded, onC
   const mapPin = manual ? pin : pointOf(selected);
   return <TripDialog title={uiText("가고 싶은 곳을 직접 찾아보세요")} className="direct-place-dialog" onClose={onClose}>
     <div className="direct-place-top"><div><span className="trip-eyebrow">{context}</span><p>{uiText("네이버지도나 카카오맵에서 발견한 곳도 이름으로 찾아 담아보세요.")}</p></div><button type="button" className="trip-button" onClick={onRecommended}>{uiText("추천 장소 보기")}</button></div>
+    {hasTravelNeeds(needs) && <p className="support-panel support-warning">{uiText('직접 등록한 장소는 조건을 확인한 뒤 방문해 주세요.')}</p>}
     <div className="direct-place-workbench">
       <section className="direct-place-search" aria-label={uiText("직접 장소 검색")}>
         <div className="direct-place-tabs"><button type="button" aria-pressed={!manual} onClick={() => { cancelSearch(); setManual(false); setError(''); }}>{uiText("이름으로 검색")}</button><button type="button" aria-pressed={manual} onClick={switchManual}>{uiText("지도에 직접 지정")}</button></div>

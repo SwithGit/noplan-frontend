@@ -1,3 +1,4 @@
+import { TravelNeedsForm } from './TravelNeedsForm';
 import { t as uiText } from '../../i18n/translate';
 import { useState, type FormEvent } from 'react';
 import { TripDialog } from './TripDialog';
@@ -61,6 +62,7 @@ export function TripSettings({ trip, onClose, onSave }: { trip: TripDocument; on
     <label>{uiText("함께하는 사람")}<select value={value.companion} onChange={e => setValue({ ...value, companion: e.target.value })}>{['혼자', '친구', '연인', '가족', '동료'].map(item => <option key={item} value={item}>{uiText(item)}</option>)}</select></label>
     <label>{uiText("여행지까지")}<select value={value.outbound} onChange={e => setValue({ ...value, outbound: e.target.value as TripDocument['outbound'] })}>{Object.entries(outboundLabels).map(([key, label]) => <option value={key} key={key}>{uiText(label)}</option>)}</select></label>
     <label>{uiText("여행지 안에서")}<select value={value.transport} onChange={e => setValue({ ...value, transport: e.target.value as TripDocument['transport'] })}>{Object.entries(transportLabels).map(([key, label]) => <option value={key} key={key}>{uiText(label)}</option>)}</select></label>
+    <TravelNeedsForm value={value.needs} onChange={needs => setValue({ ...value, needs })} />
     {error && <p className="trip-alert" role="alert">{uiText(error)}</p>}<button className="trip-button primary" type="submit">{uiText("변경 저장 ")}<TripIcon name="check" /></button>
   </form></TripDialog>;
 }

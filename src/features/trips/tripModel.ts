@@ -1,3 +1,4 @@
+import type { TravelNeeds } from './travelNeeds';
 import { getLocale } from '../../i18n/locale';
 import type { CoursePlace } from '../../types/noplan';
 
@@ -21,6 +22,7 @@ export interface TripPlace {
 export interface TripBlock { id: string; title: string; area: string; startTime: string; endTime: string; notes: string; places: TripPlace[] }
 export interface TripDay { id: string; date: string; transport?: 'walk' | 'transit' | 'car'; blocks: TripBlock[] }
 export interface TripDocument {
+  needs?: TravelNeeds;
   title: string; destination: string; startDate: string; endDate: string;
   outbound: 'undecided' | 'train' | 'bus' | 'flight' | 'car' | 'local';
   transport: 'walk' | 'transit' | 'car'; companion: string; days: TripDay[];
