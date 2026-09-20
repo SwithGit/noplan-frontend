@@ -33,6 +33,7 @@ import { TripHome } from './features/trips/TripHome';
 import { TripCreatePage } from './features/trips/TripCreatePage';
 import { TripWorkspace } from './features/trips/TripWorkspace';
 import { PENDING_TRIP_INVITE, TripJoin } from './features/trips/TripSharing';
+import { readPendingTripCreation } from './features/trips/pendingTripCreation';
 import { EventsPage } from './features/events/EventsPage';
 import { EventDetail } from './features/events/EventDetail';
 import type { UserSession } from './types/noplan';
@@ -102,6 +103,7 @@ function AppRoutes() {
 
   useEffect(() => {
     if (!user || location.pathname !== ROUTES.appHome) return;
+    if (readPendingTripCreation()) { navigate(`${ROUTES.newTrip}?resume=1`, { replace: true }); return; }
     try {
       const token = sessionStorage.getItem(PENDING_TRIP_INVITE);
       if (token && /^[a-zA-Z0-9_-]{43}$/.test(token)) navigate(`${ROUTES.tripJoin}#${token}`, { replace: true });

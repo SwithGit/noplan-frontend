@@ -1,17 +1,20 @@
 import { t as uiText } from '../../i18n/translate';
 import { useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import type { UserSession } from '../../types/noplan';
 import { ROUTES } from '../../routes';
 import { TripCreateForm } from './TripCreateForm';
+import { TripCreationResume } from './TripCreationResume';
 import './trips.css';
 
 export function TripCreatePage({ user }: { user: UserSession | null }) {
+  const location = useLocation();
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
     heading.current?.focus({ preventScroll: true });
   }, []);
+  if (new URLSearchParams(location.search).get('resume') === '1') return <TripCreationResume user={user} />;
   return <div className="trip-home trip-create-page">
     <header className="trip-create-page-heading">
       <nav aria-label={uiText("현재 위치")}><Link to={ROUTES.appHome}>{uiText("홈")}</Link><span>/</span><span>{uiText("새 여행 만들기")}</span></nav>

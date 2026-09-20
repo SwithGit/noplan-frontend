@@ -5,14 +5,16 @@ import { t as uiText } from '../../i18n/translate';
 import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { UserSession } from '../../types/noplan';
-import { tripRoute } from '../../routes';
-import { createTrip, dayCount, outboundLabels, transportLabels, writeDraft, type TripDocument } from './tripModel';
+import { ROUTES } from '../../routes';
+import { createTrip, dayCount, outboundLabels, transportLabels, type TripDocument, type TripRecord } from './tripModel';
 import { TripIcon, type TripIconName } from './TripIcon';
 import { TripDetailSelect } from './TripDetailSelect';
 import { TourismPicker } from './TourismPicker';
 import { setTourismAnchor } from './tourismModel';
 import { courseDistanceLabel } from './coursePolicy';
-import { readTripCreation, writeTripCreation, clearTripCreation } from './tripCreationDraft';
+import { readTripCreation, writeTripCreation, type TripCreationDraft } from './tripCreationDraft';
+import { queueTripCreation } from './pendingTripCreation';
+import { TripDialog } from './TripDialog';
 import { getTourismRegions, type TourismRegion } from '../../api/tourismApi';
 import { destinationDistricts, formatDestination, resolveDestination } from './tripDestination';
 
@@ -46,6 +48,7 @@ export function TripCreateForm({ user }: { user: UserSession | null }) {
   const [visitDate, setVisitDate] = useState(initial.visitDate);
   const [visitSlot, setVisitSlot] = useState(initial.visitSlot);
   const [error, setError] = useState('');
+  const [loginTrip, setLoginTrip] = useState<{ trip: TripRecord; draft: TripCreationDraft; focusDayId?: string; focusBlockId?: string } | null>(null);
   const [destinationNotice, setDestinationNotice] = useState('');
   const selectDestination = (region: TourismRegion, district = '') => {
     const next = formatDestination(region, district);
@@ -70,10 +73,10 @@ export function TripCreateForm({ user }: { user: UserSession | null }) {
         if (!targetDay || !targetBlock) throw new Error('관광지를 방문할 날짜를 여행 기간 안에서 다시 선택해 주세요.');
         trip.document = setTourismAnchor(trip.document, targetDay.id, targetBlock.id, attraction, visitDuration);
       }
-      // Navigation state keeps creation usable even when browser storage is full.
-      try { writeDraft(trip, user?.userId); } catch { /* editor shows persistence status */ }
-      clearTripCreation(user?.userId);
-      navigate(tripRoute(trip.id), { state: { initialTrip: trip, ...(attraction ? { focusDayId: targetDay?.id, focusBlockId: targetBlock?.id } : {}) } });
+      const prepared = { trip, draft: { destination: selectedRegion, startDate, endDate, transport, outbound, companion, needs, attraction, visitDuration, visitDate, visitSlot }, ...(attraction ? { focusDayId: targetDay?.id, focusBlockId: targetBlock?.id } : {}) };
+      if (!user) { setLoginTrip(prepared); return; }
+      queueTripCreation({ ...prepared, sourceUserId: user.userId, accountId: user.userId });
+      navigate(`${ROUTES.newTrip}?resume=1`);
     } catch (cause) { setError(cause instanceof Error ? cause.message : '여행 조건을 확인해 주세요.'); }
   };
   const count = dayCount(startDate, endDate);
@@ -125,6 +128,13 @@ export function TripCreateForm({ user }: { user: UserSession | null }) {
       <div className="trip-create-submit"><span><b>{uiText(transportLabels[transport])}</b>{uiText("로 여행해요")}<small>{uiText(transport === 'transit' ? '대중교통 자동 추천은 준비 중이에요.' : `자동 코스는 장소 사이 실제 이동 ${courseDistanceLabel(transport)} 이내로 연결해요.`)}</small></span><button className="trip-button primary" type="submit">{uiText("이 조건으로 일정 시작하기 ")}<TripIcon name="arrow" /></button></div>
     </form>
     {pickingTourism && <TourismPicker needs={needs} destination={destination} initial={attraction} initialDuration={visitDuration} context={uiText("선택할 여행 구간")} onClose={() => setPickingTourism(false)} onSelect={(place, duration) => { setAttraction(place); setVisitDuration(duration); setPickingTourism(false); }} />}
+    {loginTrip && <TripDialog title={uiText('여행을 저장하고 친구와 함께 계획해 보세요.')} onClose={() => setLoginTrip(null)}>
+      <p className="trip-muted">{uiText('입력한 여행 조건은 그대로 유지돼요. 로그인하면 여행을 만들고 일정 화면으로 바로 이어져요.')}</p>
+      <div className="trip-timeline-actions"><button className="trip-button" type="button" onClick={() => setLoginTrip(null)}>{uiText('계속 수정하기')}</button><button className="trip-button primary" type="button" onClick={() => {
+        queueTripCreation(loginTrip);
+        navigate(ROUTES.login);
+      }}>{uiText('로그인하고 여행 만들기')}</button></div>
+    </TripDialog>}
     {error && <div className="trip-alert trip-create-error" role="alert">{uiText(error)}</div>}
   </>;
 }

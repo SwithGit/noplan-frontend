@@ -31,7 +31,7 @@
 .journey-condition-row .trip-detail-chevron .trip-icon { width: 13px; height: 13px; }
 .journey-condition-row .trip-detail-menu { width: 270px; z-index: 40; }
 .journey-conditions-disabled { opacity: .5; }
-.journey-main-actions { display: flex; gap: 12px; padding: 5px 0 18px; }
+.journey-main-actions { display: flex; flex-wrap: wrap; gap: 12px; padding: 5px 0 18px; }
 .journey-main-actions .trip-button { min-height: 50px; font-size: 15px; padding-inline: 22px; }
 .journey-main-actions .primary { background: linear-gradient(110deg,#7650e3,#754adb); box-shadow: 0 5px 12px #6f4acd25; }
 .journey-main-actions img { width: 30px; height: 30px; object-fit: contain; margin-right: 4px; }
@@ -108,3 +108,4 @@
 .journey-main-actions .trip-button { min-height: 46px; }
 .journey-nopi-note { padding: 8px 12px; margin-bottom: 15px; }
 .journey-nopi-note > img { width: 30px; height: 30px; }
+.journey-main-actions .journey-overview-button{margin-left:auto}
