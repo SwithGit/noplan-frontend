@@ -10,8 +10,6 @@
 .legal-card h1 { font-size: clamp(25px, 4vw, 34px); letter-spacing: -.04em; line-height: 1.35; margin: 0 0 16px; word-break: keep-all; }
 .legal-summary { color: #766b8b; line-height: 1.8; }
 .legal-version { color: #8b819a; font-size: 12px; overflow-wrap: anywhere; }
-.legal-draft { margin: 24px 0; background: #fff9ec; border: 1px solid #f1e0bc; border-radius: 12px; padding: 18px; color: #775e30; font-size: 13px; }
-.legal-draft p { line-height: 1.75; margin: 8px 0 0; }
 .legal-contents { display: grid; gap: 10px; padding: 20px; background: #f8f5ff; border-radius: 12px; }
 .legal-contents a { color: #6e4eac; font-size: 13px; text-underline-offset: 3px; }
 .legal-section { margin-top: 34px; scroll-margin-top: 24px; }

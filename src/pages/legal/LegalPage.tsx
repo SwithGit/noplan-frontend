@@ -7,9 +7,9 @@ import './legal.css';
 
 const languageNotes = {
   ko: '문서는 한국어 원문으로 제공됩니다.',
-  en: 'These documents are currently available in Korean. They are drafts for review, not finalized policies.',
-  ja: 'この文書は現在韓国語で提供されています。確認用の草案であり、確定した規約ではありません。',
-  'zh-CN': '这些文件目前以韩文提供，属于审核草案，尚未定稿。',
+  en: 'These documents are currently available in Korean.',
+  ja: 'この文書は現在韓国語で提供されています。',
+  'zh-CN': '这些文件目前以韩文提供。',
 };
 
 export default function LegalPage({ documentId }: { documentId: LegalDocumentId }) {
@@ -21,7 +21,7 @@ export default function LegalPage({ documentId }: { documentId: LegalDocumentId 
       <nav className="legal-nav" aria-label="Legal documents" lang="ko">{(Object.keys(LEGAL_PATHS) as LegalDocumentId[]).map(id => <Link key={id} to={LEGAL_PATHS[id]} aria-current={id === documentId ? 'page' : undefined}>{legalDocuments[id].title}</Link>)}</nav>
       <article className="legal-card" lang="ko" key={documentId}>
         <header><p className="legal-eyebrow">NOPLAN · LEGAL</p><h1>{doc.title}</h1><p className="legal-summary">{doc.summary}</p><p className="legal-version">작성일 2026.09.20 · 버전 {LEGAL_VERSION}</p></header>
-        <aside className="legal-draft" role="note"><strong>검토용 초안 · 시행 전</strong><p>현재 가입 기능을 기준으로 작성한 초안입니다. 보관·삭제 기간과 위탁·국외 이전 사항 등을 확인한 후 확정합니다.</p><p lang={locale}>{languageNotes[locale]}</p></aside>
+        {locale !== 'ko' && <p className="legal-version" lang={locale}>{languageNotes[locale]}</p>}
         <nav className="legal-contents" aria-label="목차">{doc.sections.map((section, index) => <a href={`#legal-${documentId}-${index}`} key={section.title}>{section.title}</a>)}</nav>
         {doc.sections.map((section, index) => <section className="legal-section" id={`legal-${documentId}-${index}`} key={section.title}><h2>{section.title}</h2>{section.paragraphs?.map(paragraph => <p key={paragraph}>{paragraph}</p>)}{section.items && <ul>{section.items.map(item => <li key={item}>{item}</li>)}</ul>}</section>)}
         <footer className="legal-contact"><strong>{LEGAL_CONTACT.company} · 책임자 {LEGAL_CONTACT.name}</strong><a href={`mailto:${LEGAL_CONTACT.email}`}>{LEGAL_CONTACT.email}</a><a href={`tel:${LEGAL_CONTACT.phone.replaceAll('-', '')}`}>{LEGAL_CONTACT.phone}</a>{documentId === 'privacy' && <Link to={ROUTES.privacyArchive}>이전 개인정보처리방침 (2026.03.23)</Link>}</footer>
