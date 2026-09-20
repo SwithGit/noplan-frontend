@@ -5,7 +5,7 @@ import { PublicText, PublicTranslationNote } from '../../i18n/PublicText';
 import { t as uiText } from '../../i18n/translate';
 import {getLocale} from '../../i18n/locale';
 import {useEffect,useState} from 'react';
-import {Link,useSearchParams} from 'react-router-dom';
+import {Link,useSearchParams,useLocation} from 'react-router-dom';
 import {fetchEvents} from '../../api/eventsApi';
 import {eventRoute} from '../../routes';
 import {TripIcon} from '../trips/TripIcon';
@@ -19,18 +19,18 @@ import './mobileEvents.css';
 
 const regions=['서울','경기','인천','강원','부산','대구','대전','광주','울산','세종','충북','충남','전북','전남','경북','경남','제주'];
 export function EventsPage(){
-  const desktop=useDesktop();
+  const desktop=useDesktop(),routeLocation=useLocation();
   const [filtersOpen,setFiltersOpen]=useState(false);
-  const [params,setParams]=useSearchParams();const query=params.toString();
+  const [params,setParams]=useSearchParams(!desktop&&!routeLocation.search?{from:koreaToday(),to:koreaToday()}:undefined);const query=params.toString();
   const nearby=Boolean(params.get('near'));
   const [revision,setRevision]=useState(0),[response,setResponse]=useState<{key:string;result:EventResult|null;error:string}>({key:'',result:null,error:''});
   const requestKey=`${query}:${revision}`,loading=response.key!==requestKey,result=loading?null:response.result,error=loading?'':response.error;
-  const [searchState,setSearchState]=useState({query,value:params.get('q')||''});
-  const search=searchState.query===query?searchState.value:params.get('q')||'';
-  const setSearch=(value:string)=>setSearchState({query,value});
+  const submittedSearch=params.get('q')||'';
+  const [search,setSearch]=useState(submittedSearch);
+  useEffect(()=>setSearch(submittedSearch),[submittedSearch]);
   useEffect(()=>{let cancelled=false;fetchEvents(new URLSearchParams(query)).then(data=>{if(!cancelled)setResponse({key:requestKey,result:data,error:''});}).catch(cause=>{if(!cancelled)setResponse({key:requestKey,result:null,error:cause instanceof Error?cause.message:'행사를 불러오지 못했어요.'});});return()=>{cancelled=true;};},[query,requestKey]);
   const update=(patch:Record<string,string>)=>{const next=new URLSearchParams(params);next.delete('page');Object.entries(patch).forEach(([key,value])=>value?next.set(key,value):next.delete(key));setParams(next);};
-  const reset=()=>{setSearch('');setParams({});};
+  const reset=()=>{setSearch('');setParams(desktop?{}:{from:koreaToday(),to:koreaToday()});};
   const weekend=()=>{const now=new Date(`${koreaToday()}T00:00:00Z`),offset=(6-now.getUTCDay()+7)%7;now.setUTCDate(now.getUTCDate()+offset);const from=now.toISOString().slice(0,10);now.setUTCDate(now.getUTCDate()+1);update({from,to:now.toISOString().slice(0,10)});};
   const from=params.get('from')||'',to=params.get('to')||'';
   return <div className={`events-page ${!desktop?'mobile-events':''} ${filtersOpen?'filters-open':''}`}>
@@ -39,11 +39,11 @@ export function EventsPage(){
     <section className="event-search-panel" aria-label={uiText("축제·전시 검색")}>
       <div className="event-search-heading"><h2>{uiText(nearby?'코스 주변 행사':desktop?'축제·전시 찾아보기':'둘러볼 지역·날짜')}</h2><span>{uiText("전국 축제 · 서울 문화행사")}</span></div>
       {nearby&&<div className="event-nearby-context"><p>{uiText("코스 각 장소에서 직선 1km 이내 · 코스 방문 날짜 기준")}</p><button type="button" onClick={reset}>{uiText("다른 지역·날짜로 찾기")}</button></div>}
-      <form className={`event-search-row ${nearby?'nearby-mode':''}`} onSubmit={e=>{e.preventDefault();update({q:search});}}>
-        <label className="event-region-field">{uiText("지역")}<select aria-label={uiText("행사 지역")} value={params.get('region')||''} onChange={e=>update({region:e.target.value})}><option value="">{uiText("전국")}</option>{regions.map(region=><option key={region} value={region}>{uiText(region)}</option>)}</select></label>
-        <label className="event-date-field">{uiText(!desktop&&!filtersOpen?'방문일':'방문 시작일')}<LocalizedDateInput aria-label={uiText("행사 시작일")} type="date" min={koreaToday()} value={from} onChange={e=>update({from:e.target.value,...(!desktop&&!filtersOpen||to&&e.target.value>to?{to:e.target.value}:{})})}/></label>
-        <label className="event-date-field event-date-end">{uiText("방문 종료일")}<LocalizedDateInput aria-label={uiText("행사 종료일")} type="date" min={from||koreaToday()} value={to} onChange={e=>update({to:e.target.value,...(from&&e.target.value&&e.target.value<from?{from:e.target.value}:{})})}/></label>
-        <label className="event-search-input">{uiText("행사·장소 이름")}<input maxLength={100} placeholder={uiText("어떤 경험을 찾고 있나요?")} value={search} onChange={e=>setSearch(e.target.value)}/></label><button className="trip-button primary event-search-submit" type="submit">{uiText("검색 ")}<TripIcon name="arrow"/></button>
+      <form className={`event-search-row ${nearby?'nearby-mode':''}`} onSubmit={e=>{e.preventDefault();const fields=new FormData(e.currentTarget),start=String(fields.get('from')||''),end=String(fields.get('to')||'');update({q:String(fields.get('q')||'').trim(),...(!nearby?{from:start,to:!desktop&&!filtersOpen?start:end&&end<start?start:end,region:String(fields.get('region')||'')}:{})});setRevision(value=>value+1);}}>
+        <label className="event-region-field">{uiText("지역")}<select name="region" aria-label={uiText("행사 지역")} value={params.get('region')||''} onChange={e=>update({region:e.target.value})}><option value="">{uiText("전국")}</option>{regions.map(region=><option key={region} value={region}>{uiText(region)}</option>)}</select></label>
+        <label className="event-date-field">{uiText(!desktop&&!filtersOpen?'방문일':'방문 시작일')}<LocalizedDateInput name="from" aria-label={uiText("행사 시작일")} type="date" min={koreaToday()} value={from} onChange={e=>update({from:e.target.value,...(!desktop&&!filtersOpen||to&&e.target.value>to?{to:e.target.value}:{})})}/></label>
+        <label className="event-date-field event-date-end">{uiText("방문 종료일")}<LocalizedDateInput name="to" aria-label={uiText("행사 종료일")} type="date" min={from||koreaToday()} value={to} onChange={e=>update({to:e.target.value,...(from&&e.target.value&&e.target.value<from?{from:e.target.value}:{})})}/></label>
+        <label className="event-search-input">{uiText("행사·장소 이름 (선택)")}<input name="q" aria-label={uiText("행사·장소 이름")} maxLength={100} placeholder={uiText("어떤 경험을 찾고 있나요?")} value={search} onChange={e=>setSearch(e.target.value)}/></label><button className="trip-button primary event-search-submit" type="submit">{uiText("검색 ")}<TripIcon name="arrow"/></button>
       </form>
       {!desktop&&!nearby&&<button className="event-filter-toggle" type="button" aria-expanded={filtersOpen} onClick={()=>setFiltersOpen(value=>!value)}>{uiText(filtersOpen?'상세 검색 접기':'상세 검색 · 기간 / 이름 / 무료')} <TripIcon name="arrow"/></button>}
       <div className="event-quick-dates">{!nearby&&<><span>{uiText("날짜 빠르게 선택")}</span><button type="button" onClick={()=>update({from:koreaToday(),to:koreaToday()})}>{uiText("오늘")}</button><button type="button" onClick={weekend}>{uiText("이번 토·일")}</button></>}<label className="event-free-filter"><input type="checkbox" checked={params.get('free')==='true'} onChange={e=>update({free:e.target.checked?'true':''})}/>{uiText("무료로 확인된 행사")}</label><button type="button" onClick={reset}>{uiText("전체 조건 초기화")}</button></div>

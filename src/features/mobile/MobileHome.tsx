@@ -16,11 +16,12 @@ import { MobileContentDetail, MobilePlaceCard } from './MobileCards';
 import './mobile.css';
 
 export function MobileHome({user,active}:{user:UserSession|null;active:boolean}) {
-  const navigate=useNavigate();const {condition,setCondition,startFromText,detectCurrentLocation,currentPosition,activePlan,hasActivePlan}=usePlanner();
+  const navigate=useNavigate();const {condition,setCondition,startFromText,detectCurrentLocation,ensureCurrentLocation,currentPosition,activePlan,hasActivePlan}=usePlanner();
   const [text,setText]=useState(condition.rawText),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
   const [locationOpen,setLocationOpen]=useState(false),[areaInput,setAreaInput]=useState(''),[locating,setLocating]=useState(false);
   const [nearby,setNearby]=useState<CoursePlace[]>([]),[nearbyError,setNearbyError]=useState(''),[loading,setLoading]=useState(false),[reload,setReload]=useState(0),[detail,setDetail]=useState<FavoriteInput|null>(null);
   const area=condition.locationLabel||condition.location;
+  useEffect(()=>{if(active)ensureCurrentLocation();},[active,ensureCurrentLocation]);
   useEffect(()=>{
     if(!active||!user?.userId||!area)return;
     let cancelled=false;setLoading(true);setNearbyError('');setNearby([]);

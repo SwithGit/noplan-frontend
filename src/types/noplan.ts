@@ -31,6 +31,7 @@ export interface PlannerCondition {
 }
 
 export interface CurrentPosition {
+  capturedAt?: number;
   address?: string;
   label?: string;
   lat: number;

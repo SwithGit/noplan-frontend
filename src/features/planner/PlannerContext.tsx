@@ -2,7 +2,9 @@ import { inferNamedTextLocation, resolveTextLocation } from './textLocation';
 import { isCourseRecommendationPlace } from './recommendationPolicy';
 import { savedAccuracyPreferences, accuracyMissing } from './accuracyModel';
 import { readPlannerDraft, savePlannerDraft, missingPlannerCondition } from './plannerDraft';
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from 'react';
+import { extractDongFromText } from '../../utils/location';
+import { createLocationResolver } from './locationCache';
 import { generateCourse, makeFallbackPlan, parsePlannerCondition, trackPlannerEvent, trackRecommendationImpressions } from '../../api/plannerApi';
 import type { CoursePlan, CurrentPosition, PlannerCondition } from '../../types/noplan';
 import type { CourseProgress } from '../../api/courseRequest';
@@ -55,6 +57,7 @@ interface PlannerContextValue {
   locationStatus: 'idle' | 'locating' | 'success' | 'error';
   searchError: string;
   detectCurrentLocation: (options?: { updateCondition?: boolean; updateStatus?: boolean }) => Promise<{ address: string; label: string }>;
+  ensureCurrentLocation: () => void;
   setCondition: (patch: Partial<PlannerCondition>) => void;
   inputNotice: string;
   startFromText: (text: string) => Promise<boolean>;
@@ -112,7 +115,7 @@ function compactLocationLabel(address: string) {
     .replace(/^경기도\s*/u, '')
     .trim();
   const parts = cleaned.split(/\s+/u).filter(Boolean);
-  const dong = parts.find((part) => /동$/u.test(part));
+  const dong = extractDongFromText(address);
   const district = parts.find((part) => /(구|군)$/u.test(part));
   const road = parts.find((part) => /(로|길)\d*(가길|길)?$/u.test(part));
 
@@ -128,7 +131,7 @@ function locationLabelFromGeocode(item: KakaoGeocodeResult, address: string) {
   const district = item?.road_address?.region_2depth_name || item?.address?.region_2depth_name;
   const roadName = item?.road_address?.road_name;
 
-  if (dong && /동$/u.test(dong)) return dong;
+  if (dong && extractDongFromText(dong)) return dong;
   if (district && roadName) return `${district} ${baseRoadName(roadName)}`;
 
   return compactLocationLabel(address);
@@ -243,6 +246,13 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
   const [initialDraft] = useState(() => readPlannerDraft({ ...defaultCondition, accuracy: savedAccuracyPreferences() }));
   const [condition, setConditionState] = useState(initialDraft.condition);
   const [currentPosition, setCurrentPosition] = useState<CurrentPosition | null>(initialDraft.currentPosition);
+  const [resolveCurrentLocation] = useState(()=>createLocationResolver(async()=>{
+    const position=await getBrowserPosition();
+    const lat=position.coords.latitude,lng=position.coords.longitude;
+    const location=await reverseGeocode(lat,lng);
+    return {...location,lat,lng,capturedAt:Date.now()};
+  },initialDraft.currentPosition));
+  const automaticLocationAttempted=useRef(false);
   const [plan, setPlan] = useState(() => makeFallbackPlan(defaultCondition));
   const [activePlan, setActivePlan] = useState<CoursePlan | null>(null);
   const hasActivePlan = Boolean(activePlan && activePlan.courseData.length > 0 && activePlan.source !== 'fallback');
@@ -359,12 +369,8 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     if (options.updateStatus !== false) setLocationStatus('locating');
 
     try {
-      const position = await getBrowserPosition();
-      const lat = position.coords.latitude;
-      const lng = position.coords.longitude;
-      const location = await reverseGeocode(lat, lng);
-
-      setCurrentPosition({ address: location.address, label: location.label, lat, lng });
+      const location = await resolveCurrentLocation();
+      setCurrentPosition(location);
       if (options.updateCondition !== false) {
         setConditionState((prev) => ({
           ...prev,
@@ -379,6 +385,17 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       if (options.updateStatus !== false) setLocationStatus('error');
       throw error instanceof Error ? error : new Error('현재 위치를 가져오지 못했어요.');
     }
+  };
+
+  const ensureCurrentLocation = () => {
+    const previousLocation=condition.location;
+    const needsNeighborhood=Boolean(currentPosition?.address===previousLocation && !extractDongFromText(condition.locationLabel,previousLocation));
+    if ((previousLocation&&!needsNeighborhood) || automaticLocationAttempted.current) return;
+    automaticLocationAttempted.current=true;
+    void detectCurrentLocation({updateCondition:false}).then(found=>{
+      // Do not overwrite an area the user typed while GPS was resolving.
+      setConditionState(prev=>prev.location&&!(needsNeighborhood&&prev.location===previousLocation)?prev:{...prev,location:found.address,locationLabel:found.label});
+    }).catch(()=>undefined);
   };
 
   const loadPlan = (nextPlan: CoursePlan) => {
@@ -443,6 +460,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     searchError,
     inputNotice,
     detectCurrentLocation,
+    ensureCurrentLocation,
     loadPlan,
     selectCurrentPlan,
     selectPlanOption,

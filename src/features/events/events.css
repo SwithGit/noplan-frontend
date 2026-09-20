@@ -52,7 +52,7 @@
 .mobile-events .event-location-button { position:absolute; right:20px; top:16px; }
 .mobile-events .event-search-heading { padding-right:85px; min-height:30px; }
 .mobile-events:not(.filters-open) .event-region-field { grid-column:auto; }
-.mobile-events:not(.filters-open) :is(.event-date-end,.event-search-input,.event-search-submit,.event-quick-dates) { display:none; }
+.mobile-events:not(.filters-open) :is(.event-date-end,.event-search-input,.event-quick-dates) { display:none; }
 .mobile-events:not(.filters-open) .nearby-mode :is(.event-search-input,.event-search-submit) { display:block; }
 .mobile-events:not(.filters-open) .event-search-row label:first-child { grid-column:auto; }
 .event-filter-toggle { display:flex; justify-content:space-between; align-items:center; width:100%; margin-top:17px; padding:13px 0 0; border:0; border-top:1px solid #eee7f6; background:none; font:inherit; font-size:11px; color:#907ca4; cursor:pointer; }

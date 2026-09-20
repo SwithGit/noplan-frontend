@@ -1,4 +1,4 @@
-const DONG_PATTERN = /([가-힣0-9]+동)(?=\s|$|[,()])/u;
+const DONG_PATTERN = /([가-힣0-9·]+동(?:\d+가)?)(?=\s|$|[,()])/u;
 const LOCALIZED_NEIGHBORHOODS: Record<string, string> = {
   'yeonnam-dong': '연남동', 'yeonnam': '연남동', '延南洞': '연남동', 'ヨンナムドン': '연남동', '延南洞（ヨンナムドン）': '연남동',
   'seongsu-dong': '성수동', 'seongsu': '성수동', '圣水洞': '성수동', '聖水洞': '성수동', 'ソンスドン': '성수동',

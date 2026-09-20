@@ -17,19 +17,26 @@ import coast from '../src/assets/travel/coastal-escape.webp';
 import '../src/styles/app-layout.css';
 import '../src/features/mobile/mobile.css';
 const query=new URLSearchParams(location.search),user=query.has('member')?{userId:'preview',userNick:'미리보기',profileURL:''}:null;
+// GPS and geocoding are fixtures too; preview never requests real device location.
+let gpsCalls=0;const requests:string[]=[];
+const report=()=>{const el=document.getElementById('preview-diagnostics');if(el)el.textContent=JSON.stringify({gpsCalls,requests});};
+Object.defineProperty(navigator,'geolocation',{configurable:true,value:{getCurrentPosition:(success:any,failure:any)=>{gpsCalls++;report();queueMicrotask(()=>query.has('geoFail')?failure(new Error('위치 권한이 거부됐어요.')):success({coords:{latitude:37.54,longitude:127.05}}));}}});
+(window as any).kakao={maps:{services:{Status:{OK:'OK'},Geocoder:class {coord2Address(_lng:number,_lat:number,done:any){done([{address:{address_name:'서울 성동구 성수동2가 300',region_3depth_name:'성수동2가'},road_address:{address_name:'서울 성동구 연무장길',region_2depth_name:'성동구',road_name:'연무장길'}}],'OK');}}}}};
+const diagnostics=document.createElement('pre');diagnostics.id='preview-diagnostics';diagnostics.hidden=true;document.body.append(diagnostics);
 const event={id:'seoul:preview',provider:'seoul',providerId:'preview',title:'[미리보기] 가을의 작은 전시',kind:'exhibition',startDate:'2026-09-01',endDate:'2026-10-30',address:'서울 성동구 성수동',region:'서울',district:'성동구',venue:'미리보기 전시장',lat:37.54,lng:127.05,imageUrl:coast,imageLicense:'미리보기용',sourceUrl:'https://example.com',description:'화면 확인용 행사입니다.',hours:'10:00—18:00',price:'무료',isFree:true,age:'전체',phone:'',status:'scheduled',sourceLabel:'미리보기 데이터'};
 let favorites:any[]=JSON.parse(sessionStorage.getItem('mobile-preview-favorites')||'[]');
 const course=(id:number,type:string)=>({id,title:type==='cafe'?'[미리보기] 성수 카페 산책':'[미리보기] 동네 맛집 한 끼',location:'성수동',courseData:[{id:String(id),name:type==='cafe'?'미리보기 카페':'미리보기 식당',type,category:type==='cafe'?'카페':'맛집',address:'서울 성동구 성수동',imageUrl:coast,durationMinutes:90}]});
 window.fetch=async(input,init)=>{
- const url=new URL(String(input),location.origin);let data:any={};
+ const url=new URL(String(input),location.origin);requests.push(url.pathname+url.search);report();let data:any={};
  if(url.pathname.endsWith('/favorites')){
   if(init?.method==='PUT'){const favorite={...JSON.parse(String(init.body)),id:'saved-event',savedAt:new Date().toISOString()};favorites=[favorite];sessionStorage.setItem('mobile-preview-favorites',JSON.stringify(favorites));data={favorite};}else data={favorites};
  }else if(url.pathname.includes('/favorites/')&&init?.method==='DELETE'){favorites=[];sessionStorage.removeItem('mobile-preview-favorites');}
  else if(url.pathname.includes('explore-courses'))data={success:true,courses:url.searchParams.has('dong')?[course(1,'cafe')]:[course(1,'cafe'),course(2,'food')]};
  else if(url.pathname==='/api/events/weekly')data={events:query.has('weeklyEmpty')?[]:[event,{...event,id:'seoul:preview-2',title:'[미리보기] 주말 가을 축제',kind:'festival',region:'부산'},{...event,id:'seoul:preview-3',title:'[미리보기] 가을 저녁 음악회',kind:'performance',region:'제주'}],from:'2026-09-20',to:'2026-09-20',sources:[]};
- else if(url.pathname==='/api/events')data={events:[event,{...event,id:'seoul:preview-2',title:'[미리보기] 주말 가을 축제',kind:'festival'}],total:2,page:1,pageSize:20,sources:[]};
+ else if(url.pathname==='/api/events'){const events=[event,{...event,id:'seoul:preview-2',title:'[미리보기] 주말 가을 축제',kind:'festival'}].filter(item=>(!url.searchParams.get('from')||item.endDate>=url.searchParams.get('from')!)&&(!url.searchParams.get('to')||item.startDate<=url.searchParams.get('to')!)&&(!url.searchParams.get('q')||item.title.includes(url.searchParams.get('q')!)));data={events,total:events.length,page:1,pageSize:20,sources:[]};}
  else if(url.pathname.startsWith('/api/events/'))data={event};
  else if(url.pathname.includes('/tourism/'))data={overview:'한국관광공사 상세 화면 미리보기',course:{duration:'3시간',stops:[{name:'미리보기 장소',description:'실제 관광 데이터는 운영 API에서 확인합니다.'}]}};
+ else if(url.pathname==='/api/trips')data={success:true,trips:[]};
  else if(url.pathname.startsWith('/api/trips/')){const trip=createTrip({title:'[미리보기] 함께 만든 여행',destination:'서울',startDate:'2026-09-20',endDate:'2026-09-20',companion:'친구',transport:'walk',needs:[]});trip.id='preview';trip.version=1;trip.collaboration={enabled:true,role:'editor',memberCount:2};data={trip};}
  else if(url.pathname.includes('nearby'))data={places:[]};
  return new Response(JSON.stringify(data),{headers:{'Content-Type':'application/json'}});
