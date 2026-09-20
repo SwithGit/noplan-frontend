@@ -1,6 +1,6 @@
 const test=require('node:test'), assert=require('node:assert/strict');
 const fs=require('node:fs'), vm=require('node:vm'), ts=require('typescript'), crypto=require('node:crypto');
-function load(path,deps={}) { const sandbox={exports:{},crypto,require:name=>{if(deps[name])return deps[name];throw new Error(name);}}; vm.runInNewContext(ts.transpileModule(fs.readFileSync(path,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,sandbox);return sandbox.exports; }
+function load(path,deps={}) { const sandbox={exports:{},crypto,require:name=>{if(deps[name])return deps[name];if(name==='../../i18n/locale')return {getLocale:()=> 'ko'}; throw new Error(name);}}; vm.runInNewContext(ts.transpileModule(fs.readFileSync(path,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,sandbox);return sandbox.exports; }
 const model=load('src/features/trips/tripModel.ts');
 const {setTourismAnchor,attractionFromPlace}=load('src/features/trips/tourismModel.ts',{'./tripModel':model});
 const attraction={contentId:'126207',contentTypeId:'12',name:'경주 첨성대',type:'관광지',address:'경상북도 경주시 첨성로 140-25',lat:35.83433,lng:129.21853,sourceUrl:'https://www.data.go.kr/data/15101578/openapi.do',sourceLabel:'한국관광공사 TourAPI'};

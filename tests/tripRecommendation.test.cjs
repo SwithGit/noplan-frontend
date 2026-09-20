@@ -1,6 +1,6 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),vm=require('node:vm'),ts=require('typescript'),crypto=require('node:crypto');
-const sandbox={exports:{},crypto};
+const sandbox={exports:{},crypto,require:name=>{assert.equal(name,'../../i18n/locale');return {getLocale:()=> 'ko'};}};
 vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/features/trips/tripModel.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,sandbox);
 const m=sandbox.exports;
 const make=()=>m.createTrip({title:'울산',destination:'울산',startDate:'2026-09-19',endDate:'2026-09-19',outbound:'car',transport:'car',companion:'친구'}).document;

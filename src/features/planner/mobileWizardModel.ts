@@ -17,7 +17,11 @@ export function wizardTimeRange(time: string, duration: string, now = new Date()
   let start=Date.UTC(korea.getUTCFullYear(),korea.getUTCMonth(),korea.getUTCDate(),korea.getUTCHours(),korea.getUTCMinutes());
   const explicit=time.match(/^(\d{4})-(\d{2})-(\d{2})\s+(AM|PM)\s+(\d{1,2})\s*:\s*(\d{2})$/);
   if(explicit) start=Date.UTC(+explicit[1],+explicit[2]-1,+explicit[3],+explicit[5]%12+(explicit[4]==='PM'?12:0),+explicit[6]);
-  else if(time==='오늘 저녁'||time==='오늘 밤') start=new Date(start).setUTCHours(time==='오늘 저녁'?18:21,0,0,0);
+  else if(time==='오늘 저녁'||time==='오늘 밤') {
+    const hour=korea.getUTCHours();
+    const inside=time==='오늘 저녁'?hour>=17&&hour<20:hour>=20;
+    if(!inside)start=new Date(start).setUTCHours(time==='오늘 저녁'?17:20,0,0,0);
+  }
   else if(time!=='지금') return {start:time||'출발 시각 선택',end:duration||'종료 시각 선택'};
   const format=(v:number)=>new Intl.DateTimeFormat('ko-KR',{timeZone:'UTC',hour:'numeric',minute:'2-digit'}).format(v);
   let end:number|undefined;

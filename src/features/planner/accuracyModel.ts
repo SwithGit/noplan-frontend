@@ -14,6 +14,7 @@ export function savedAccuracyPreferences(): PlannerAccuracy {
       alcoholPreference: saved.alcoholPreference,
       drinkServings: saved.drinkServings,
       excludedDetails: Array.isArray(saved.excludedDetails) ? saved.excludedDetails.filter(x => typeof x === 'string') : [],
+      preferredFoodDetails: Array.isArray(saved.preferredFoodDetails) ? saved.preferredFoodDetails.filter(x => ['한식','중식','양식','일식','고기','분식','해산물'].includes(x)) : undefined,
     };
   } catch { return {}; }
 }

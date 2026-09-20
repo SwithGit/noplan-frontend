@@ -1,6 +1,6 @@
 const test = require('node:test'), assert = require('node:assert/strict');
 const fs = require('node:fs'), vm = require('node:vm'), ts = require('typescript'), crypto = require('node:crypto');
-function load(path, deps = {}) { const box = { exports: {}, crypto, require: name => { if (deps[name]) return deps[name]; throw Error(name); } }; vm.runInNewContext(ts.transpileModule(fs.readFileSync(path, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, box); return box.exports; }
+function load(path, deps = {}) { const box = { exports: {}, crypto, require: name => { if (deps[name]) return deps[name]; if(name==='../../i18n/locale')return {getLocale:()=> 'ko'}; throw Error(name); } }; vm.runInNewContext(ts.transpileModule(fs.readFileSync(path, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, box); return box.exports; }
 const trip = load('src/features/trips/tripModel.ts');
 const route = load('src/features/trips/dayRouteModel.ts', { './tripModel': trip });
 const model = load('src/features/trips/dayWorkspaceModel.ts', { './tripModel': trip, './dayRouteModel': route });

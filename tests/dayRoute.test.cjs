@@ -1,6 +1,6 @@
 const test = require('node:test'), assert = require('node:assert/strict');
 const fs = require('node:fs'), vm = require('node:vm'), ts = require('typescript'), crypto = require('node:crypto');
-function load(path, deps = {}) { const sandbox = { exports: {}, crypto, require: name => { if (deps[name]) return deps[name]; throw new Error(name); } }; vm.runInNewContext(ts.transpileModule(fs.readFileSync(path, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, sandbox); return sandbox.exports; }
+function load(path, deps = {}) { const sandbox = { exports: {}, crypto, require: name => { if (deps[name]) return deps[name]; if(name==='../../i18n/locale')return {getLocale:()=> 'ko'}; throw new Error(name); } }; vm.runInNewContext(ts.transpileModule(fs.readFileSync(path, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, sandbox); return sandbox.exports; }
 const model = load('src/features/trips/tripModel.ts');
 const { dayRouteLegs, moveDayOuting, routePoint } = load('src/features/trips/dayRouteModel.ts', { './tripModel': model });
 const place = (id, lat = 35.5) => ({ id, name: id, lat, lng: 129.3, durationMinutes: 60, fixed: true, travelMinutes: 5 });

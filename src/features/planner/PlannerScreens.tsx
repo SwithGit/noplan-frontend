@@ -24,6 +24,8 @@ import type { PlannerCondition, CoursePlan } from '../../types/noplan';
 import { ROUTES, coursePlaceRoute } from '../../routes';
 import { usePlanner } from './PlannerContext';
 import { AccuracyPreferences } from './AccuracyPreferences';
+import { MobilePlannerWizard } from './MobilePlannerWizard';
+import { useDesktop } from '../mobile/useDesktop';
 import { accuracyMissing } from './accuracyModel';
 import {
   PLANNER_CATEGORIES,
@@ -431,6 +433,10 @@ export function PlannerHome({ active = true }: { active?: boolean }) {
 }
 
 export function ChatStart() {
+  return useDesktop() ? <DesktopChatStart /> : <MobilePlannerWizard DateSheet={DateTimeSheet} AddressSheet={AddressInputSheet} />;
+}
+
+function DesktopChatStart() {
   const navigate = useNavigate();
   const { condition, detectCurrentLocation, locationStatus, setCondition, inputNotice } = usePlanner();
   const [activeStep, setActiveStep] = useState(() => {
@@ -1341,6 +1347,10 @@ function QuickQuestion({ children, subtitle, title }: QuickQuestionProps) {
 }
 
 export function ConditionConfirm() {
+  return useDesktop() ? <DesktopConditionConfirm /> : <MobilePlannerWizard review DateSheet={DateTimeSheet} AddressSheet={AddressInputSheet} />;
+}
+
+function DesktopConditionConfirm() {
   const navigate = useNavigate();
   const { condition, detectCurrentLocation, locationStatus, runSearch, searchError, setCondition } = usePlanner();
   const [editSection, setEditSection] = useState<ConditionEditSection | null>(null);
