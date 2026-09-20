@@ -24,7 +24,7 @@ export default function LegalPage({ documentId }: { documentId: LegalDocumentId 
         {locale !== 'ko' && <p className="legal-version" lang={locale}>{languageNotes[locale]}</p>}
         <nav className="legal-contents" aria-label="목차">{doc.sections.map((section, index) => <a href={`#legal-${documentId}-${index}`} key={section.title}>{section.title}</a>)}</nav>
         {doc.sections.map((section, index) => <section className="legal-section" id={`legal-${documentId}-${index}`} key={section.title}><h2>{section.title}</h2>{section.paragraphs?.map(paragraph => <p key={paragraph}>{paragraph}</p>)}{section.items && <ul>{section.items.map(item => <li key={item}>{item}</li>)}</ul>}</section>)}
-        <footer className="legal-contact"><strong>{LEGAL_CONTACT.company} · 책임자 {LEGAL_CONTACT.name}</strong><a href={`mailto:${LEGAL_CONTACT.email}`}>{LEGAL_CONTACT.email}</a><a href={`tel:${LEGAL_CONTACT.phone.replaceAll('-', '')}`}>{LEGAL_CONTACT.phone}</a>{documentId === 'privacy' && <Link to={ROUTES.privacyArchive}>이전 개인정보처리방침 (2026.03.23)</Link>}</footer>
+        <footer className="legal-contact"><strong>{LEGAL_CONTACT.company} · 책임자 {LEGAL_CONTACT.name}</strong><a href={`mailto:${LEGAL_CONTACT.email}`}>{LEGAL_CONTACT.email}</a>{documentId === 'privacy' && <Link to={ROUTES.privacyArchive}>이전 개인정보처리방침 (2026.03.23)</Link>}</footer>
       </article>
     </main>
     <footer className="legal-footer"><Link to={ROUTES.signup}>회원가입으로 이동</Link><span>계획 없어도 좋은 하루, 노플랜</span></footer>

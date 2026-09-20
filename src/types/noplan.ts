@@ -63,6 +63,7 @@ export interface PlannerAccuracy {
   drinkServings?: number;
   alcoholPreference?: 'any' | 'soju' | 'beer' | 'wine' | 'cocktail';
   excludedDetails?: string[];
+  preferredFoodDetails?: string[];
   allowUnverifiedHours?: boolean;
   maxWalkingDistanceMeters?: number;
 }
