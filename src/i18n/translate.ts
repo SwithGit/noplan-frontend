@@ -1,6 +1,8 @@
 import { getLocale, type Locale } from './locale';
 import { messages } from './messages';
 import { mobileMessages } from './mobileMessages';
+import { siteMessages } from './siteMessages';
+import { reviewedMessages } from './reviewedMessages';
 
 const templates: Record<string, readonly [string,string,string]> = {
   '{0} 이내의 실제 경로로 연결하기 어려워요. 거리를 넓히지 않았어요. 다른 권역을 선택하거나 장소를 직접 담아 주세요.': ['We could not connect a route within {0}. The limit was kept. Try another area or add places yourself.', '无法在{0}以内连接实际路线，距离限制保持不变。请选择其他地区或手动添加地点。', '{0}以内の実際の経路で接続できませんでした。制限は維持しています。別のエリアを選ぶか、場所を直接追加してください。'],
@@ -23,19 +25,19 @@ const templates: Record<string, readonly [string,string,string]> = {
   '{0}에서 보내는 하루': ['A day in {0}', '在{0}的一天', '{0}で過ごす一日'],
   '{0}에서 보내는 {1}일': ['{1} days in {0}', '在{0}的{1}天', '{0}で過ごす{1}日間'],
 };
-const patterns=Object.entries(templates).map(([key,values])=>({
-  regex:new RegExp('^'+key.split(/(\{\d+\})/).map(part=>/^\{\d+\}$/.test(part)?'(.+?)':part.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('')+'$'),values,
+const patterns=Object.entries({...Object.fromEntries(Object.entries(siteMessages).filter(([key])=>/\{\d+\}/.test(key))),...templates,...Object.fromEntries(Object.entries(reviewedMessages).filter(([key])=>/\{\d+\}/.test(key)))}).sort(([a],[b])=>b.replace(/\{\d+\}/g,'').length-a.replace(/\{\d+\}/g,'').length).map(([key,values])=>({
+  regex:new RegExp('^'+key.split(/(\{\d+\})/).map((part,i,parts)=>/^\{\d+\}$/.test(part)? (/^(대|분|시간|곳|박|일|페이지)(?:\s|$)/.test(parts[i+1] || '') ? '(\\d+(?:\\.\\d+)?)' : '(.+?)'):part.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('')+'$'),values,
 }));
 
 export function translate<T>(value: T, locale: Locale = getLocale()): T {
   if (locale === 'ko' || typeof value !== 'string') return value;
-  const text = value.trim();
+  const text = value.trim().replace(/\s+/g,' ');
   const index = locale === 'en' ? 0 : locale === 'zh-CN' ? 1 : 2;
-  const translation = (messages[text] || mobileMessages[text])?.[index];
-  if (translation) return value.replace(text, translation) as T;
+  const translation = (reviewedMessages[text] || messages[text] || mobileMessages[text] || siteMessages[text])?.[index];
+  if (translation) return (value.match(/^\s*/)?.[0]+translation+value.match(/\s*$/)?.[0]) as T;
   for(const pattern of patterns) {
     const match=pattern.regex.exec(text);
-    if(match) return value.replace(text,pattern.values[index].replace(/\{(\d+)\}/g,(_,n)=>translate(match[Number(n)+1],locale))) as T;
+    if(match) return (value.match(/^\s*/)?.[0] + pattern.values[index].replace(/\{(\d+)\}/g,(_,n)=>translate(match[Number(n)+1],locale)) + value.match(/\s*$/)?.[0]) as T;
   }
   return value;
 }

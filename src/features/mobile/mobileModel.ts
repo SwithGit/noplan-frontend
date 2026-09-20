@@ -1,9 +1,9 @@
 import type { CoursePlace, CoursePlan, ExploreCourse } from '../../types/noplan';
 import { parseExploreCoursePlaces } from '../../utils/coursePlan';
 
-export interface FavoriteInput { kind: 'course' | 'place'; title: string; location: string; places: CoursePlace[] }
+export interface FavoriteInput { kind: 'course' | 'place'; title: string; location: string; places: CoursePlace[]; publicCourseId?:number }
 export interface Favorite extends FavoriteInput { id: string; savedAt: string; unavailable?: boolean }
-export const courseFavorite = (course: ExploreCourse): FavoriteInput => ({kind:'course', title:course.title, location:course.location || '', places:parseExploreCoursePlaces(course)});
+export const courseFavorite = (course: ExploreCourse): FavoriteInput => ({kind:'course', title:course.title, location:course.location || '', places:parseExploreCoursePlaces(course),publicCourseId:course.id});
 export const planFavorite = (plan: CoursePlan): FavoriteInput => ({kind:'course',title:plan.title,location:plan.location,places:plan.courseData});
 export const placeFavorite = (place: CoursePlace): FavoriteInput => ({kind:'place',title:place.name || place.title,location:place.address || '',places:[place]});
 export const favoriteIdentity = (item: FavoriteInput) => JSON.stringify([item.kind,item.kind === 'course' ? item.title.trim().toLowerCase() : '',item.places.map(place => [(place.name || place.title).trim().toLowerCase(),(place.address || '').trim().toLowerCase()])]);

@@ -5,13 +5,15 @@ import { ROUTES } from '../../routes';
 import { useFavorites } from './favoritesContext';
 import { favoriteIdentity, type FavoriteInput } from './mobileModel';
 import nopi from '../../assets/nopi/nopi-home.png';
+import nopiIcon from '../../assets/nopi/nopi-icon.png';
+import {getLocale} from '../../i18n/locale';
 
 export function MobileIcon({name}:{name:'heart'|'arrow'|'pin'|'search'|'spark'|'close'|'clock'|'settings'|'route'}) {
   const paths:Record<string,ReactNode>={heart:<path d="M20.8 4.8a5.5 5.5 0 0 0-7.8 0L12 5.9l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.4a5.5 5.5 0 0 0 0-7.8Z"/>,arrow:<path d="m9 5 7 7-7 7"/>,pin:<><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z"/><circle cx="12" cy="10" r="2.5"/></>,search:<><circle cx="10" cy="10" r="7"/><path d="m15 15 6 6"/></>,spark:<><path d="m12 2 3 7 7 3-7 3-3 7-3-7-7-3 7-3Z"/></>,close:<path d="m6 6 12 12M6 18 18 6"/>,clock:<><circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/></>,settings:<><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="15" cy="17" r="3"/></>,route:<><circle cx="6" cy="5" r="2"/><circle cx="18" cy="19" r="2"/><path d="M6 7v7a5 5 0 0 0 5 5h5M12 5h4a4 4 0 0 1 0 8h-4"/></>};
   return <svg className="m-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{paths[name]}</svg>;
 }
-export function MobileHeading({eyebrow,title,description}:{eyebrow:string;title:ReactNode;description:string}) {return <header className="m-heading"><div><span>{eyebrow}</span><h1>{uiText(title)}</h1><p>{uiText(description)}</p></div><img src={nopi} alt="" /></header>;}
-export function EmptyState({title,children,action}:{title:string;children:ReactNode;action?:ReactNode}) {return <div className="m-empty"><img src={nopi} alt=""/><h2>{uiText(title)}</h2><p>{children}</p>{action}</div>;}
+export function MobileHeading({eyebrow,title,description}:{eyebrow:string;title:ReactNode;description:string}) {return <header className="m-heading"><div><span>{uiText(eyebrow)}</span><h1>{uiText(title)}</h1><p>{uiText(description)}</p></div><img src={getLocale()==='ko'?nopi:nopiIcon} alt="" /></header>;}
+export function EmptyState({title,children,action}:{title:string;children:ReactNode;action?:ReactNode}) {return <div className="m-empty"><img src={getLocale()==='ko'?nopi:nopiIcon} alt=""/><h2>{uiText(title)}</h2><p>{children}</p>{action}</div>;}
 export function FavoriteButton({item,compact=false}:{item:FavoriteInput;compact?:boolean}) {
   const {user,items,loading,busy,error,reload,toggle}=useFavorites();const [message,setMessage]=useState('');
   const selected=items.some(value=>favoriteIdentity(value)===favoriteIdentity(item));

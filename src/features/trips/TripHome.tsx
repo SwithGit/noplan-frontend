@@ -77,7 +77,7 @@ export function TripHome({ user, libraryOnly=false }: { user: UserSession | null
   }, [user, reload]);
   return <div className={`trip-home ${libraryOnly?'library-only':''}`}>
     {desktop && !libraryOnly ? <HomeHero /> : <section className="travel-hero">
-      <img src={coast} alt="푸른 바다와 산책길이 있는 해안 여행 일러스트" fetchPriority="high" />
+      <img src={coast} alt={uiText("푸른 바다와 산책길이 있는 해안 여행 일러스트")} fetchPriority="high" />
       <div className="travel-hero-copy"><span className="trip-eyebrow">YOUR NEXT LITTLE ESCAPE</span><h1>{uiText("가고 싶은 곳에서,")}<br />{uiText("우리다운 여행으로.")}</h1><p>{uiText("큰 일정은 가볍게 정하고")}<br />{uiText("그 사이의 좋은 순간은 노피와 채워보세요.")}</p><a href="#trip-create" className="travel-hero-link">{uiText("새로운 여행을 시작해요 ")}<TripIcon name="arrow" /></a></div>
       <span className="travel-hero-stamp">Less planning.<br /><b>More memories.</b></span>
     </section>}

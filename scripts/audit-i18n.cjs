@@ -1,0 +1,9 @@
+const ts=require('typescript'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+const load=f=>{const exports={};vm.runInNewContext(ts.transpileModule(fs.readFileSync(f,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{exports});return Object.values(exports)[0];};
+const known={...load('src/i18n/messages.ts'),...load('src/i18n/mobileMessages.ts'),...(fs.existsSync('src/i18n/siteMessages.ts')?load('src/i18n/siteMessages.ts'):{}),...load('src/i18n/reviewedMessages.ts')};
+const out=new Map();
+function walk(dir){for(const e of fs.readdirSync(dir,{withFileTypes:true})){const f=path.join(dir,e.name);if(e.isDirectory()){if(!['i18n','admin'].includes(e.name))walk(f);continue;}if(!/\.tsx?$/.test(f)||/Privacy|MapBoard|\.test\./.test(f))continue;const source=ts.createSourceFile(f,fs.readFileSync(f,'utf8'),ts.ScriptTarget.Latest,true,f.endsWith('.tsx')?ts.ScriptKind.TSX:ts.ScriptKind.TS);function visit(n){let raw='';if(ts.isStringLiteral(n)||ts.isJsxText(n)||ts.isNoSubstitutionTemplateLiteral(n))raw=n.text;else if(ts.isTemplateExpression(n))raw=n.head.text+n.templateSpans.map((span,i)=>`{${i}}`+span.literal.text).join('');const s=raw.trim().replace(/\s+/g,' ');if(/[가-힣]/.test(s)&&!known[s]&&!s.includes('https://')){if(!out.has(s))out.set(s,[]);out.get(s).push(f);}ts.forEachChild(n,visit);}visit(source);}}
+walk('src');
+const regions=require('node:module').createRequire('D:/Backend/NoPlan/package.json')('./routes/tourism/national').regionOptions();
+for(const region of regions)for(const text of [region.name,...region.districts,...region.districts.map(d=>region.name+' '+d)])if(!known[text])out.set(text,['UI region dropdown']);
+fs.mkdirSync('output/i18n',{recursive:true});fs.writeFileSync('output/i18n/missing.json',JSON.stringify([...out].map(([text,files])=>({text,files:[...new Set(files)]})),null,2));console.log(out.size+' untranslated source strings');

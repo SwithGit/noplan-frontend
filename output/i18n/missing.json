@@ -1,0 +1,26 @@
+[
+  {
+    "text": "핫플 가져오기 에러 ㅠㅠ:",
+    "files": [
+      "src\\components\\ExploreFeed.tsx"
+    ]
+  },
+  {
+    "text": "조회수 올리기 에러 ㅠㅠ:",
+    "files": [
+      "src\\components\\ExploreFeed.tsx"
+    ]
+  },
+  {
+    "text": "하트 스위치 에러 ㅠㅠ:",
+    "files": [
+      "src\\components\\ExploreFeed.tsx"
+    ]
+  },
+  {
+    "text": "카카오 로그인 실패 ㅠㅠ:",
+    "files": [
+      "src\\pages\\auth\\KakaoCallback.tsx"
+    ]
+  }
+]

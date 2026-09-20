@@ -1,3 +1,4 @@
+import { PublicText } from '../i18n/PublicText';
 import { t as uiText } from '../i18n/translate';
 import { useEffect, useRef } from 'react';
 import type { CoursePlace, ExploreCourse } from '../types/noplan';
@@ -66,14 +67,14 @@ export default function ExploreDetailModal({ course, places, onClose, onLike, on
       <section aria-labelledby="explore-preview-title" aria-modal="true" className="explore-preview-dialog" ref={dialogRef} role="dialog">
         <header>
           <div>
-            <span>{uiText(course.location || '서울')}</span>
-            <h2 id="explore-preview-title">{uiText(course.title)}</h2>
+            <span><PublicText source={{kind:'course',id:course.id}} text={course.location || '서울'}/></span>
+            <h2 id="explore-preview-title"><PublicText source={{kind:'course',id:course.id}} text={course.title}/></h2>
           </div>
           <button aria-label={uiText("코스 미리보기 닫기")} ref={closeRef} type="button" onClick={onClose}>×</button>
         </header>
 
         {course.review_image ? (
-          <img alt={`${course.title} 대표 사진`} className="explore-preview-hero" src={course.review_image} />
+          <img alt={uiText(`${course.title} 대표 사진`)} className="explore-preview-hero" src={course.review_image} />
         ) : (
           <div className="explore-preview-hero visual">
             <PlaceVisual alt={places[0]?.name} color={places[0]?.color} imageUrl={places[0]?.imageUrl} type={places[0]?.type} detailType={places[0]?.detailType} />
@@ -92,7 +93,7 @@ export default function ExploreDetailModal({ course, places, onClose, onLike, on
           {places.map((place, index) => (
             <li key={`${place.id}-${index}`}>
               <PlaceVisual alt={place.name} color={place.color} imageUrl={place.imageUrl} label={uiText(String(index + 1))} type={place.type} detailType={place.detailType} />
-              <div><span>{place.category}</span><strong>{uiText(place.title)}</strong><p>{place.summary}</p></div>
+              <div><span>{uiText(place.category)}</span><strong><PublicText source={{kind:'course',id:course.id}} text={place.title || ''}/></strong><p><PublicText source={{kind:'course',id:course.id}} text={place.summary || ''}/></p></div>
             </li>
           ))}
         </ol>

@@ -723,7 +723,7 @@ export function ChatStart() {
 
           {selectedPlaces.map((selection) => (
             <div className="purpose-detail-group" key={selection.category}>
-              <p className="option-label">{selection.category}{uiText(" 세부 선택")}</p>
+              <p className="option-label">{uiText(selection.category)}{uiText(" 세부 선택")}</p>
               <div className="sub-option-panel">
                 {placeDetailOptions[selection.category].map((option) => (
                   <button
@@ -989,7 +989,7 @@ function ConditionEditSheet({
                   <b>›</b>
                 </button>
               )}
-              {locationError && <p className="inline-message warning" role="alert">{locationError}</p>}
+              {locationError && <p className="inline-message warning" role="alert">{uiText(locationError)}</p>}
             </>
           )}
 
@@ -1081,7 +1081,7 @@ function ConditionEditSheet({
               </div>
               {draftPlaces.map((selection) => (
                 <div className="purpose-detail-group" key={selection.category}>
-                  <p className="edit-subtitle">{selection.category}{uiText(" 세부 선택")}</p>
+                  <p className="edit-subtitle">{uiText(selection.category)}{uiText(" 세부 선택")}</p>
                   <div className="edit-grid cuisine">
                     {placeDetailOptions[selection.category].map((option) => (
                       <button
@@ -1711,7 +1711,7 @@ export function SearchingScreen() {
               key={index}
             >
               <b>{progressStep > [1,2,0,3][index] ? '✓' : index + 1}</b>
-              {value}
+              {uiText(value)}
             </span>
           ))}
         </div>

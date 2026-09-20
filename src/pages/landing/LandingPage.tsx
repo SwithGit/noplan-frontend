@@ -1,4 +1,6 @@
 import { useEffect, useRef } from 'react';
+import { useLocale } from '../../i18n/locale';
+import { t } from '../../i18n/translate';
 import { LandingFooter } from './LandingFooter';
 import { LandingHeader } from './LandingHeader';
 import { LandingHero } from './LandingHero';
@@ -8,17 +10,18 @@ import './landing.css';
 const landingDescription = '상황과 취향에 맞는 서울 전역의 장소를 탐색하고 이동하기 좋은 코스로 연결하는 NoPlan 서비스입니다.';
 
 export default function LandingPage() {
+  const locale = useLocale();
   const pageRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const previousTitle = document.title;
-    document.title = 'NoPlan | 내 취향에 맞는 서울 코스 추천';
+    document.title = t('NoPlan | 내 취향에 맞는 서울 코스 추천');
 
     const description = document.querySelector<HTMLMetaElement>('meta[name="description"]');
     const previousDescription = description?.content;
     const meta = description || document.createElement('meta');
     meta.name = 'description';
-    meta.content = landingDescription;
+    meta.content = t(landingDescription);
     if (!description) document.head.appendChild(meta);
 
     return () => {
@@ -26,7 +29,7 @@ export default function LandingPage() {
       if (description && previousDescription !== undefined) description.content = previousDescription;
       else meta.remove();
     };
-  }, []);
+  }, [locale]);
 
   useEffect(() => {
     const page = pageRef.current;

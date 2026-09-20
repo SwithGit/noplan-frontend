@@ -1,4 +1,6 @@
 import { t as uiText } from '../../i18n/translate';
+import { useLocale } from '../../i18n/locale';
+import { LandingPhonePreview } from './LandingPhonePreview';
 const problems = [
   ['01', '흩어진 정보', '장소 정보가 여러 검색과 SNS에 흩어져 있습니다.'],
   ['02', '목적과 다른 추천', '인기순 추천은 지금의 목적과 취향을 충분히 반영하지 못합니다.'],
@@ -12,6 +14,7 @@ const steps = [
 ];
 
 function LandingHowItWorks() {
+  const locale=useLocale();
   const [activeStep, setActiveStep] = useState(0);
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
@@ -68,7 +71,7 @@ function LandingHowItWorks() {
                   key={step.title}
                   role="tabpanel"
                 >
-                  <img alt={activeStep === index ? step.alt : ''} height={step.height} loading={index === 0 ? 'eager' : 'lazy'} src={step.image} width={step.width} />
+                  {locale==='ko'?<img alt={activeStep === index ? step.alt : ''} height={step.height} loading={index === 0 ? 'eager' : 'lazy'} src={step.image} width={step.width} />:<LandingPhonePreview variant={index===0?'detail':index===1?'home':'result'}/>}
                 </div>
               ))}
             </div>
@@ -106,7 +109,7 @@ export function LandingSections() {
         <div className="landing-container">
           <div className="landing-section-heading landing-section-heading-center" data-reveal>
             <span className="landing-kicker">WHY NOPLAN</span>
-            <h2>{uiText("인기순이 아니라,")}<br />{uiText("나와 장소의 ")}<em>{uiText("적합도")}</em>{uiText("를 봅니다.")}</h2>
+            <h2>{uiText("인기순이 아니라,")}<br /><em>{uiText("나에게 맞는 장소를 찾습니다.")}</em></h2>
           </div>
           <div className="landing-compare-grid">
             <article className="landing-compare-card landing-compare-old" data-reveal>

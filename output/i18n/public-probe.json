@@ -1,0 +1,92 @@
+{
+  "en": {
+    "locale": "en",
+    "status": "translated",
+    "items": [
+      {
+        "source": "2026 답십리 영화제",
+        "text": "2026 Dapsimni Film Festival"
+      },
+      {
+        "source": "답십리영화미디어아트센터",
+        "text": "Dapsimni Film and Media Art Center"
+      },
+      {
+        "source": "연남동 맞춤 코스",
+        "text": "A Customized Course in Yeonnam-dong"
+      },
+      {
+        "source": "바다주막에서 가볍게 마무리",
+        "text": "A Light Finish at Bada Jumak"
+      },
+      {
+        "source": "연남동",
+        "text": "Yeonnam-dong"
+      },
+      {
+        "source": "친구와 함께 둘러보는 전시",
+        "text": "An Exhibition to Explore with a Friend"
+      }
+    ]
+  },
+  "zh-CN": {
+    "locale": "zh-CN",
+    "status": "translated",
+    "items": [
+      {
+        "source": "2026 답십리 영화제",
+        "text": "2026 Dapsimni电影节"
+      },
+      {
+        "source": "답십리영화미디어아트센터",
+        "text": "Dapsimni电影媒体艺术中心"
+      },
+      {
+        "source": "연남동 맞춤 코스",
+        "text": "Yeonnam-dong定制路线"
+      },
+      {
+        "source": "바다주막에서 가볍게 마무리",
+        "text": "在Bada Jumak轻松收尾"
+      },
+      {
+        "source": "연남동",
+        "text": "Yeonnam-dong"
+      },
+      {
+        "source": "친구와 함께 둘러보는 전시",
+        "text": "与朋友一起参观展览"
+      }
+    ]
+  },
+  "ja": {
+    "locale": "ja",
+    "status": "translated",
+    "items": [
+      {
+        "source": "2026 답십리 영화제",
+        "text": "2026 タプシムニ映画祭"
+      },
+      {
+        "source": "답십리영화미디어아트센터",
+        "text": "タプシムニ映画メディアアートセンター"
+      },
+      {
+        "source": "연남동 맞춤 코스",
+        "text": "ヨンナムドンのカスタムコース"
+      },
+      {
+        "source": "바다주막에서 가볍게 마무리",
+        "text": "Bada Jumakで軽く締めくくり"
+      },
+      {
+        "source": "연남동",
+        "text": "ヨンナムドン"
+      },
+      {
+        "source": "친구와 함께 둘러보는 전시",
+        "text": "友達と一緒に巡る展示"
+      }
+    ]
+  }
+}

@@ -2,8 +2,11 @@ import { t as uiText } from '../../i18n/translate';
 import heroHomeImage from '../../assets/landing/hero-home.webp';
 import heroSearchingImage from '../../assets/landing/hero-searching.webp';
 import { ROUTES } from '../../routes';
+import { useLocale } from '../../i18n/locale';
+import { LandingPhonePreview } from './LandingPhonePreview';
 
 export function LandingHero() {
+  const locale=useLocale();
   return (
     <section className="landing-hero landing-hero-content landing-container" aria-labelledby="landing-title">
       <div className="landing-hero-copy">
@@ -25,12 +28,12 @@ export function LandingHero() {
         <div className="landing-orbit landing-orbit-one" />
         <div className="landing-orbit landing-orbit-two" />
         <figure className="landing-phone landing-phone-primary landing-hero-enter landing-hero-enter-screen-one">
-          <img src={heroHomeImage} width="756" height="1369" alt="상암동에서 오늘 어디 갈지 입력하는 실제 NoPlan 홈 화면" />
+          {locale==='ko'?<img src={heroHomeImage} width="756" height="1369" alt={uiText("상암동에서 오늘 어디 갈지 입력하는 실제 NoPlan 홈 화면")} />:<LandingPhonePreview/>}
         </figure>
         <figure className="landing-phone landing-phone-secondary landing-hero-enter landing-hero-enter-screen-two">
-          <img src={heroSearchingImage} width="864" height="1491" alt="선택한 조건에 맞는 코스를 확인하는 실제 NoPlan 검색 화면" />
+          {locale==='ko'?<img src={heroSearchingImage} width="864" height="1491" alt={uiText("선택한 조건에 맞는 코스를 확인하는 실제 NoPlan 검색 화면")} />:<LandingPhonePreview variant="search"/>}
         </figure>
-        <div className="landing-visual-note landing-hero-enter landing-hero-enter-note"><span aria-hidden="true">✓</span>{uiText(" 실제 서비스 화면")}</div>
+        <div className="landing-visual-note landing-hero-enter landing-hero-enter-note"><span aria-hidden="true">✓</span>{uiText(locale==='ko'?'실제 서비스 화면':'서비스 미리보기')}</div>
       </div>
     </section>
   );

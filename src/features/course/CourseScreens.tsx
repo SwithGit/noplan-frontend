@@ -152,7 +152,7 @@ export function CourseMapScreen() {
             <div>
               <span>{index + 1}{uiText("번째 장소")}</span>
               <strong>{uiText(place.title)}</strong>
-              <p>{place.summary}</p>
+              <p>{uiText(place.summary)}</p>
               <CrowdingStatus compact snapshot={place.crowding} />
             </div>
             <button type="button" onClick={() => navigate(coursePlaceRoute(index))}>{uiText("보기")}</button>
@@ -207,7 +207,7 @@ export function PlaceDetailScreen() {
       {place.galleryImages?.length ? (
         <section className="place-gallery place-gallery-first" aria-label={uiText("장소 사진")}>
           {place.galleryImages!.slice(0, 6).map((image, imageIndex) => (
-            <img alt={`${place.name} ${image.imageType || '사진'} ${imageIndex + 1}`} key={`${image.imageUrl}-${imageIndex}`} loading="lazy" src={image.thumbnailUrl || image.imageUrl} />
+            <img alt={uiText(`${place.name} ${image.imageType || '사진'} ${imageIndex + 1}`)} key={`${image.imageUrl}-${imageIndex}`} loading="lazy" src={image.thumbnailUrl || image.imageUrl} />
           ))}
         </section>
       ) : (
@@ -218,7 +218,7 @@ export function PlaceDetailScreen() {
 
       <section className="place-hero">
         <div>
-          <span>{place.moveText}</span>
+          <span>{uiText(place.moveText)}</span>
           <h1>{uiText(place.title)}</h1>
           <p>{uiText(place.description)}</p>
         </div>
@@ -227,7 +227,7 @@ export function PlaceDetailScreen() {
       <div className="chip-row">
         {place.tags.map((tag) => (
           <Chip active key={tag}>
-            {tag}
+            {uiText(tag)}
           </Chip>
         ))}
       </div>
@@ -238,15 +238,15 @@ export function PlaceDetailScreen() {
       <section className="fit-grid">
         <article>
           <span>{uiText("이동")}</span>
-          <strong>{place.moveText}</strong>
+          <strong>{uiText(place.moveText)}</strong>
         </article>
         <article>
           <span>{uiText("대기")}</span>
-          <strong>{place.waitText}</strong>
+          <strong>{uiText(place.waitText)}</strong>
         </article>
         <article>
           <span>{uiText("무드")}</span>
-          <strong>{place.moodText}</strong>
+          <strong>{uiText(place.moodText)}</strong>
         </article>
       </section>
 
@@ -358,7 +358,7 @@ export function ReplacementCandidates() {
       <section className="replacement-current-card">
         <span>{uiText("현재 장소")}</span>
         <strong>{uiText(current.title)}</strong>
-        <p>{current.category} · {current.moveText} · {current.waitText}</p>
+        <p>{uiText(current.category)} · {uiText(current.moveText)} · {uiText(current.waitText)}</p>
       </section>
 
       <section className="candidate-list">
@@ -382,12 +382,12 @@ export function ReplacementCandidates() {
           <article className="candidate-card" key={candidate.id}>
             <PlaceVisual alt={candidate.name} color={candidate.color} imageUrl={candidate.imageUrl} type={candidate.type} detailType={candidate.detailType} />
             <div className="replacement-candidate-info">
-              <span>{candidate.category}</span>
+              <span>{uiText(candidate.category)}</span>
               <strong>{uiText(candidate.title)}</strong>
-              <small>{candidate.moveText} · {uiText(candidate.scheduledStart ? new Date(candidate.scheduledStart).toLocaleTimeString('ko-KR', {timeZone:'Asia/Seoul',hour:'numeric',minute:'2-digit'}) + ' 방문' : candidate.time)}</small>
+              <small>{uiText(candidate.moveText)} · {uiText(candidate.scheduledStart ? new Date(candidate.scheduledStart).toLocaleTimeString('ko-KR', {timeZone:'Asia/Seoul',hour:'numeric',minute:'2-digit'}) + ' 방문' : candidate.time)}</small>
               <p className="replacement-course-cost">{uiText(option.summary.costKnown ? `${option.summary.estimatedMin?.toLocaleString()}~${option.summary.estimatedMax?.toLocaleString()}원` : '가격 확인 필요')}<span>{uiText("교체 후 전체 코스 · 1인 예상")}</span></p>
               {option.courseData.some(place => place.estimatedCost?.assumptions?.length) && <small>{uiText("일부 가격 가정 포함")}</small>}
-              <details className="replacement-candidate-details"><summary>{uiText("방문·가격 안내")}</summary><p>{candidate.reason}</p>{option.summary.warnings.map((warning, i) => <p key={i}>{warning}</p>)}</details>
+              <details className="replacement-candidate-details"><summary>{uiText("방문·가격 안내")}</summary><p>{uiText(candidate.reason)}</p>{option.summary.warnings.map((warning, i) => <p key={i}>{warning}</p>)}</details>
               <CrowdingStatus compact snapshot={candidate.crowding} />
             </div>
             <button

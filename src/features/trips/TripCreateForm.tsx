@@ -89,7 +89,7 @@ export function TripCreateForm({ user }: { user: UserSession | null }) {
               onChange={district => selectDestination(selectedDestination.region, district)}
               options={[{ value: '', label: '전체', icon: 'map' as const }, ...destinationDistricts(selectedDestination.region).map(district => ({ value: district, label: district, icon: 'pin' as const }))]} />
               : <span className="trip-destination-pending">{uiText("시·도를 먼저 선택")}</span>}
-          </div> : <div className="trip-destination-status" role="status">{regionError ? <>{uiText("지역을 불러오지 못했어요. ")}<button type="button" onClick={() => { setRegionError(false); setRegionAttempt(value => value + 1); }}>{uiText("다시 시도")}</button></> : '지역을 불러오는 중…'}</div>}
+          </div> : <div className="trip-destination-status" role="status">{regionError ? <>{uiText("지역을 불러오지 못했어요. ")}<button type="button" onClick={() => { setRegionError(false); setRegionAttempt(value => value + 1); }}>{uiText("다시 시도")}</button></> : uiText('지역을 불러오는 중…')}</div>}
         </div>
         <label><span>{uiText("가는 날")}</span><input aria-label={uiText("여행 시작일")} type="date" required value={startDate} onChange={event => { setStartDate(event.target.value); if (event.target.value > endDate) setEndDate(event.target.value); }} /></label>
         <label><span>{uiText("오는 날")}</span><input aria-label={uiText("여행 종료일")} type="date" required min={startDate} value={endDate} onChange={event => setEndDate(event.target.value)} /></label>

@@ -29,6 +29,7 @@ export function LandingHeader() {
         </nav>
 
         <div className="landing-mobile-actions">
+          <LanguageSelect />
           <a className="landing-button landing-button-small" href={ROUTES.appHome}>{uiText("시작하기")}</a>
           <button
             aria-controls="landing-mobile-menu"

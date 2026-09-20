@@ -1,3 +1,4 @@
+import { PublicText } from '../../i18n/PublicText';
 import { t as uiText } from '../../i18n/translate';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -36,12 +37,12 @@ export function HomeHero() {
   const selected = index % slides.length;
   const move = (delta: number) => setIndex((selected + delta + slides.length) % slides.length);
   const slide = (event: TravelEvent | null, position: 'current' | 'previous' | 'next') => <div className={`home-hero-slide ${event ? 'festival' : 'welcome'} ${position}`} aria-hidden={position !== 'current' || undefined}>
-    <HomePhoto key={event?.id || 'welcome'} src={event?.imageUrl || coast} alt={position === 'current' ? event ? `${event.title} 공식 홍보 이미지` : '푸른 바다와 산책길이 있는 해안 풍경' : ''} eager={position === 'current'} />
+    <HomePhoto key={event?.id || 'welcome'} src={event?.imageUrl || coast} alt={position === 'current' ? event ? uiText(`${event.title} 공식 홍보 이미지`) : uiText('푸른 바다와 산책길이 있는 해안 풍경') : ''} eager={position === 'current'} />
     <div className="home-hero-shade" />
     <div className="home-hero-copy">
       <span className="home-hero-eyebrow">{uiText(event ? `${event.region || '국내'} · 지금 만나는 축제` : 'YOUR NEXT LITTLE ESCAPE')}</span>
-      {position === 'current' ? <h1>{event ? event.title : <>{uiText("가고 싶은 곳에서,")}<br />{uiText("우리다운 여행으로.")}</>}</h1> : <strong>{event ? event.title : <>{uiText("가고 싶은 곳에서,")}<br />{uiText("우리다운 여행으로.")}</>}</strong>}
-      <p>{event ? <>{eventDate(event.startDate)} — {eventDate(event.endDate)}<br />{event.venue || event.address}</> : <>{uiText("큰 일정은 가볍게 정하고")}<br />{uiText("그 사이의 좋은 순간은 노피와 채워보세요.")}</>}</p>
+      {position === 'current' ? <h1>{event ? <PublicText source={{kind:'event',id:event.id}} text={event.title}/> : <>{uiText("가고 싶은 곳에서,")}<br />{uiText("우리다운 여행으로.")}</>}</h1> : <strong>{event ? <PublicText source={{kind:'event',id:event.id}} text={event.title}/> : <>{uiText("가고 싶은 곳에서,")}<br />{uiText("우리다운 여행으로.")}</>}</strong>}
+      <p>{event ? <>{eventDate(event.startDate)} — {eventDate(event.endDate)}<br /><PublicText source={{kind:'event',id:event.id}} text={event.venue || event.address}/></> : <>{uiText("큰 일정은 가볍게 정하고")}<br />{uiText("그 사이의 좋은 순간은 노피와 채워보세요.")}</>}</p>
       {position === 'current' && (event ? <Link to={eventRoute(event.id)}>{uiText("축제 만나보기 ")}<TripIcon name="arrow" /></Link> : <a href="#trip-create">{uiText("새로운 여행을 시작해요 ")}<TripIcon name="arrow" /></a>)}
     </div>
     {event && position === 'current' && <small className="home-hero-credit">{uiText(event.sourceLabel)}{uiText(" 제공")}{uiText(stale ? ' · 최신 일정 확인 필요' : '')}</small>}
@@ -97,8 +98,8 @@ export function HomeTravelCourses() {
   const [selected, setSelected] = useState<HomeCourse>();
   const [allOpen, setAllOpen] = useState(false);
   const cards = () => homeCourses.map(course => <button type="button" className="home-course-card" key={course.id} onClick={() => { setAllOpen(false); setSelected(course); }}>
-    <div className="home-course-cover"><HomePhoto src={course.image} alt={course.imagePlace} /><span className="home-course-badge">{uiText("추천코스")}</span><small>{uiText("© 한국관광공사 · 공공누리 ")}{course.license}</small></div>
-    <div className="home-course-copy"><span className="home-course-meta"><TripIcon name="pin" />{uiText(course.region)}{course.duration && ` · ${uiText(course.duration)}`}</span><h3>{uiText(course.title)}</h3><p>{uiText(course.description)}</p><div className="home-course-footer"><span>{course.stops.slice(0, 3).join(' → ')}</span><b>{uiText("코스 보기 ")}<TripIcon name="arrow" /></b></div></div>
+    <div className="home-course-cover"><HomePhoto src={course.image} alt={uiText(course.imagePlace)} /><span className="home-course-badge">{uiText("추천코스")}</span><small>{uiText("© 한국관광공사 · 공공누리 ")}{uiText(course.license)}</small></div>
+    <div className="home-course-copy"><span className="home-course-meta"><TripIcon name="pin" />{uiText(course.region)}{course.duration && ` · ${uiText(course.duration)}`}</span><h3>{uiText(course.title)}</h3><p>{uiText(course.description)}</p><div className="home-course-footer"><span>{course.stops.slice(0, 3).map(name=>uiText(name)).join(' → ')}</span><b>{uiText("코스 보기 ")}<TripIcon name="arrow" /></b></div></div>
   </button>);
   return <section className="home-travel-courses"><header><div><h2>{uiText("국내 여행 추천코스")}</h2><p>{uiText("다음 여행의 힌트, 한국관광공사가 소개하는 지역별 코스를 만나보세요.")}</p></div><button className="trip-text-link" type="button" onClick={() => setAllOpen(true)}>{uiText("전체 보기 ")}<TripIcon name="arrow" /></button></header><div className="home-courses-grid">{cards()}</div>
     {allOpen && <TripDialog title={uiText("국내 여행 추천코스 모아보기")} onClose={() => setAllOpen(false)} className="home-courses-dialog"><p className="trip-muted">{uiText("지금 소개하는 4개의 여행 · 한국관광공사 추천코스")}</p><div className="home-courses-grid">{cards()}</div></TripDialog>}

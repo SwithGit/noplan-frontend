@@ -137,14 +137,14 @@ function ExploreFeed({ isDark, onOpenPopup }: ExploreFeedProps) {
             {course.review_image && (
               <img 
                 src={course.review_image} 
-                alt="썸네일" 
+                alt={uiText("썸네일")} 
                 style={{ width: 'calc(100% + 40px)', margin: '-20px -20px 10px -20px', height: '150px', objectFit: 'cover' }} 
               />
             )}
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               {course.profileURL ? (
-                <img src={course.profileURL} alt="프사" style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} />
+                <img src={course.profileURL} alt={uiText("프사")} style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} />
               ) : (
                 <div style={{ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: '#eee', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>👤</div>
               )}
