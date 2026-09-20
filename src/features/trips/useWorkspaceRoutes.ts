@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { getDayRoutes, type DayRouteResult } from '../../api/dayRouteApi';
+import { ApiError } from '../../api/client';
 import type { TripDay, TripDocument } from './tripModel';
 import { workspaceLegs } from './dayWorkspaceModel';
 import type { RoutePoint } from './dayRouteModel';
@@ -29,8 +30,8 @@ export function useWorkspaceRoutes(day: TripDay, transport: TripDocument['transp
           cache.current.set(key, routes);
         }
         if (!controller.signal.aborted) setResponse({ key, routes });
-      } catch {
-        if (!controller.signal.aborted) setResponse({ key, routes: [], error: '이동 정보를 불러오지 못했어요. 장소 편집은 계속할 수 있어요.' });
+      } catch (cause) {
+        if (!controller.signal.aborted) setResponse({ key, routes: [], error: cause instanceof ApiError && cause.status === 429 ? cause.message : '이동 정보를 불러오지 못했어요. 장소 편집은 계속할 수 있어요.' });
       }
     }, 450);
     return () => { clearTimeout(timer); controller.abort(); };

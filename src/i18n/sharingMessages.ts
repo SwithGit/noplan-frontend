@@ -1,4 +1,6 @@
 export const sharingMessages: Record<string, readonly [string, string, string]> = {
+  '이동경로 요청이 많아 잠시 제한됐어요. 1분 후 다시 시도해 주세요.': ['Route requests are temporarily limited. Please try again in one minute.', '路线请求过多，已暂时限制。请在一分钟后重试。', '経路リクエストが多いため一時的に制限されています。1分後に再試行してください。'],
+  '관광정보 조회가 많아 잠시 제한됐어요. 1분 후 다시 시도해 주세요.': ['Tourism information requests are temporarily limited. Please try again in one minute.', '旅游信息查询过多，已暂时限制。请在一分钟后重试。', '観光情報のリクエストが多いため一時的に制限されています。1分後に再試行してください。'],
   '같은 일정을 함께 수정했어요': ['You edited the same itinerary', '多人修改了同一行程', '同じ日程が編集されました'],
   '수정한 내용이 달라 잠시 편집을 멈췄어요. 아래에서 유지할 일정을 선택해 주세요.': ['Editing is paused because your changes differ. Choose the itinerary to keep below.', '修改内容不同，编辑已暂时暂停。请在下方选择要保留的行程。', '変更内容が異なるため編集を一時停止しています。残す日程を下で選んでください。'],
   '같은 구간의 장소 선택과 겹치는 코스는 한쪽 일정으로 반영해요.': ['Competing place choices and overlapping routes use one version of the itinerary.', '同一时段的不同地点选择和时间重叠的路线将采用一方的行程。', '同じ区間の場所選択や時間が重なるコースは、どちらかの日程を反映します。'],
