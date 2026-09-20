@@ -154,7 +154,7 @@ export function TripWorkspace({ user }: { user: UserSession | null }) {
       setBlockId((nextDays.find(item => item.id === activeDayId) || document.days.find(item => item.id === activeDayId))?.blocks[0]?.id || '');
       setDialog(overview ? 'overview' : null);
     }} />}
-    {dialog === 'overview' && <TripOverview document={document} photos={photos} onClose={() => setDialog(null)} onEdit={target => openPlanner(target)} onDayRoute={target => { setDayId(target); setDialog('dayRoute'); }} />}
+    {dialog === 'overview' && <TripOverview document={document} photos={photos} initialDayId={dayId} onClose={() => setDialog(null)} onEdit={target => openPlanner(target)} onDayRoute={target => { setDayId(target); setDialog('dayRoute'); }} />}
     {dialog === 'dayRoute' && <DayRouteDialog document={document} dayId={day.id} disabled={saving} onClose={() => setDialog(null)} onApply={(nextDay, transport, baseline) => {
       if (saving) return;
       if (JSON.stringify(document) !== baseline) throw new Error('일정이 바뀌었어요. 동선 보기를 다시 열어 최신 내용에서 수정해 주세요.');

@@ -1,4 +1,13 @@
 export const travelMessages: Record<string, readonly [string, string, string]> = {
+  '지도 위치 확인 필요': ['Map location needs checking', '需确认地图位置', '地図上の位置を要確認'],
+  '선택한 날짜의 지도': ['Map for the selected day', '所选日期的地图', '選択した日の地図'],
+  '지도에 표시할 날짜': ['Day to show on the map', '在地图上显示的日期', '地図に表示する日付'],
+  '이날 지도 전체 보기': ['Show the whole day on the map', '查看当天全部地点', 'この日の全地点を表示'],
+  '이전 장소': ['Previous place', '上一地点', '前の場所'],
+  '다음 장소': ['Next place', '下一地点', '次の場所'],
+  '이날에 장소를 담으면 지도와 동선이 보여요.': ['Add places to this day to see its map and route.', '为当天添加地点后即可查看地图和路线。', 'この日に場所を追加すると、地図とルートが表示されます。'],
+  '위치가 확인된 장소가 없어 지도에 표시할 수 없어요. 장소의 지도 링크에서 확인해 주세요.': ['No places have verified coordinates for the map. Use the place’s map link to check its location.', '地点均无已确认的坐标，暂时无法在地图上显示。请通过地点的地图链接确认位置。', '位置を確認できた場所がないため地図に表示できません。各場所の地図リンクでご確認ください。'],
+  '위치가 확인된 장소만 표시해요. 위치가 없는 장소는 목록에서 확인해 주세요.': ['Only places with verified coordinates are shown. Other places remain in the itinerary list.', '地图仅显示已确认坐标的地点，其他地点请在行程列表中查看。', '位置を確認できた場所のみ表示しています。他の場所は日程一覧でご確認ください。'],
   '현재 페이지에서 조건에 맞는 장소 보기': ['Show matching places on this page', '查看本页符合条件的地点', 'このページで条件に合う場所を表示'],
   '일부 장소의 조건 정보를 불러오지 못했어요.': ['Some places could not be checked.', '部分地点的条件信息未能加载。', '一部の場所の条件情報を取得できませんでした。'],
   '확인된 필수 조건으로 걸러내고, 선호 시설이 있는 곳부터 보여드려요.': ['Showing places with confirmed requirements, with preferred amenities first.', '按已确认的必需条件筛选，优先展示具备偏好设施的地点。', '確認済みの必須条件で絞り込み、希望する設備がある場所を優先表示します。'],
