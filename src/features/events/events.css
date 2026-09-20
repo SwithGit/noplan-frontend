@@ -205,3 +205,25 @@
   .event-grid { grid-template-columns:1fr; }.event-image { height:300px; }.event-card h3 { min-height:0; }
   .event-detail-layout,.event-detail-bottom { grid-template-columns:1fr; }.event-detail-poster .event-image { height:350px; }
 }
+
+/* Keep the save button outside the card link for keyboard and touch access. */
+.event-card-shell { position:relative; min-width:0; }
+.event-card-shell .event-card { height:100%; }
+.event-card-shell > .m-favorite-control { z-index:2; top:10px; right:10px; }
+.event-card-shell > .m-favorite-control .m-heart { background:#fffffff2; border-radius:50%; box-shadow:0 3px 12px #30245412; }
+.mobile-events .event-card-shell .event-card { padding:14px; grid-template-columns:102px minmax(0,1fr); gap:14px; border-color:#eee9f6; border-radius:21px; box-shadow:0 5px 20px #38296305; }
+.mobile-events .event-card-shell .event-card-poster .event-image { height:142px; border-radius:13px; }
+.mobile-events .event-card-shell .event-card-meta { padding-right:27px; min-height:21px; align-items:center; }
+.mobile-events .event-card-shell .event-card h3 { margin:7px 0 11px; font-size:15px; letter-spacing:-.025em; }
+.mobile-events .event-card-shell .event-card-footer { margin-top:10px; padding-top:8px; }
+.mobile-events .event-card-shell > .m-favorite-control { top:6px; right:5px; }
+.mobile-events .event-card-shell > .m-favorite-control .m-heart { background:transparent; box-shadow:none; }
+.mobile-events .event-card-shell .event-dates { line-height:1.6; }
+.mobile-events .event-card-shell .event-venue { line-height:1.5; }
+@media(max-width:360px) { .mobile-events .event-card-shell .event-card { grid-template-columns:85px minmax(0,1fr); gap:11px; padding:12px; } }
+.mobile-events > .m-heading { margin:0 0 24px; }
+.mobile-events > .m-heading h1 { font-size:28px; line-height:1.25; }
+@media(max-width:360px) {
+  .mobile-events .event-search-row { grid-template-columns:1fr; }
+  .mobile-events .event-search-row > label { grid-column:1/-1; }
+}

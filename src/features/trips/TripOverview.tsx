@@ -11,9 +11,9 @@ import { shortDate, transportLabels, type TripDocument } from './tripModel';
 import './dayRoute.css';
 import './tripOverview.css';
 
-export function TripOverview({ document, photos, initialDayId, onClose, onEdit, onDayRoute, readOnly = false }: {
+export function TripOverview({ document, photos, initialDayId, onClose, onEdit, onDayRoute, readOnly = false, readOnlyNotice }: {
   document: TripDocument; photos: TripPhotos; initialDayId?: string;
-  onClose: () => void; onEdit?: (dayId: string) => void; onDayRoute?: (dayId: string) => void; readOnly?: boolean;
+  onClose: () => void; onEdit?: (dayId: string) => void; onDayRoute?: (dayId: string) => void; readOnly?: boolean; readOnlyNotice?: string;
 }) {
   const days = useMemo(() => overviewDays(document), [document]);
   const [selection, setSelection] = useState({ dayId: initialDayId || document.days[0]?.id, placeId: '' });
@@ -52,7 +52,7 @@ export function TripOverview({ document, photos, initialDayId, onClose, onEdit, 
         <div className="overview-intro">
           <span className="trip-eyebrow">{uiText(document.destination)}</span>
           <h3>{uiText(document.title)}</h3>
-          {readOnly && <p className="trip-public-notice">{uiText('보기 전용 일정이에요. 장소와 지도를 자유롭게 살펴보세요.')}</p>}
+          {readOnly && <p className="trip-public-notice">{uiText(readOnlyNotice || '보기 전용 일정이에요. 장소와 지도를 자유롭게 살펴보세요.')}</p>}
           <span>{document.startDate} — {document.endDate}</span>
           <p>{document.days.length}{uiText('일 중 ')}{filled}{uiText('일에 장소를 담았어요. 날짜별 코스를 이어서 살펴보세요.')}</p>
         </div>

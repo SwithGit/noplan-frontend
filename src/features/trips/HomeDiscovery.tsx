@@ -71,7 +71,7 @@ export function HomeExhibitionBanner() {
   </Link>;
 }
 
-function HomeCourseDetail({ course, onClose }: { course: HomeCourse; onClose: () => void }) {
+export function HomeCourseDetail({ course, onClose }: { course: HomeCourse; onClose: () => void }) {
   const [result, setResult] = useState<{ detail?: TourismDetail; error?: string }>({});
   const [retry, setRetry] = useState(0);
   useEffect(() => {

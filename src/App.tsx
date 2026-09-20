@@ -1,3 +1,4 @@
+import { MobileTripView } from './features/mobile/MobileTripView';
 import { NearbyPlaces } from './features/mobile/NearbyPlaces';
 import { useLocale } from './i18n/locale';
 import { useEffect, useMemo, useState } from 'react';
@@ -93,7 +94,8 @@ function LandingEntry() {
 
 function TripRouteEntry({ user }: { user: UserSession | null }) {
   const { id } = useParams();
-  return <TripWorkspace key={`${user?.userId || 'guest'}:${id}`} user={user} />;
+  const desktop = useDesktop();
+  return desktop ? <TripWorkspace key={`${user?.userId || 'guest'}:${id}`} user={user} /> : <MobileTripView key={`${user?.userId || 'guest'}:${id}`} user={user}/>;
 }
 
 function AppRoutes() {
