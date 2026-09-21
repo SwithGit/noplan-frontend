@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { jellyRouteLayers, nopiMapImages } from './nopiMapTheme';
+import './nopiMap.css';
 
 interface CourseItem {
   time?: string;
@@ -48,9 +50,10 @@ function MapBoard({ className, courseList, userLocation }: MapBoardProps) {
   const [sdkReady, setSdkReady] = useState(() => Boolean(getKakaoMaps()));
   const containerRef = useRef<HTMLDivElement | null>(null);
   const kakaoMapRef = useRef<any>(null);
-  const renderedRef = useRef<{ markers: any[]; overlays: any[]; polyline?: any }>({
+  const renderedRef = useRef<{ markers: any[]; overlays: any[]; polylines: any[] }>({
     markers: [],
     overlays: [],
+    polylines: [],
   });
 
   useEffect(() => {
@@ -152,8 +155,8 @@ function MapBoard({ className, courseList, userLocation }: MapBoardProps) {
 
     renderedRef.current.markers.forEach((marker) => marker.setMap(null));
     renderedRef.current.overlays.forEach((overlay) => overlay.setMap(null));
-    renderedRef.current.polyline?.setMap(null);
-    renderedRef.current = { markers: [], overlays: [] };
+    renderedRef.current.polylines.forEach(line => line.setMap(null));
+    renderedRef.current = { markers: [], overlays: [], polylines: [] };
 
     const currentPosition = new kakaoMaps.LatLng(myLocation.lat, myLocation.lng);
     const currentMarker = new kakaoMaps.Marker({
@@ -168,37 +171,54 @@ function MapBoard({ className, courseList, userLocation }: MapBoardProps) {
 
     markers.forEach((marker, index) => {
       const position = new kakaoMaps.LatLng(marker.lat, marker.lng);
-      const kakaoMarker = new kakaoMaps.Marker({
-        map,
-        position,
-        title: marker.title,
-      });
+      const arrival = index === markers.length - 1;
+      const content = document.createElement('button');
+      content.type = 'button';
+      content.className = `nopi-map-pin ${arrival ? 'is-arrival' : ''}`;
+      content.setAttribute('aria-label', `${index + 1}. ${marker.title}`);
+      content.setAttribute('aria-pressed', 'false');
+      const avatar = document.createElement('span');
+      avatar.className = 'nopi-map-avatar';
+      avatar.setAttribute('aria-hidden', 'true');
+      const image = document.createElement('img');
+      image.src = arrival ? nopiMapImages.arrival : nopiMapImages.stop;
+      image.alt = ''; image.draggable = false;
+      avatar.append(image);
+      const label = document.createElement('span');
+      label.className = 'nopi-map-label';
+      const number = document.createElement('b');
+      number.textContent = String(index + 1);
+      const name = document.createElement('span');
+      name.textContent = marker.title;
+      label.append(number, name);
+      content.append(avatar, label);
       const overlay = new kakaoMaps.CustomOverlay({
         map,
         position,
-        yAnchor: 1.8,
-        content: `<div class="kakao-route-label">${index + 1}</div>`,
+        yAnchor: 1,
+        zIndex: 3,
+        clickable: true,
+        content,
       });
-
-      renderedRef.current.markers.push(kakaoMarker);
+      content.onclick = () => {
+        renderedRef.current.overlays.forEach(item => {
+          const button = item.getContent() as HTMLButtonElement;
+          button.classList.remove('active'); button.setAttribute('aria-pressed', 'false'); item.setZIndex(3);
+        });
+        content.classList.add('active'); content.setAttribute('aria-pressed', 'true'); overlay.setZIndex(5);
+        map.panTo(position);
+      };
       renderedRef.current.overlays.push(overlay);
       bounds.extend(position);
       path.push(position);
     });
 
     if (path.length > 1) {
-      renderedRef.current.polyline = new kakaoMaps.Polyline({
-        map,
-        path,
-        strokeWeight: 4,
-        strokeColor: '#315BFF',
-        strokeOpacity: 0.8,
-        strokeStyle: 'shortdash',
-      });
+      renderedRef.current.polylines = jellyRouteLayers.map(layer => new kakaoMaps.Polyline({ map, path, ...layer, strokeStyle: 'solid' }));
     }
 
     if (markers.length > 1) {
-      map.setBounds(bounds);
+      map.setBounds(bounds, 100, 155, 65, 65);
     } else if (markers.length === 1) {
       map.setCenter(path[0]);
     } else {
@@ -221,6 +241,10 @@ function MapBoard({ className, courseList, userLocation }: MapBoardProps) {
     return () => {
       window.cancelAnimationFrame(resizeFrame);
       resizeObserver.disconnect();
+      renderedRef.current.markers.forEach(marker => marker.setMap(null));
+      renderedRef.current.overlays.forEach(overlay => overlay.setMap(null));
+      renderedRef.current.polylines.forEach(line => line.setMap(null));
+      renderedRef.current = { markers: [], overlays: [], polylines: [] };
     };
   }, [markers, myLocation, sdkReady]);
 

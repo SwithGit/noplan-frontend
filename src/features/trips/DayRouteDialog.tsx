@@ -75,7 +75,7 @@ export function DayRouteDialog({ document, dayId, disabled, onClose, onApply }: 
         <section className="day-route-map-section" aria-label={uiText("하루 중심 장소 지도")}>
           <DayRouteMap points={points} activeId={activeId} onSelect={select} />
           <div className="day-route-map-summary"><span className="trip-eyebrow">{uiText("오늘의 동선")}</span><strong>{points.length}{uiText("개 중심 장소 ")}<span>· {uiText(transportLabels[transport])}</span></strong><p>{uiText(loading ? '구간 사이 이동시간을 확인하고 있어요…' : allKnown ? `구간 사이 이동 약 ${durationText(successful.reduce((sum, route) => sum + route.durationMinutes!, 0))}${tightCount ? ` · 빠듯한 구간 ${tightCount}개` : ''}` : !legs.length ? '두 구간 이상 장소를 담으면 이동시간도 확인할 수 있어요.' : '이동시간이 확인되지 않은 구간을 살펴봐 주세요.')}</p></div>
-          <div className="day-route-map-caption">{uiText("점선은 방문 순서를 연결한 선이며 실제 도로 경로가 아니에요.")}</div>
+          <div className="day-route-map-caption">{uiText("젤리 선은 방문 순서이며 실제 도로 경로가 아니에요.")}</div>
         </section>
         <section className="day-route-list" aria-label={uiText("하루 방문 순서")}>
           <div className="day-route-list-heading"><h3>{uiText("하루의 순서")}</h3><p>{uiText("시간대는 유지하고, 주변 장소도 함께 옮겨요.")}</p></div>

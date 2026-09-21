@@ -1,0 +1,20 @@
+.nopi-map-pin { position: relative; display: block; width: 76px; height: 76px; padding: 0; border: 0; background: transparent; color: #514267; font: inherit; cursor: pointer; overflow: visible; }
+.nopi-map-pin::before { content: ''; position: absolute; width: 52px; height: 15px; left: 12px; bottom: 0; border: 2px solid #a68ace; border-radius: 48% 56% 45% 54%; background: radial-gradient(ellipse at 40% 20%, #f3eaffcf, #bca0ead9); box-shadow: 0 3px 5px #65409d26; }
+.nopi-map-avatar { position: absolute; inset: 0; overflow: hidden; pointer-events: none; transform-origin: 50% 95%; filter: drop-shadow(0 2px 2px #56328220); }
+.nopi-map-avatar img { position: absolute; width: 112px; height: 112px; max-width: none; left: -18px; top: -17px; object-fit: contain; }
+.nopi-map-pin.is-arrival .nopi-map-avatar img { width: 96px; height: 96px; left: -10px; top: -13px; }
+.nopi-map-pin.is-arrival::before { width: 44px; left: 16px; }
+.nopi-map-label { position: absolute; display: flex; align-items: center; gap: 5px; left: 56px; top: 4px; padding: 4px 9px 4px 4px; border: 1px solid #e5daf4; border-radius: 18px; background: #fffffff2; box-shadow: 0 2px 9px #51307920; white-space: nowrap; }
+.nopi-map-label b { display: grid; place-items: center; width: 23px; height: 23px; flex-shrink: 0; border-radius: 50%; background: #ede4fa; color: #7850bc; font-size: 12px; }
+.nopi-map-label span { display: block; max-width: 112px; overflow: hidden; text-overflow: ellipsis; font-size: 11px; font-weight: 600; }
+.nopi-map-pin.active .nopi-map-label { border-color: #8961c7; box-shadow: 0 3px 12px #7651b440; }
+.nopi-map-pin.active .nopi-map-label b { background: #8055bb; color: #fff; }
+.nopi-map-pin.active .nopi-map-label span { max-width: 175px; color: #694598; }
+.nopi-map-pin.active .nopi-map-avatar { animation: nopi-map-bob 1.8s ease-in-out 3; }
+.nopi-map-pin:focus-visible { outline: 3px solid #8055bb; outline-offset: 3px; border-radius: 18px; }
+@keyframes nopi-map-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px) rotate(-2deg); } }
+@media (max-width: 700px) {
+  .nopi-map-label span { max-width: 72px; }
+  .nopi-map-pin.active .nopi-map-label span { max-width: 125px; }
+}
+@media (prefers-reduced-motion: reduce) { .nopi-map-pin.active .nopi-map-avatar { animation: none; } }

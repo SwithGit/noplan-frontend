@@ -98,7 +98,7 @@ export function TripOverview({ document, photos, initialDayId, onClose, onEdit, 
             <div className="overview-selected-copy"><strong><span>{selected.number}</span><TourismText place={selected.place} /></strong><p>{uiText(selected.place.type)} · {uiText(`${selected.place.durationMinutes}분`)}</p><p><TourismText place={selected.place} field="address" /></p><a href={overviewPlaceUrl(selected.place)} target="_blank" rel="noreferrer">{uiText('지도에서 보기 ↗')}</a></div>
             <div className="overview-place-paging"><button className="trip-icon-button" type="button" disabled={selectedIndex === 0} aria-label={uiText('이전 장소')} onClick={() => selectPlace(activeDay.day.id, activeDay.stops[selectedIndex - 1].id)}>‹</button><span>{selectedIndex + 1} / {activeDay.stops.length}</span><button className="trip-icon-button" type="button" disabled={selectedIndex === activeDay.stops.length - 1} aria-label={uiText('다음 장소')} onClick={() => selectPlace(activeDay.day.id, activeDay.stops[selectedIndex + 1].id)}>›</button></div>
           </div> : <p className="overview-detail-empty">{uiText('이날에 장소를 담으면 지도와 동선이 보여요.')}</p>}
-          <p className="overview-map-note">{uiText(activeDay.hasMissingCoordinates ? '위치가 확인된 장소만 표시해요. 위치가 없는 장소는 목록에서 확인해 주세요.' : '점선은 방문 순서예요. 도로 모양과 다를 수 있어요.')}</p>
+          <p className="overview-map-note">{uiText(activeDay.hasMissingCoordinates ? '위치가 확인된 장소만 표시해요. 위치가 없는 장소는 목록에서 확인해 주세요.' : '젤리 선은 방문 순서이며 실제 도로 경로가 아니에요.')}</p>
         </div>
       </section>}
     </div>
