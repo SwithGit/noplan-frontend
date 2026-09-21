@@ -94,15 +94,16 @@ export function HomeCourseDetail({ course, onClose }: { course: HomeCourse; onCl
   </TripDialog>;
 }
 
-export function HomeTravelCourses() {
-  const [selected, setSelected] = useState<HomeCourse>();
-  const [allOpen, setAllOpen] = useState(false);
-  const cards = () => homeCourses.map(course => <button type="button" className="home-course-card" key={course.id} onClick={() => { setAllOpen(false); setSelected(course); }}>
+export function HomeCourseCard({ course, onSelect }: { course: HomeCourse; onSelect: (course: HomeCourse) => void }) {
+  return <button type="button" className="home-course-card" onClick={() => onSelect(course)}>
     <div className="home-course-cover"><HomePhoto src={course.image} alt={uiText(course.imagePlace)} /><span className="home-course-badge">{uiText("추천코스")}</span><small>{uiText("© 한국관광공사 · 공공누리 ")}{uiText(course.license)}</small></div>
     <div className="home-course-copy"><span className="home-course-meta"><TripIcon name="pin" />{uiText(course.region)}{course.duration && ` · ${uiText(course.duration)}`}</span><h3>{uiText(course.title)}</h3><p>{uiText(course.description)}</p><div className="home-course-footer"><span>{course.stops.slice(0, 3).map(name=>uiText(name)).join(' → ')}</span><b>{uiText("코스 보기 ")}<TripIcon name="arrow" /></b></div></div>
-  </button>);
-  return <section className="home-travel-courses"><header><div><h2>{uiText("국내 여행 추천코스")}</h2><p>{uiText("다음 여행의 힌트, 한국관광공사가 소개하는 지역별 코스를 만나보세요.")}</p></div><button className="trip-text-link" type="button" onClick={() => setAllOpen(true)}>{uiText("전체 보기 ")}<TripIcon name="arrow" /></button></header><div className="home-courses-grid">{cards()}</div>
-    {allOpen && <TripDialog title={uiText("국내 여행 추천코스 모아보기")} onClose={() => setAllOpen(false)} className="home-courses-dialog"><p className="trip-muted">{uiText("지금 소개하는 4개의 여행 · 한국관광공사 추천코스")}</p><div className="home-courses-grid">{cards()}</div></TripDialog>}
+  </button>;
+}
+
+export function HomeTravelCourses() {
+  const [selected, setSelected] = useState<HomeCourse>();
+  return <section className="home-travel-courses"><header><div><h2>{uiText("국내 여행 추천코스")}</h2><p>{uiText("다음 여행의 힌트, 한국관광공사가 소개하는 지역별 코스를 만나보세요.")}</p></div><Link className="trip-text-link" to={ROUTES.explore}>{uiText("전체 보기 ")}<TripIcon name="arrow" /></Link></header><div className="home-courses-grid">{homeCourses.map(course => <HomeCourseCard key={course.id} course={course} onSelect={setSelected} />)}</div>
     {selected && <HomeCourseDetail key={selected.id} course={selected} onClose={() => setSelected(undefined)} />}
   </section>;
 }

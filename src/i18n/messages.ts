@@ -1,6 +1,11 @@
 // Korean source text is the stable message key. Stored form values and place IDs
 // remain unchanged; only presentation text passes through this dictionary.
 export const messages: Record<string, readonly [string, string, string]> = {
+  '지역, 코스 이름 또는 방문 장소 검색': ['Search by region, course or stop', '搜索地区、路线或游览地点', '地域・コース名・訪問場所で検索'],
+  '지역 선택': ['Choose a region', '选择地区', '地域を選択'],
+  '조건에 맞는 추천코스가 없어요.': ['No recommended courses match your filters.', '没有符合条件的推荐路线。', '条件に合うおすすめコースがありません。'],
+  '다른 지역이나 검색어로 찾아보세요.': ['Try another region or search term.', '请尝试其他地区或关键词。', '別の地域やキーワードで検索してください。'],
+  '검색 초기화': ['Clear search', '重置搜索', '検索をリセット'],
   '젤리 선은 방문 순서이며 실제 도로 경로가 아니에요.': ['The jelly trail shows visit order, not the actual road route.', '果冻连线表示游览顺序，并非实际道路路线。', 'ゼリーの線は訪問順で、実際の道路経路ではありません。'],
   '지도의 젤리 선은 방문 순서예요. 이동시간은 현재 조회 기준이며, 장소를 옮겨도 예약한 시간대는 유지돼요.': ['The jelly trail shows visit order. Travel times reflect the latest check; booked time slots stay when reordering.', '地图上的果冻连线表示游览顺序。移动时间以当前查询为准，调整地点顺序仍会保留预约时段。', '地図のゼリーの線は訪問順です。移動時間は現在の検索結果で、場所を移動しても予約時間帯は保持されます。'],
   '여행의 중심이 될': ['Choose the highlight', '选择旅行的', '旅の中心となる'],

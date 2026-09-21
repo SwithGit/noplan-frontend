@@ -1,0 +1,14 @@
+.domestic-explore { --trip-muted: #857893; --trip-purple: #7952c9; width: min(1200px, 100%); margin: 0 auto; padding: 38px 20px 64px; color: #282139; }
+.domestic-explore-heading > span { color: #8054cf; font-size: 12px; font-weight: 750; }
+.domestic-explore-heading h1 { margin: 10px 0 12px; font-size: 30px; letter-spacing: -.04em; }
+.domestic-explore-heading p { margin: 0; color: #857893; font-size: 14px; }
+.domestic-explore-filters { margin-top: 28px; padding: 22px; border: 1px solid #e5dcef; border-radius: 18px; background: #fff; }
+.domestic-explore-filters label { display: block; margin-bottom: 9px; font-size: 12px; font-weight: 700; color: #776586; }
+.domestic-explore-filters input { box-sizing: border-box; width: 100%; min-height: 48px; padding: 12px 15px; border: 1px solid #dfd2f1; border-radius: 12px; background: #fcfaff; color: #322644; font: inherit; }
+.domestic-explore-filters nav { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 18px; }
+.domestic-explore-filters button, .domestic-explore-empty button { padding: 10px 18px; border: 1px solid #e1d5f2; border-radius: 24px; background: #fff; color: #755795; font: inherit; font-size: 13px; cursor: pointer; }
+.domestic-explore-filters button[aria-pressed=true], .domestic-explore-empty button { background: #7952c9; border-color: #7952c9; color: #fff; }
+.domestic-explore-count { margin: 25px 0 14px; color: #857893; font-size: 13px; }
+.domestic-explore-empty { padding: 65px 20px; text-align: center; border: 1px dashed #d9c8eb; border-radius: 18px; }
+.domestic-explore-empty h2 { font-size: 20px; }.domestic-explore-empty p { color: #857893; font-size: 14px; }
+.domestic-explore :is(button, input):focus-visible { outline: 3px solid #bea4ea; outline-offset: 3px; }
