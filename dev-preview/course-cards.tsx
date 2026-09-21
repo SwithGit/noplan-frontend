@@ -10,11 +10,22 @@ import {normalizeCoursePlace} from '../src/utils/coursePlan';
 import type {CoursePlan} from '../src/types/noplan';
 
 // This standalone development entry never calls the backend or route providers.
-window.fetch=async()=>new Response(JSON.stringify({success:true,events:[]}),{headers:{'Content-Type':'application/json'}});
+window.fetch=async(url,init)=>{
+  if(String(url).endsWith('/reorder-course')) {
+    if(new URLSearchParams(location.search).has('fail')) return new Response(JSON.stringify({success:false,message:'샘플 장소는 바뀐 방문 시간에 이용하기 어려워요. 기존 순서를 유지했어요.'}),{status:409,headers:{'Content-Type':'application/json'}});
+    const body=JSON.parse(String(init?.body));let cursor=Date.parse(body.startAt);
+    const updates=body.stops.map((stop:{key:string;durationMinutes:number})=>{
+      const arrival=cursor+5*60000;cursor=arrival+stop.durationMinutes*60000;
+      return {key:stop.key,scheduledStart:new Date(arrival).toISOString(),scheduledEnd:new Date(cursor).toISOString(),moveText:'약 5분 도보 이동',businessStatus:'unknown'};
+    });
+    return new Response(JSON.stringify({success:true,updates,endAt:new Date(cursor).toISOString(),walkingMinutes:updates.length*5,warnings:['샘플 데이터로 확인한 순서예요.'],origin:{lat:37.55,lng:127.04}}),{headers:{'Content-Type':'application/json'}});
+  }
+  return new Response(JSON.stringify({success:true,events:[]}),{headers:{'Content-Type':'application/json'}});
+};
 const names=[['오후의 식탁','동네 작은 공원','달빛 한잔'],['골목 파스타','초록 산책길','저녁의 주점'],['온기 한상','강변 쉼터','오늘의 술집']];
 const options:NonNullable<CoursePlan['courseOptions']>=names.map((stops,index)=>({
   id:`sample-${index}`,courseData:stops.map((name,i)=>({...normalizeCoursePlace({
-    name,type:['food','hotplace','drink'][i],durationMinutes:[75,45,120][i],
+    name,catalogPlaceId:index*3+i+1,type:['food','hotplace','drink'][i],durationMinutes:[75,45,120][i],
     scheduledStart:['2026-09-17T11:04:00Z','2026-09-17T12:23:00Z','2026-09-17T13:18:00Z'][i],
     catalogRating:4.6-index*.1,catalogReviewCount:158-index*25,businessStatus:i===0?'unknown':'open',
     moveText:`약 ${[9,4,6][i]}분 도보 이동`,autoAdded:i===1,walkingRouteSource:'tmap_pedestrian',
@@ -24,7 +35,8 @@ const options:NonNullable<CoursePlan['courseOptions']>=names.map((stops,index)=>
   summary:{requiredCount:2,fulfilledCount:2,costKnown:true,estimatedMin:20000+index*2000,estimatedMax:27400+index*2000,budgetPerPerson:50000,endAt:'2026-09-17T15:18:00Z',warnings:['이 화면의 장소·가격·영업정보는 디자인 확인을 위한 샘플이에요.']},
   ranking:{score:200-index,walkingMinutes:19-index*2,basis:'선호 · 이동 시간 · 예산'}
 }));
-const plan:CoursePlan={title:'오늘 저녁, 우리 동네 코스',location:'샘플 출발지',durationText:'3곳 · 오전 12:18까지',courseData:options[0].courseData,backupPlaces:[],source:'api',courseOptions:options,selectedOptionId:options[0].id,accuracySummary:options[0].summary};
+const plan:CoursePlan={title:'오늘 저녁, 우리 동네 코스',location:'샘플 출발지',durationText:'3곳 · 오전 12:18까지',courseData:options[0].courseData,backupPlaces:[],source:'api',courseOptions:options,selectedOptionId:options[0].id,accuracySummary:options[0].summary,
+  routeOrigin:{lat:37.55,lng:127.04},requestedWindow:{startAt:'2026-09-17T11:00:00.000Z',endAt:'2026-09-17T15:30:00.000Z',availableMinutes:270}};
 function Preview(){
   const {loadPlan,setCondition}=usePlanner();const ready=useRef(false);const [notice,setNotice]=useState('');
   useEffect(()=>{if(!ready.current){ready.current=true;loadPlan(plan);setCondition({location:'샘플 출발지',time:'오늘 저녁',companion:'두명, 연인',mood:'맛집 · 술집'});}},[loadPlan,setCondition]);

@@ -164,3 +164,16 @@
   .result-screen .stop-open .place-visual { width:52px; height:72px; }
 }
 @media (prefers-reduced-motion:reduce) { .result-screen .course-story { transition:none; } }
+
+.result-screen .reorder-help { margin:8px 0 12px; font-size:12px; color:var(--result-muted); }
+.result-screen .reorder-status { margin:0 0 12px; font-size:12px; line-height:1.6; color:var(--result-purple); }
+.result-screen .reorder-status:empty { display:none; }
+.result-screen .stop-drag-handle { position:relative; cursor:grab; touch-action:none; user-select:none; padding:0; min-width:32px; min-height:44px; flex-basis:32px; border-radius:14px; display:flex; flex-direction:column; justify-content:center; gap:1px; }
+.result-screen .stop-drag-handle span { font-size:12px; line-height:12px; opacity:.65; }
+.result-screen .stop-drag-handle:disabled { cursor:default; opacity:.55; }
+.result-screen .stop-drag-handle:focus-visible { outline:2px solid var(--result-purple); outline-offset:3px; }
+.result-screen .is-dragging .stop-drag-handle { cursor:grabbing; background:var(--result-purple); color:white; }
+.result-screen .is-dragging .stop-card { opacity:.65; }
+.result-screen .is-drop-target .stop-card { outline:2px solid var(--result-purple); box-shadow:0 6px 20px #7852c322; }
+.result-screen .result-place-list[aria-busy=true] { opacity:.65; }
+.result-screen .reorder-save { border:0; padding:0; min-width:0; }

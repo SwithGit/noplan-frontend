@@ -65,6 +65,7 @@ interface PlannerContextValue {
   loadPlan: (nextPlan: CoursePlan) => void;
   selectCurrentPlan: () => boolean;
   selectPlanOption: (id: string) => void;
+  applyReorderedPlan: (nextPlan: CoursePlan, expectedPlan: CoursePlan) => void;
   applyReplacementPlan: (index: number, nextPlan: CoursePlan, expectedPlan: CoursePlan) => boolean;
   resetPlanner: () => void;
 }
@@ -441,6 +442,12 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     return true;
   };
 
+  const applyReorderedPlan = (nextPlan: CoursePlan, expectedPlan: CoursePlan) => {
+    // Functional updates discard a late response after another course was selected.
+    setPlan(current => current === expectedPlan ? nextPlan : current);
+    setActivePlan(current => current === expectedPlan ? nextPlan : current);
+  };
+
   const resetPlanner = () => {
     setConditionState({ ...defaultCondition, accuracy: savedAccuracyPreferences() });
     setPlan(makeFallbackPlan(defaultCondition));
@@ -468,6 +475,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     startFromText,
     runSearch,
     applyReplacementPlan,
+    applyReorderedPlan,
     resetPlanner,
   };
 

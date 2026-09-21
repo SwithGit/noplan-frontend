@@ -10,6 +10,7 @@ import {
 } from '../features/planner/plannerIntents';
 
 interface GenerateCourseResponse {
+  routeOrigin?: CoursePlan['routeOrigin'];
   courseOptions?: Array<{id:string;course:Array<Record<string,unknown>>;summary:NonNullable<CoursePlan['accuracySummary']>;ranking:{score:number;walkingMinutes:number;basis:string}}>;
   comparison?: CoursePlan['comparison'];
   priceUnknownPlaces?: CoursePlan['priceUnknownPlaces'];
@@ -462,6 +463,7 @@ export async function generateCourse(
       searchCourseId: result.searchCourseId || null,
       source: 'api',
       planningContext: structuredClone({ condition, currentPosition }),
+      routeOrigin: result.routeOrigin,
       requestedWindow: result.requestedWindow,
       algorithmVersion: result.generator || 'unknown',
       accuracySummary: result.accuracySummary,

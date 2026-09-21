@@ -1,6 +1,8 @@
 import { t as uiText } from '../../i18n/translate';
 import './result-screen.css';
 import { CourseOptionCards } from './CourseOptionCards';
+import { useStopDrag } from './useStopDrag';
+import { reorderPlan } from '../../api/courseOrderApi';
 import { kakaoPlaceUrl } from '../../utils/placeMap';
 import { FavoriteButton } from '../mobile/MobileUi';
 import { CourseNearbyEvents } from '../events/CourseNearbyEvents';
@@ -1794,7 +1796,7 @@ function SkeletonCard() {
 
 export function ResultScreen() {
   const navigate = useNavigate();
-  const { condition, plan, runSearch, selectCurrentPlan, selectPlanOption, setCondition } = usePlanner();
+  const { condition, plan, runSearch, selectCurrentPlan, selectPlanOption, setCondition, applyReorderedPlan } = usePlanner();
   const feedbackStorageKey = `noplanMvpFeedback:${plan.searchCourseId || plan.algorithmVersion || 'current'}:${plan.selectedOptionId || 'default'}`;
   const [saveMessage, setSaveMessage] = useState('');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -1803,6 +1805,29 @@ export function ResultScreen() {
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(() => sessionStorage.getItem(feedbackStorageKey) === 'submitted');
   const didTrackResult = useRef(false);
   const saveInFlight = useRef(false);
+  const reorderRequest = useRef<AbortController | null>(null);
+  const [reordering,setReordering] = useState(false);
+  const [reorderMessage,setReorderMessage] = useState('');
+  useEffect(()=>()=>{reorderRequest.current?.abort();},[]);
+  const changeOrder = async (from:number,to:number) => {
+    if (reorderRequest.current || saveInFlight.current) return;
+    const controller=new AbortController();
+    reorderRequest.current=controller;
+    const timeout=window.setTimeout(()=>controller.abort(),45000);
+    setReordering(true);setReorderMessage('새 동선과 방문 시간을 확인하고 있어요.');
+    try {
+      const next=await reorderPlan(plan,from,to,controller.signal);
+      if (controller.signal.aborted) return;
+      applyReorderedPlan(next,plan);
+      setSaveStatus('idle');setSaveMessage('');setFeedbackScore(0);setFeedbackConcern('');setFeedbackSubmitted(false);
+      setReorderMessage('순서를 변경했어요. 이동 시간과 예상 종료 시간도 반영했어요.');
+    } catch (error) {
+      setReorderMessage(error instanceof Error && error.name!=='AbortError' ? error.message : '확인이 지연되어 기존 순서를 유지했어요. 다시 시도해 주세요.');
+    } finally {
+      window.clearTimeout(timeout);reorderRequest.current=null;setReordering(false);
+    }
+  };
+  const stopDrag=useStopDrag(plan.courseData.length,reordering || saveStatus==='saving', (from,to)=>void changeOrder(from,to));
   const locationText = displayLocationLabel(condition);
   const hasCourse = plan.source !== 'fallback' && plan.courseData.length > 0;
   const crowding = plan.courseData.find((place) => place.crowding)?.crowding;
@@ -1844,7 +1869,7 @@ export function ResultScreen() {
   }, [condition, plan]);
 
   const handleSave = async () => {
-    if (saveInFlight.current || saveStatus === 'saved') return;
+    if (saveInFlight.current || reorderRequest.current || saveStatus === 'saved') return;
     saveInFlight.current = true;
     setSaveStatus('saving');
     setSaveMessage('코스를 저장하고 있어요.');
@@ -1895,9 +1920,9 @@ export function ResultScreen() {
         <div className="result-section-heading"><div><span className="result-eyebrow">{uiText("나에게 맞는 하루")}</span><h2>{uiText("어떤 코스로 떠날까요?")}</h2></div><span className="result-count">{plan.courseOptions.length}{uiText("개 코스")}</span></div>
         <p className="result-intro">{uiText("마음에 드는 코스를 선택하면 아래에서 일정을 볼 수 있어요.")}</p>
         {plan.courseOptions.length<3 && plan.comparison?.hoursUnknown && <p>{uiText("영업시간을 확인하지 못해 제외한 후보가 있어요. 미확인 장소를 포함하려면 조건 수정에서 허용할 수 있어요.")}</p>}
-        <CourseOptionCards options={plan.courseOptions} selectedId={plan.selectedOptionId} disabled={saveStatus==='saving'} onSelect={id=>{
+        <CourseOptionCards options={plan.courseOptions} selectedId={plan.selectedOptionId} disabled={reordering || saveStatus==='saving'} onSelect={id=>{
           if(plan.selectedOptionId===id)return;
-          selectPlanOption(id);setSaveStatus('idle');setSaveMessage('');setFeedbackScore(0);setFeedbackConcern('');setFeedbackSubmitted(false);
+          selectPlanOption(id);setReorderMessage('');setSaveStatus('idle');setSaveMessage('');setFeedbackScore(0);setFeedbackConcern('');setFeedbackSubmitted(false);
         }}/>
         <details className="result-disclosure"><summary>{uiText("코스는 어떻게 골랐나요?")}</summary><p>{plan.comparison?.examinedCourses ?? plan.courseOptions.length}{uiText("개 조합을 확인했어요. ")}{plan.courseOptions[0]?.ranking.basis}{uiText(" 기준으로 비교했으며 일부 장소는 겹칠 수 있어요. ")}{uiText(plan.comparison?.limited ? '확인 한도 내에서 비교한 결과예요.' : '')}</p></details>
       </section>}
@@ -1939,15 +1964,17 @@ export function ResultScreen() {
             </details>}
             {crowding && <CrowdingStatus snapshot={crowding} compact/>}
           </div>}
-          <div className="result-place-list">
+          {plan.courseData.length>1 && <p className="reorder-help" id="course-reorder-help">{uiText('번호를 잡아 끌면 방문 순서를 바꿀 수 있어요.')}</p>}
+          <p className="reorder-status" role="status" aria-live="polite">{uiText(reorderMessage || (stopDrag.preview && stopDrag.preview.to>=0 && stopDrag.preview.from!==stopDrag.preview.to ? `${stopDrag.preview.to+1}번째 위치에 놓기` : ''))}</p>
+          <div className="result-place-list" ref={stopDrag.listRef} aria-busy={reordering}>
             {plan.courseData.map((place, index) => (
-              <article className="result-stop" key={`${plan.selectedOptionId}-${place.id}-${index}`}>
-                <div className="stop-transfer"><span className="stop-number">{index+1}</span><div>
+              <article data-stop-index={index} className={`result-stop${stopDrag.preview?.from===index?' is-dragging':''}${stopDrag.preview?.to===index && stopDrag.preview.from!==index?' is-drop-target':''}`} key={`${plan.selectedOptionId}-${place.id}`}>
+                <div className="stop-transfer"><button className="stop-number stop-drag-handle" {...stopDrag.handleProps(index,place.name)}>{index+1}<span aria-hidden="true">⠿</span></button><div>
                   <strong className="stop-clock">{uiText(place.scheduledStart ? new Date(place.scheduledStart).toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'numeric',minute:'2-digit'}) : place.time || `${index+1}번째 장소`)}</strong>
                   <span>{uiText(index===0 ? '출발지에서' : '이전 장소에서')} · {uiText(place.moveText || '이동 정보 확인')}</span>
                 </div></div>
                 <div className="stop-card">
-                  <button className="stop-open" type="button" aria-label={uiText(`${place.name} 상세 보기`)} onClick={() => {
+                  <button className="stop-open" type="button" disabled={reordering} aria-label={uiText(`${place.name} 상세 보기`)} onClick={() => {
                     if (selectCurrentPlan()) navigate(coursePlaceRoute(index));
                   }}>
                     <PlaceVisual alt={place.name} color={place.color} imageUrl={place.imageUrl} type={place.type} detailType={place.detailType} />
@@ -2010,7 +2037,7 @@ export function ResultScreen() {
         </details>
       )}
 
-      {hasCourse && <div className="m-mobile-only m-result-save"><FavoriteButton item={planFavorite(plan)}/></div>}
+      {hasCourse && <fieldset className="m-mobile-only m-result-save reorder-save" disabled={reordering}><FavoriteButton item={planFavorite(plan)}/></fieldset>}
       <div className="sticky-actions result-actions">
         {saveMessage && (
           <p className={`result-save-message ${saveStatus === 'error' ? 'error' : ''}`} role={saveStatus === 'error' ? 'alert' : 'status'}>
@@ -2020,13 +2047,13 @@ export function ResultScreen() {
         {hasCourse ? (
           <>
             {plan.partial ? (
-              <button type="button" onClick={() => void retrySearch(true)}>{uiText("범위를 넓혀 다시 찾기")}</button>
+              <button type="button" disabled={reordering} onClick={() => void retrySearch(true)}>{uiText("범위를 넓혀 다시 찾기")}</button>
             ) : (
-              <button className="m-desktop-only" disabled={saveStatus === 'saving' || saveStatus === 'saved'} type="button" onClick={() => void handleSave()}>
+              <button className="m-desktop-only" disabled={reordering || saveStatus === 'saving' || saveStatus === 'saved'} type="button" onClick={() => void handleSave()}>
                 {uiText(saveStatus === 'saving' ? '저장 중' : saveStatus === 'saved' ? '저장됨' : '저장')}
               </button>
             )}
-            <button className="primary" type="button" onClick={() => {
+            <button className="primary" type="button" disabled={reordering} onClick={() => {
               if (selectCurrentPlan()) navigate(ROUTES.courseMap);
             }}>{uiText("이 코스로 출발")}</button>
           </>
