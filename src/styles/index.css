@@ -936,7 +936,7 @@
 
 .admin-map-toolbar {
   display: grid;
-  grid-template-columns: auto minmax(360px, 1fr) minmax(220px, 320px) auto;
+  grid-template-columns: auto 150px minmax(280px, 1fr) minmax(200px, 280px) auto;
   align-items: center;
   gap: 14px;
   margin: 16px 0;
@@ -951,6 +951,33 @@
   gap: 2px;
   min-width: 180px;
 }
+
+.admin-map-district {
+  display: grid;
+  gap: 5px;
+  color: #697489;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admin-map-district select {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid #d8dee8;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #172033;
+  font: inherit;
+  font-size: 14px;
+}
+
+.admin-map-district select:focus-visible {
+  outline: 2px solid #7c3aed;
+}
+
+.admin-map-type-badge.type-food { background: #fff0f4; color: #c83861; }
+.admin-map-type-badge.type-cafe { background: #f8eee6; color: #8a5733; }
 
 .admin-map-summary strong {
   color: #172033;
@@ -982,6 +1009,7 @@
 }
 
 .admin-map-toolbar button:disabled,
+.admin-map-toolbar select:disabled,
 .admin-map-toolbar input:disabled {
   cursor: not-allowed;
   opacity: .55;
@@ -1250,6 +1278,16 @@
 
 .admin-editor-footer > span {
   flex: 1;
+}
+
+@media (min-width: 901px) and (max-width: 1200px) {
+  .admin-map-toolbar {
+    grid-template-columns: 180px 150px minmax(0, 1fr);
+  }
+
+  .admin-map-search {
+    grid-column: span 2;
+  }
 }
 
 @media (max-width: 900px) {

@@ -26,3 +26,26 @@ test('address, category and case-insensitive literal matches use the same select
   const rows = [{ ...place(1), name: '첫번째', roadAddress: 'SEOUL %_ 길' }, { ...place(2), name: '두번째', detailType: 'SEOUL %_' }, { ...place(3), name: '다른곳' }];
   assert.equal(buildMapRemovalInput(rows, ['hotplace'], 'seoul %_').placeIds.join(), '1,2');
 });
+
+test('district selection restricts markers, search and bulk removal to actual addresses', () => {
+  const rows = [
+    { ...place(1), primaryType: 'food', address: '서울특별시 성동구 연무장길 1', regionKey: 'seoul_gwangjin' },
+    { ...place(2), primaryType: 'cafe', roadAddress: '서울 성동구 성수이로 1' },
+    { ...place(3), address: '서울 광진구 성동구빌딩' },
+    { ...place(4), address: '서울 성동구', roadAddress: '서울특별시 광진구 자양로 1' },
+    { ...place(5), regionKey: 'seoul_seongdong' },
+  ];
+  const types = ['food', 'cafe', 'hotplace'];
+  assert.equal(filterAdminMapPlaces(rows, types, '', '성동구').map(row => row.id).join(), '1,2');
+  const input = buildMapRemovalInput(rows, types, '음수대', '성동구');
+  assert.equal(input.placeIds.join(), '1,2');
+  assert.equal(input.district, '성동구');
+  assert.equal(filterAdminMapPlaces(rows, ['cafe'], '음수대', '성동구').map(row => row.id).join(), '2');
+  assert.equal(filterAdminMapPlaces(rows, types, '', 'all').length, 5);
+  assert.equal(filterAdminMapPlaces(rows, types, '', '중구').length, 0);
+  assert.throws(() => buildMapRemovalInput(rows, types, '음수대', '중구'), /검색 결과/);
+});
+
+test('district menu includes all 25 unique Seoul districts', () => {
+  assert.equal(new Set(box.exports.MAP_DISTRICTS.map(item => item.name)).size, 25);
+});

@@ -9,12 +9,13 @@ import {
   type AdminMapPlaceType,
 } from '../../api/adminPlacesApi';
 import { ROUTES } from '../../routes';
-import { buildMapRemovalInput, filterAdminMapPlaces } from './mapPlaceSelection';
+import { buildMapRemovalInput, filterAdminMapPlaces, MAP_DISTRICTS } from './mapPlaceSelection';
 
 const SEOUL_CENTER = { lat: 37.5665, lng: 126.9780 };
 const MAP_TYPE_OPTIONS: Array<{ type: AdminMapPlaceType; label: string; color: string }> = [
+  { type: 'food', label: '음식점', color: '#e64c78' },
+  { type: 'cafe', label: '카페', color: '#a16b42' },
   { type: 'activity', label: '놀거리', color: '#7c3aed' },
-  { type: 'culture', label: '문화/전시', color: '#db2777' },
   { type: 'hotplace', label: '산책/구경', color: '#059669' },
   { type: 'drink', label: '술/야간', color: '#ea580c' },
 ];
@@ -74,6 +75,10 @@ export default function PlaceMapAdmin() {
   const [adminId, setAdminId] = useState(() => sessionStorage.getItem('noplanAdminId') || '');
   const [unlocked, setUnlocked] = useState(false);
   const [places, setPlaces] = useState<AdminMapPlace[]>([]);
+  const [district, setDistrict] = useState('all');
+  const districtRef = useRef('all');
+  const loadVersionRef = useRef(0);
+  const districtLabel = district === 'all' ? '서울 전체' : district;
   const [enabledTypes, setEnabledTypes] = useState<AdminMapPlaceType[]>(() => MAP_TYPE_OPTIONS.map((item) => item.type));
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<AdminMapPlace | null>(null);
@@ -83,27 +88,31 @@ export default function PlaceMapAdmin() {
   const mutationRef = useRef(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const [truncated, setTruncated] = useState(false);
   const [sdkReady, setSdkReady] = useState(() => Boolean(getKakaoMaps()));
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<KakaoMapInstance | null>(null);
   const clustererRef = useRef<KakaoClusterer | null>(null);
 
-  const loadPlaces = useCallback(async (key = adminKey, id = adminId) => {
+  const loadPlaces = useCallback(async (key = adminKey, id = adminId, region = districtRef.current) => {
+    const version = ++loadVersionRef.current;
     setLoading(true);
+    setPlaces([]);
+    setSelected(null);
+    setNotice('');
     setError('');
     try {
-      const result = await listAdminMapPlaces(key, id || 'team');
+      const result = await listAdminMapPlaces(key, id || 'team', undefined, region);
+      if (version !== loadVersionRef.current) return;
       setPlaces(result.places.map((place) => ({
         ...place,
         latitude: Number(place.latitude),
         longitude: Number(place.longitude),
       })).filter((place) => Number.isFinite(place.latitude) && Number.isFinite(place.longitude)));
-      setTruncated(result.truncated);
     } catch (caught) {
+      if (version !== loadVersionRef.current) return;
       setError(caught instanceof Error ? caught.message : '장소 지도를 불러오지 못했습니다.');
     } finally {
-      setLoading(false);
+      if (version === loadVersionRef.current) setLoading(false);
     }
   }, [adminId, adminKey]);
 
@@ -152,7 +161,7 @@ export default function PlaceMapAdmin() {
     places.filter((place) => place.primaryType === type).length,
   ])) as Record<AdminMapPlaceType, number>, [places]);
 
-  const visiblePlaces = useMemo(() => filterAdminMapPlaces(places, enabledTypes, query), [enabledTypes, places, query]);
+  const visiblePlaces = useMemo(() => filterAdminMapPlaces(places, enabledTypes, query, district), [enabledTypes, places, query, district]);
   const busy = loading || Boolean(reviewing) || removingAll;
 
   const focusPlace = useCallback((place: AdminMapPlace) => {
@@ -206,13 +215,14 @@ export default function PlaceMapAdmin() {
     });
     clustererRef.current?.addMarkers(markers);
 
-    if (visiblePlaces.length > 1 && query.trim()) map.setBounds(bounds);
+    if (visiblePlaces.length > 1 && (query.trim() || district !== 'all')) map.setBounds(bounds);
     else if (visiblePlaces.length === 1) focusPlace(visiblePlaces[0]);
-    else if (!query.trim()) {
-      map.setCenter(new kakaoMaps.LatLng(SEOUL_CENTER.lat, SEOUL_CENTER.lng));
-      map.setLevel(9);
+    else {
+      const center = MAP_DISTRICTS.find(item => item.name === district) || SEOUL_CENTER;
+      map.setCenter(new kakaoMaps.LatLng(center.lat, center.lng));
+      map.setLevel(district === 'all' ? 9 : 7);
     }
-  }, [focusPlace, query, sdkReady, unlocked, visiblePlaces]);
+  }, [district, focusPlace, query, sdkReady, unlocked, visiblePlaces]);
 
   const toggleType = (type: AdminMapPlaceType) => {
     setEnabledTypes((current) => current.includes(type)
@@ -246,9 +256,13 @@ export default function PlaceMapAdmin() {
 
   const removeSearchResults = async () => {
     if (busy || mutationRef.current || !query.trim() || !visiblePlaces.length) return;
-    const input = buildMapRemovalInput(places, enabledTypes, query);
+    if (visiblePlaces.length > 20000) {
+      setError('한 번에 20,000곳까지 제거할 수 있어요. 구 또는 분류를 선택해 범위를 좁혀 주세요.');
+      return;
+    }
+    const input = buildMapRemovalInput(places, enabledTypes, query, district);
     const labels = MAP_TYPE_OPTIONS.filter(option => enabledTypes.includes(option.type)).map(option => option.label).join(', ');
-    if (!window.confirm(`“${input.query}” 검색 결과 ${input.placeIds.length.toLocaleString('ko-KR')}곳을 전부 제거할까요?\n분류: ${labels}\n\n오른쪽 목록의 일부가 아닌, 지도에 표시된 검색 결과 전체입니다.\n제거한 장소는 노플랜 추천에서도 제외됩니다.`)) return;
+    if (!window.confirm(`“${input.query}” 검색 결과 ${input.placeIds.length.toLocaleString('ko-KR')}곳을 전부 제거할까요?\n지역: ${districtLabel}\n분류: ${labels}\n\n오른쪽 목록의 일부가 아닌, 지도에 표시된 검색 결과 전체입니다.\n제거한 장소는 노플랜 추천에서도 제외됩니다.`)) return;
     mutationRef.current = true;
     setRemovingAll(true);
     setError('');
@@ -294,18 +308,31 @@ export default function PlaceMapAdmin() {
             sessionStorage.removeItem('noplanAdminKey');
             sessionStorage.removeItem('noplanAdminId');
             setUnlocked(false);
+            clustererRef.current?.clear();
+            clustererRef.current = null;
+            mapRef.current = null;
           }}>잠금</button>
         </div>
       </header>
 
       {(notice || error) && <div role={error ? 'alert' : 'status'} className={`admin-alert ${error ? 'error' : 'success'}`}>{error || notice}</div>}
-      {truncated && <div className="admin-alert error">지도 조회 한도 20,000곳에 도달했습니다. 검색·전체 제거는 현재 지도에 불러온 장소에 적용됩니다. 처리 후 새로고침하면 나머지를 불러올 수 있습니다.</div>}
 
       <section className="admin-map-toolbar">
         <div className="admin-map-summary">
           <strong>{places.length.toLocaleString('ko-KR')}곳</strong>
-          <span>서울 활성 장소 · 음식점/카페 제외</span>
+          <span>{districtLabel} · 검수 대기 장소</span>
         </div>
+        <label className="admin-map-district">지역
+          <select aria-label="지도 지역 선택" value={district} disabled={busy} onChange={event => {
+            const next = event.target.value;
+            districtRef.current = next;
+            setDistrict(next);
+            void loadPlaces(adminKey, adminId, next);
+          }}>
+            <option value="all">서울 전체</option>
+            {MAP_DISTRICTS.map(item => <option key={item.name} value={item.name}>{item.name}</option>)}
+          </select>
+        </label>
         <div className="admin-map-type-filters" aria-label="장소 분류 필터">
           {MAP_TYPE_OPTIONS.map((option) => (
             <button
@@ -327,7 +354,7 @@ export default function PlaceMapAdmin() {
           maxLength={200}
           aria-label="지도 장소 검색"
           onChange={(event) => { setQuery(event.target.value); setSelected(null); }}
-          placeholder="장소명·주소·소분류 검색"
+          placeholder={`${districtLabel} 장소명·주소·소분류 검색`}
         />
         <div className="admin-map-bulk-actions">
           <span className="admin-map-visible-count">지도 표시 {visiblePlaces.length.toLocaleString('ko-KR')}곳</span>
@@ -370,7 +397,7 @@ export default function PlaceMapAdmin() {
             </>
           ) : query.trim() ? (
             <>
-              <h2>검색 결과</h2>
+              <h2>{districtLabel} 검색 결과</h2>
               <p>{visiblePlaces.length.toLocaleString('ko-KR')}곳 중 가까이 볼 장소를 선택하세요.</p>
               {visiblePlaces.length > 30 && <p>목록은 30곳만 미리 보여요. 전부 제거는 지도 검색 결과 {visiblePlaces.length.toLocaleString('ko-KR')}곳 모두에 적용돼요.</p>}
               <div className="admin-map-search-results">

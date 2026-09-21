@@ -4,7 +4,7 @@ export type RegionKey = 'hongdae' | 'seongsu';
 export type CandidateStatus = 'pending' | 'approved' | 'rejected';
 export type PlaceType = 'food' | 'cafe' | 'activity' | 'culture' | 'drink' | 'hotplace';
 
-export type AdminMapPlaceType = Exclude<PlaceType, 'food' | 'cafe'>;
+export type AdminMapPlaceType = Exclude<PlaceType, 'culture'>;
 
 export interface AdminMapPlace {
   id: number;
@@ -271,24 +271,32 @@ export function listPlaceCandidates(
   );
 }
 
-export function listAdminMapPlaces(
+export async function listAdminMapPlaces(
   key: string,
   adminId: string,
-  types: AdminMapPlaceType[] = ['activity', 'culture', 'drink', 'hotplace'],
+  types: AdminMapPlaceType[] = ['food', 'cafe', 'activity', 'drink', 'hotplace'],
+  district = 'all',
 ) {
-  const params = new URLSearchParams({ types: types.join(',') });
-  return adminJson<ApiEnvelope & {
-    places: AdminMapPlace[];
-    counts: Partial<Record<AdminMapPlaceType, number>>;
-    totalCount: number;
-    truncated: boolean;
-  }>(`/api/admin/places/map?${params}`, key, adminId);
+  const places = new Map<number, AdminMapPlace>();
+  let cursor = 0;
+  do {
+    const params = new URLSearchParams({ types: types.join(','), district, afterId: String(cursor) });
+    const page = await adminJson<ApiEnvelope & {
+      places: AdminMapPlace[]; nextCursor: number | null; truncated: boolean;
+    }>(`/api/admin/places/map?${params}`, key, adminId);
+    if (page.truncated) throw new Error('지도 API를 먼저 업데이트해 주세요. 전체 결과를 불러오지 못했습니다.');
+    page.places.forEach(place => places.set(place.id, place));
+    if (page.nextCursor == null) break;
+    if (page.nextCursor <= cursor) throw new Error('장소 목록을 완전히 불러오지 못했습니다. 새로고침해 주세요.');
+    cursor = page.nextCursor;
+  } while (cursor);
+  return { places: [...places.values()] };
 }
 
 export function removeAdminMapPlaces(
   key: string,
   adminId: string,
-  input: { placeIds: number[]; query: string; types: AdminMapPlaceType[] },
+  input: { placeIds: number[]; query: string; types: AdminMapPlaceType[]; district: string },
 ) {
   return adminJson<ApiEnvelope & { removedCount: number; removedIds: number[] }>(
     '/api/admin/places/map/remove', key, adminId,
