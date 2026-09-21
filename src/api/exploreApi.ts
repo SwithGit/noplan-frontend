@@ -1,14 +1,16 @@
 import { apiJson, getLoggedInUser } from './client';
-import type { ExploreCourse } from '../types/noplan';
+import type { CurrentPosition, ExploreCourse } from '../types/noplan';
 
-export async function fetchExploreCourses(sort: 'likes' | 'views' | 'latest' = 'likes', dong = '') {
+export async function fetchExploreCourses(sort: 'likes' | 'views' | 'latest' = 'likes', area = '', position?: Pick<CurrentPosition, 'lat' | 'lng'> | null) {
   const params = new URLSearchParams({ sort });
-  if (dong) params.set('dong', dong);
+  if (position) { params.set('lat', String(position.lat)); params.set('lng', String(position.lng)); }
+  else if (area) params.set('area', area);
   const result = await apiJson<{ success?: boolean; courses?: ExploreCourse[] }>(
     `/api/course/explore/explore-courses?${params.toString()}`,
   );
 
-  return result.success ? result.courses || [] : [];
+  if (!result.success) throw new Error('코스를 불러오지 못했어요.');
+  return result.courses || [];
 }
 
 export async function fetchHotCourses() {

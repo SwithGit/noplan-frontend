@@ -186,6 +186,7 @@ export interface SharedCourse {
 }
 
 export interface ExploreCourse {
+  distanceMeters?: number;
   id: number;
   title: string;
   location?: string;
