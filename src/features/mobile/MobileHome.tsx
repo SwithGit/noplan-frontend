@@ -6,6 +6,7 @@ import { fetchNearby } from '../../api/libraryApi';
 import { PlaceVisual } from '../../components/ui/PlaceVisual';
 import { ROUTES } from '../../routes';
 import nopi from '../../assets/nopi/nopi-home.png';
+import nopiDeparture from '../../assets/map/nopi-departure.png';
 import travelMap from '../../assets/travel/coastal-escape.webp';
 import { usePlanner } from '../planner/PlannerContext';
 import { categoryKeyFromLabel } from '../planner/plannerIntents';
@@ -37,7 +38,7 @@ export function MobileHome({user,active}:{user:UserSession|null;active:boolean})
     {locationOpen&&<form className="m-location-editor" onSubmit={event=>{event.preventDefault();if(areaInput.trim().length<2){setMessage('동네나 역 이름을 두 글자 이상 입력해 주세요.');return;}setCondition({location:areaInput.trim(),locationLabel:areaInput.trim()});setLocationOpen(false);setMessage('');}}><label>{uiText("출발할 동네·역")}<input autoFocus value={areaInput} onChange={event=>setAreaInput(event.target.value)} maxLength={80} placeholder={uiText("예: 서울 성수동")}/></label><div><button type="button" disabled={locating} onClick={()=>void locate()}>{uiText(locating?'위치 확인 중…':'현 위치 사용')}</button><button className="m-primary" type="submit">{uiText("지역 선택")}</button></div></form>}
     {message&&<p className="m-notice" role="status">{uiText(message)}</p>}
     {hasActivePlan&&activePlan&&<Link className="m-resume" to={ROUTES.courseMap}><span className="m-resume-icon"><MobileIcon name="route"/></span><div><small>{uiText("골라둔 코스가 있어요")}</small><strong>{uiText(activePlan.title)}</strong></div><MobileIcon name="arrow"/></Link>}
-    <section className="m-home-intro"><div><span>{uiText("오늘")}</span><h1>{uiText("어디 ")}<em>{uiText("갈까?")}</em></h1><p>{uiText("상황만 알려줘.")}<br/>{uiText("코스는 내가 골라볼게.")}</p></div><img src={nopi} alt=""/></section>
+    <section className="m-home-intro"><div><span>{uiText("오늘")}</span><h1>{uiText("어디 ")}<em>{uiText("갈까?")}</em></h1><p>{uiText("상황만 알려줘.")}<br/>{uiText("코스는 내가 골라볼게.")}</p></div><img src={nopiDeparture} alt=""/></section>
     <form className="m-prompt" onSubmit={submit}><label htmlFor="mobile-home-prompt"><MobileIcon name="spark"/>{uiText("노피에게 말해줘")}</label><div><input id="mobile-home-prompt" value={text} maxLength={1000} onChange={event=>setText(event.target.value)} placeholder={uiText("예: 성수에서 친구랑 조용한 카페")}/><button type="submit" disabled={busy||!text.trim()} aria-label={uiText("채팅으로 추천받기")}>{busy?'…':'↑'}</button></div></form>
     <button type="button" className="m-quick" onClick={()=>quick()}><span className="m-quick-icon"><MobileIcon name="spark"/></span><span><strong>{uiText("빠른 추천 받기")}</strong><small>{uiText("입력 없이, 몇 번의 선택으로")}</small></span><MobileIcon name="arrow"/></button>
     <p className="m-home-coverage"><span>{uiText("서울의 좋은 곳부터 만나보세요.")}</span><span>{uiText("지금은 서울 지역의 가게 정보로 코스를 추천해요.")}</span></p>

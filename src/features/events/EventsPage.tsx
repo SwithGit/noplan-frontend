@@ -1,4 +1,5 @@
 import { FavoriteButton, MobileHeading } from '../mobile/MobileUi';
+import nopiEvents from '../../assets/nopi/nopi-events.png';
 import { eventFavorite } from './eventFavorite';
 import { LocalizedDateInput } from '../../i18n/LocalizedDateInput';
 import { PublicText, PublicTranslationNote } from '../../i18n/PublicText';
@@ -34,8 +35,8 @@ export function EventsPage(){
   const weekend=()=>{const now=new Date(`${koreaToday()}T00:00:00Z`),offset=(6-now.getUTCDay()+7)%7;now.setUTCDate(now.getUTCDate()+offset);const from=now.toISOString().slice(0,10);now.setUTCDate(now.getUTCDate()+1);update({from,to:now.toISOString().slice(0,10)});};
   const from=params.get('from')||'',to=params.get('to')||'';
   return <div className={`events-page ${!desktop?'mobile-events':''} ${filtersOpen?'filters-open':''}`}>
-    {!desktop&&<MobileHeading eyebrow="CULTURE & EVENTS" title={uiText("문화·행사")} description={uiText("전시 한 편, 축제 하루.\n오늘의 여행에 새로운 경험을 더해요.")}/>}
-    <header className="events-hero"><div><span className="event-eyebrow">A REASON TO GO</span><h1>{uiText("그날, 그곳에서만")}<br/><em>{uiText("만날 수 있는 여행.")}</em></h1><p>{uiText("전시 한 편, 축제 하루. 마음에 드는 경험을 여행에 담아보세요.")}</p></div><div className="events-hero-art" aria-hidden="true"><span>FESTIVAL</span><TripIcon name="calendar"/><b>{uiText("새로운 발견")}<br/>{uiText("좋은 하루")}</b><small>EXHIBITION & CULTURE</small></div></header>
+    {!desktop&&<MobileHeading image={nopiEvents} eyebrow="CULTURE & EVENTS" title={uiText("문화·행사")} description={uiText("전시 한 편, 축제 하루.\n오늘의 여행에 새로운 경험을 더해요.")}/>}
+    <header className="events-hero"><div><span className="event-eyebrow">A REASON TO GO</span><h1>{uiText("그날, 그곳에서만")}<br/><em>{uiText("만날 수 있는 여행.")}</em></h1><p>{uiText("전시 한 편, 축제 하루. 마음에 드는 경험을 여행에 담아보세요.")}</p></div><img className="events-hero-nopi" src={nopiEvents} alt="" /></header>
     <section className="event-search-panel" aria-label={uiText("축제·전시 검색")}>
       <div className="event-search-heading"><h2>{uiText(nearby?'코스 주변 행사':desktop?'축제·전시 찾아보기':'둘러볼 지역·날짜')}</h2><span>{uiText("전국 축제 · 서울 문화행사")}</span></div>
       {nearby&&<div className="event-nearby-context"><p>{uiText("코스 각 장소에서 직선 1km 이내 · 코스 방문 날짜 기준")}</p><button type="button" onClick={reset}>{uiText("다른 지역·날짜로 찾기")}</button></div>}

@@ -5,6 +5,7 @@ import { useLocale } from '../../i18n/locale';
 import { t } from '../../i18n/translate';
 import { HomeCourseCard, HomeCourseDetail } from '../trips/HomeDiscovery';
 import type { HomeCourse } from '../trips/homeContent';
+import nopiExplore from '../../assets/nopi/nopi-home.png';
 import './domesticCourseExplore.css';
 
 function toCourse(item: TourismCourseList['items'][number]): HomeCourse {
@@ -66,7 +67,7 @@ export function DomesticCourseExplore() {
   };
 
   return <section className="domestic-explore">
-    <header className="domestic-explore-heading"><span>{t('여행 탐색')}</span><h1>{t('국내 여행 추천코스')}</h1><p>{t('다음 여행의 힌트, 한국관광공사가 소개하는 지역별 코스를 만나보세요.')}</p></header>
+    <header className="domestic-explore-heading"><div><span>{t('여행 탐색')}</span><h1>{t('국내 여행 추천코스')}</h1><p>{t('다음 여행의 힌트, 한국관광공사가 소개하는 지역별 코스를 만나보세요.')}</p></div><img src={nopiExplore} alt="" /></header>
     <div className="domestic-explore-filters">
       <label htmlFor="domestic-course-search">{t('코스 검색')}</label>
       <input id="domestic-course-search" type="search" value={query} maxLength={80} placeholder={t('지역 또는 코스 이름 검색')} onChange={event => update('q', event.target.value)} />
