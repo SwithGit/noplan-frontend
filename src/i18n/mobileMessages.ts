@@ -1,4 +1,6 @@
 export const mobileMessages: Record<string, readonly [string,string,string]> = {
+  '서울의 좋은 곳부터 만나보세요.': ['Start with lovely places in Seoul.','先来发现首尔的美好去处。','まずはソウルの素敵な場所へ。'],
+  '지금은 서울 지역의 가게 정보로 코스를 추천해요.': ['For now, our local routes use place information from Seoul only.','目前，我们仅根据首尔地区的店铺信息推荐周边路线。','現在、周辺コースの提案はソウルの店舗情報のみをもとにしています。'],
   "여행 만들기는 PC에서 진행해 주세요": ["Create your trip on a computer","请在电脑上创建旅行","旅行の作成はPCで行ってください"],
   "전국 여행 일정은 PC에서 만들 수 있어요. 모바일에서는 저장한 일정을 확인해 주세요.": ["Create nationwide trips on a computer. View your saved itinerary on mobile.","请在电脑上创建全国旅行行程，在手机上查看已保存的行程。","全国の旅行プランはPCで作成できます。モバイルでは保存した予定をご確認ください。"],
   "행사·장소 이름 (선택)": ["Event or venue name (optional)","活动或场所名称（选填）","イベント・会場名（任意）"],
