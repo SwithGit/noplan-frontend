@@ -3,11 +3,12 @@ import { useState } from 'react';
 import { useLocale } from '../../i18n/locale';
 import { LanguageSelect } from '../../i18n/LanguageSelect';
 import { ROUTES } from '../../routes';
+import { LandingBrand } from './LandingBrand';
 
 const navigationItems = [
-  { href: '#how-it-works', label: '서비스' },
-  { href: '#local-content', label: '지역 콘텐츠' },
-  { href: '#partnership', label: '파트너십' },
+  { href: '#desktop-travel', label: '국내 여행' },
+  { href: '#mobile-course', label: '서울 주변 코스' },
+  { href: '#local-content', label: '발견의 즐거움' },
 ];
 
 export function LandingHeader() {
@@ -17,10 +18,7 @@ export function LandingHeader() {
   return (
     <header className={`landing-header ${menuOpen ? 'is-menu-open' : ''}`}>
       <div className="landing-container landing-header-inner">
-        <a className="landing-wordmark" href="#top" aria-label={uiText("NoPlan 랜딩페이지 맨 위로 이동")}>
-          <span aria-hidden="true">N</span>
-          noplan
-        </a>
+        <LandingBrand />
 
         <nav className="landing-desktop-nav" aria-label={uiText("랜딩페이지 주요 메뉴")}>
           <LanguageSelect />
@@ -29,7 +27,6 @@ export function LandingHeader() {
         </nav>
 
         <div className="landing-mobile-actions">
-          <LanguageSelect />
           <a className="landing-button landing-button-small" href={ROUTES.appHome}>{uiText("시작하기")}</a>
           <button
             aria-controls="landing-mobile-menu"
@@ -51,6 +48,7 @@ export function LandingHeader() {
           {navigationItems.map((item) => (
             <a href={item.href} key={item.href} onClick={() => setMenuOpen(false)}>{uiText(item.label)}</a>
           ))}
+          <LanguageSelect />
         </nav>
       )}
     </header>

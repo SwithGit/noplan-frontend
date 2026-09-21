@@ -1,40 +1,24 @@
-import { t as uiText } from '../../i18n/translate';
-import heroHomeImage from '../../assets/landing/hero-home.webp';
-import heroSearchingImage from '../../assets/landing/hero-searching.webp';
+import { t } from '../../i18n/translate';
 import { ROUTES } from '../../routes';
-import { useLocale } from '../../i18n/locale';
-import { LandingPhonePreview } from './LandingPhonePreview';
+import { LandingScreen } from './LandingScreens';
 
 export function LandingHero() {
-  const locale=useLocale();
-  return (
-    <section className="landing-hero landing-hero-content landing-container" aria-labelledby="landing-title">
-      <div className="landing-hero-copy">
-        <div className="landing-hero-enter landing-hero-enter-title">
-          <span className="landing-eyebrow">{uiText("내 취향에 맞는 서울 코스 추천")}</span>
-          <h1 id="landing-title">{uiText("갈 만한 곳,")}<br /><em>{uiText("노플랜이 다 찾아드릴게요.")}</em></h1>
-        </div>
-        <p className="landing-hero-enter landing-hero-enter-description">{uiText("무엇을 할지, 누구와 가는지 알려주세요.")}<br />{uiText("서울 전역의 장소를 취향과 동선에 맞는 코스로 연결해드려요.")}</p>
-        <div className="landing-hero-enter landing-hero-enter-actions">
-          <div className="landing-hero-actions">
-            <a className="landing-button" href={ROUTES.appHome}>{uiText("빠른 추천 받기 ")}<span aria-hidden="true">→</span></a>
-            <a className="landing-button landing-button-outline" href="#how-it-works">{uiText("서비스 알아보기")}</a>
-          </div>
-          <small>{uiText("현재 서비스는 서울 전역에서 제공 중이에요.")}</small>
-        </div>
+  return <section className="landing-hero landing-container" aria-labelledby="landing-title">
+    <div className="landing-hero-copy">
+      <span className="landing-eyebrow">{t('내 취향에 맞는 국내 코스 추천')}</span>
+      <h1 id="landing-title">{t('어디로 갈까,')}<br />{t('고민은 짧게.')}<br /><em>{t('좋은 순간은 길게.')}</em></h1>
+      <p>{t('함께 떠날 국내 여행부터,')}<br />{t('지금 내 주변에서 보내는 좋은 하루까지.')}<br />{t('당신의 취향을 하나의 코스로 이어드려요.')}</p>
+      <div className="landing-hero-actions">
+        <a className="landing-button" href={ROUTES.appHome}>{t('노플랜 시작하기')}<span aria-hidden="true">↗</span></a>
+        <a className="landing-text-link" href="#how-it-works">{t('서비스 알아보기')}<span aria-hidden="true">↓</span></a>
       </div>
-
-      <div className="landing-product-visual" aria-label={uiText("실제 NoPlan 추천 결과와 장소 상세 화면")}>
-        <div className="landing-orbit landing-orbit-one" />
-        <div className="landing-orbit landing-orbit-two" />
-        <figure className="landing-phone landing-phone-primary landing-hero-enter landing-hero-enter-screen-one">
-          {locale==='ko'?<img src={heroHomeImage} width="756" height="1369" alt={uiText("상암동에서 오늘 어디 갈지 입력하는 실제 NoPlan 홈 화면")} />:<LandingPhonePreview/>}
-        </figure>
-        <figure className="landing-phone landing-phone-secondary landing-hero-enter landing-hero-enter-screen-two">
-          {locale==='ko'?<img src={heroSearchingImage} width="864" height="1491" alt={uiText("선택한 조건에 맞는 코스를 확인하는 실제 NoPlan 검색 화면")} />:<LandingPhonePreview variant="search"/>}
-        </figure>
-        <div className="landing-visual-note landing-hero-enter landing-hero-enter-note"><span aria-hidden="true">✓</span>{uiText(locale==='ko'?'실제 서비스 화면':'서비스 미리보기')}</div>
-      </div>
-    </section>
-  );
+      <small className="landing-coverage">{t('PC에서는 국내 관광지로 떠나는 여행을,')}<br />{t('모바일에서는 서울의 가까운 맛집과 놀거리를 만나보세요.')}</small>
+    </div>
+    <div className="landing-product-visual">
+      <span className="landing-visual-orbit" aria-hidden="true" />
+      <figure className="landing-hero-desktop"><LandingScreen device="desktop" eager /><figcaption>PC <span>· {t('함께 준비하는 국내 여행')}</span></figcaption></figure>
+      <figure className="landing-hero-mobile"><LandingScreen device="mobile" eager /><figcaption>MOBILE <span>· {t('지금, 서울에서')}</span></figcaption></figure>
+      <span className="landing-visual-note">{t('계획 없어도 좋은 하루')} <span aria-hidden="true">✦</span></span>
+    </div>
+  </section>;
 }
