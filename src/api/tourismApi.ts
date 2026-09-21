@@ -19,7 +19,7 @@ export interface TourismCourseList {
 export function getTourismCourses(region: string, keyword: string, page: number, signal: AbortSignal, locale: Locale = getLocale()) {
   const params = new URLSearchParams({ region, keyword, page: String(page), locale });
   return apiJson<TourismCourseList>(`/api/tourism/courses?${params}`, {
-    signal: AbortSignal.any([signal, AbortSignal.timeout(locale === 'ko' ? 15000 : 120000)]),
+    signal: AbortSignal.any([signal, AbortSignal.timeout(15000)]),
   });
 }
 export function getTourismRegions(signal?: AbortSignal) {
@@ -69,7 +69,7 @@ export interface TourismDetail {
   contentTypeId: TourismAttraction['contentTypeId'];
   locale?: Locale;
   requestedLocale?: Locale;
-  translationStatus?: 'translated' | 'missing' | 'unavailable';
+  translationStatus?: 'original' | 'translated' | 'missing' | 'unavailable';
   translationSource?: 'machine';
   localizedImagePlace?: string;
   localizedName?: string;
@@ -85,6 +85,6 @@ export interface TourismDetail {
 
 export function getTourismDetail(id: string, type: TourismAttraction['contentTypeId'], signal: AbortSignal, locale: Locale = getLocale()) {
   return apiJson<TourismDetail>(`/api/tourism/${encodeURIComponent(id)}?type=${type}&locale=${locale}`, {
-    signal: AbortSignal.any([signal, AbortSignal.timeout(type === '25' && locale !== 'ko' ? 120000 : 15000)]),
+    signal: AbortSignal.any([signal, AbortSignal.timeout(15000)]),
   });
 }

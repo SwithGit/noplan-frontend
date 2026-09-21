@@ -76,12 +76,12 @@ export function HomeCourseDetail({ course, onClose }: { course: HomeCourse; onCl
   const locale = useLocale();
   const [result, setResult] = useState<{ key?: string; detail?: TourismDetail; error?: string }>({});
   const [retry, setRetry] = useState(0);
-  const requestKey = `${course.id}:${locale}:${retry}`;
+  const requestKey = `${course.id}:${retry}`;
   useEffect(() => {
     const controller = new AbortController();
-    getTourismDetail(course.id, '25', controller.signal, locale).then(detail => { if (!controller.signal.aborted) setResult({ key: requestKey, detail }); }).catch(() => { if (!controller.signal.aborted) setResult({ key: requestKey, error: '코스 상세를 불러오지 못했어요. 다시 시도해 주세요.' }); });
+    getTourismDetail(course.id, '25', controller.signal, 'ko').then(detail => { if (!controller.signal.aborted) setResult({ key: requestKey, detail }); }).catch(() => { if (!controller.signal.aborted) setResult({ key: requestKey, error: '코스 상세를 불러오지 못했어요. 다시 시도해 주세요.' }); });
     return () => controller.abort();
-  }, [course.id, locale, requestKey]);
+  }, [course.id, requestKey]);
   const detail = result.key === requestKey ? result.detail : undefined;
   const error = result.key === requestKey ? result.error : undefined;
   return <TripDialog title={uiText("추천 여행코스")} onClose={onClose} className="home-course-dialog">
@@ -89,7 +89,7 @@ export function HomeCourseDetail({ course, onClose }: { course: HomeCourse; onCl
     <div className="home-course-detail-body"><span className="trip-eyebrow">{uiText(course.region)}{uiText(" · 한국관광공사 추천코스")}</span><h2>{detail?.localizedName || uiText(locale !== 'ko' && !detail ? '추천 여행코스' : course.title)}</h2>
       {!detail && !error && <p role="status">{uiText("여행 코스를 불러오고 있어요…")}</p>}
       {error && <div className="trip-alert" role="alert">{uiText(error)}<button type="button" onClick={() => setRetry(value => value + 1)}>{uiText("다시 불러오기")}</button></div>}
-      {detail && locale !== 'ko' && (detail.translationSource === 'machine' || detail.translationStatus !== 'translated') && <p className="trip-muted" role="status">{uiText(detail.translationStatus === 'translated' ? '자동 번역 · 정확한 내용은 공식 원문을 확인해 주세요.' : '번역을 불러오지 못해 원문을 표시하고 있어요.')}{detail.translationStatus !== 'translated' && <button className="trip-text-link" type="button" onClick={() => setRetry(value => value + 1)}>{uiText('다시 불러오기')}</button>}</p>}
+      {locale !== 'ko' && <p className="trip-muted">{uiText('코스 정보는 한국어 원문으로 제공해요.')}</p>}
       {detail && <><p className="home-course-overview">{detail.overview.replaceAll('\\n', '\n')}</p><div className="home-course-facts">{detail.course?.duration && <span><TripIcon name="clock" />{detail.course.duration}</span>}{detail.course?.distance && <span><TripIcon name="map" />{detail.course.distance}</span>}</div>
         <h3>{uiText("이렇게 둘러보세요")}</h3><ol className="home-course-stops">{detail.course?.stops.map((stop, at) => <li key={`${at}-${stop.name}`}><span>{String(at + 1).padStart(2, '0')}</span><div><h4>{stop.name}</h4><p>{stop.description.replaceAll('\\n', '\n')}</p><a href={`https://map.naver.com/p/search/${encodeURIComponent(`${course.region} ${stop.originalName || stop.name}`)}`} target="_blank" rel="noreferrer">{uiText("네이버지도에서 보기 ↗")}</a></div></li>)}</ol>
         {detail.partial && <p className="trip-muted">{uiText("일부 상세정보를 불러오지 못했어요.")}</p>}

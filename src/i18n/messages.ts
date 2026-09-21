@@ -1,6 +1,7 @@
 // Korean source text is the stable message key. Stored form values and place IDs
 // remain unchanged; only presentation text passes through this dictionary.
 export const messages: Record<string, readonly [string, string, string]> = {
+  '코스 정보는 한국어 원문으로 제공해요.': ['Course information is provided in its original Korean.', '路线信息以韩文原文提供。', 'コース情報は韓国語の原文で提供しています。'],
   '지역 또는 코스 이름 검색': ['Search by region or course name', '搜索地区或路线名称', '地域・コース名で検索'],
   '코스 페이지': ['Course pages', '路线分页', 'コースのページ'],
   '코스를 불러오지 못했어요. 다시 시도해 주세요.': ['Could not load courses. Please try again.', '无法加载路线，请重试。', 'コースを読み込めませんでした。もう一度お試しください。'],
