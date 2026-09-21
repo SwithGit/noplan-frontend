@@ -317,6 +317,9 @@
 .m-travel-card.featured .m-travel-credit { color:#d1dbe4; padding-left:20px; }
 .m-discovery-more { display:flex; align-items:center; justify-content:center; gap:9px; min-height:49px; margin-top:18px; border:1px solid #a48bec; border-radius:15px; color:#795be1; font-size:14px; font-weight:700; }
 .m-discovery-section { margin:25px 0 30px; }
+.m-discovery-section > button.m-discovery-more { width:100%; background:transparent; font-family:inherit; }
+.m-explore-back { display:inline-flex; align-items:center; gap:7px; min-height:44px; margin-bottom:12px; padding:0; border:0; background:none; color:#695397; font:inherit; }
+.m-explore-back .m-icon { width:18px; transform:rotate(180deg); }
 .m-discovery-section .m-section-title { margin-bottom:14px; }
 .m-discovery-section .m-section-title h2 { display:flex; align-items:center; gap:7px; font-size:19px; }
 .m-discovery-section .m-section-title h2 .m-icon { width:21px; color:#9575f2; }
