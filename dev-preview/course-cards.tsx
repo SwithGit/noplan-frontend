@@ -3,6 +3,7 @@ import {createRoot} from 'react-dom/client';
 import {MemoryRouter} from 'react-router-dom';
 import '../src/styles/index.css';
 import '../src/features/mobile/mobile.css';
+import '../src/styles/app-layout.css';
 import {PlannerProvider,usePlanner} from '../src/features/planner/PlannerContext';
 import {FavoritesProvider} from '../src/features/mobile/FavoritesProvider';
 import {ResultScreen} from '../src/features/planner/PlannerScreens';
@@ -40,7 +41,7 @@ const plan:CoursePlan={title:'오늘 저녁, 우리 동네 코스',location:'샘
 function Preview(){
   const {loadPlan,setCondition}=usePlanner();const ready=useRef(false);const [notice,setNotice]=useState('');
   useEffect(()=>{if(!ready.current){ready.current=true;loadPlan(plan);setCondition({location:'샘플 출발지',time:'오늘 저녁',companion:'두명, 연인',mood:'맛집 · 술집'});}},[loadPlan,setCondition]);
-  return <main style={{maxWidth:1100,margin:'auto',padding:'18px 16px',background:'#f8f7fc'}} onClickCapture={event=>{
+  return <main className="app-shell" style={{maxWidth:1100,margin:'auto',padding:'18px 16px',background:'#f8f7fc'}} onClickCapture={event=>{
     if((event.target as HTMLElement).closest('.result-actions,.m-favorite-control,.stop-open,.screen-back')){event.preventDefault();event.stopPropagation();setNotice('디자인 미리보기예요. 코스 선택과 펼쳐보기를 이용해 주세요.');}
   }}>
     <p style={{color:'#8b71ad',fontSize:11,margin:'0 0 8px'}}>DESIGN PREVIEW · 장소와 금액은 샘플이에요</p>

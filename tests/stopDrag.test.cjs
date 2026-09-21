@@ -32,6 +32,13 @@ test('cancel, drop outside the list, second touches, and disabled handles do not
 });
 test('edge dragging scrolls, and arrow keys support moving without a pointer',()=>{
   const f=fixture(),h=f.hook.handleProps(1,'둘째 장소');
-  h.onPointerDown(f.event({clientY:790}));f.frame();assert.ok(f.scroller.scrollTop>0);h.onPointerCancel();
+  h.onPointerDown(f.event({clientY:790}));f.frame();assert.equal(f.scroller.scrollTop,0);
+  h.onPointerMove(f.event({clientY:810}));f.frame();assert.ok(f.scroller.scrollTop>0);h.onPointerCancel();
   h.onKeyDown({key:'ArrowUp',preventDefault(){}});assert.deepEqual(f.moves,[[1,0]]);
+});
+test('touching a handle near the viewport edge does not scroll or reorder before dragging',()=>{
+  const f=fixture(),h=f.hook.handleProps(0,'첫 장소');
+  assert.equal(h.style.touchAction,'none');
+  h.onPointerDown(f.event({clientY:20}));f.frame();assert.equal(f.scroller.scrollTop,0);
+  h.onPointerUp(f.event({clientY:20}));assert.deepEqual(f.moves,[]);
 });

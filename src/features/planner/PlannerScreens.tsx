@@ -1964,7 +1964,7 @@ export function ResultScreen() {
             </details>}
             {crowding && <CrowdingStatus snapshot={crowding} compact/>}
           </div>}
-          {plan.courseData.length>1 && <p className="reorder-help" id="course-reorder-help">{uiText('번호를 잡아 끌면 방문 순서를 바꿀 수 있어요.')}</p>}
+          {plan.courseData.length>1 && <p className="reorder-help" id="course-reorder-help">{uiText('번호 옆 손잡이를 끌거나 ↑↓ 버튼으로 순서를 바꿔보세요.')}</p>}
           <p className="reorder-status" role="status" aria-live="polite">{uiText(reorderMessage || (stopDrag.preview && stopDrag.preview.to>=0 && stopDrag.preview.from!==stopDrag.preview.to ? `${stopDrag.preview.to+1}번째 위치에 놓기` : ''))}</p>
           <div className="result-place-list" ref={stopDrag.listRef} aria-busy={reordering}>
             {plan.courseData.map((place, index) => (
@@ -1972,7 +1972,10 @@ export function ResultScreen() {
                 <div className="stop-transfer"><button className="stop-number stop-drag-handle" {...stopDrag.handleProps(index,place.name)}>{index+1}<span aria-hidden="true">⠿</span></button><div>
                   <strong className="stop-clock">{uiText(place.scheduledStart ? new Date(place.scheduledStart).toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'numeric',minute:'2-digit'}) : place.time || `${index+1}번째 장소`)}</strong>
                   <span>{uiText(index===0 ? '출발지에서' : '이전 장소에서')} · {uiText(place.moveText || '이동 정보 확인')}</span>
-                </div></div>
+                </div>{plan.courseData.length>1 && <nav className="stop-order-actions" aria-label={uiText(`${place.name} 방문 순서`)}>
+                  <button type="button" aria-label={uiText(`${place.name} 위로 이동`)} disabled={index===0 || reordering || saveStatus==='saving'} onClick={()=>void changeOrder(index,index-1)}>↑</button>
+                  <button type="button" aria-label={uiText(`${place.name} 아래로 이동`)} disabled={index===plan.courseData.length-1 || reordering || saveStatus==='saving'} onClick={()=>void changeOrder(index,index+1)}>↓</button>
+                </nav>}</div>
                 <div className="stop-card">
                   <button className="stop-open" type="button" disabled={reordering} aria-label={uiText(`${place.name} 상세 보기`)} onClick={() => {
                     if (selectCurrentPlan()) navigate(coursePlaceRoute(index));

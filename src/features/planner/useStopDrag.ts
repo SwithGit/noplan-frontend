@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 
-type Drag = {from:number;to:number;pointerId:number;x:number;y:number;scroller:HTMLElement};
+type Drag = {from:number;to:number;pointerId:number;x:number;y:number;startX:number;startY:number;moved:boolean;scroller:HTMLElement};
 
 export function useStopDrag(count: number, disabled: boolean, onMove: (from:number,to:number)=>void) {
   const listRef = useRef<HTMLDivElement>(null);
@@ -28,12 +28,13 @@ export function useStopDrag(count: number, disabled: boolean, onMove: (from:numb
     if (!current) return;
     const bounds=current.scroller===document.scrollingElement
       ? {top:0,bottom:window.innerHeight} : current.scroller.getBoundingClientRect();
-    const dy=current.y < bounds.top+80 ? -9 : current.y > bounds.bottom-100 ? 9 : 0;
+    const dy=!current.moved ? 0 : current.y < bounds.top+56 ? -6 : current.y > bounds.bottom-72 ? 6 : 0;
     if (dy) {current.scroller.scrollTop+=dy;updateTarget();}
     frame.current=requestAnimationFrame(scroll);
   };
   const handleProps = (index:number, name:string) => ({
     type:'button' as const,
+    style:{touchAction:'none' as const},
     disabled:disabled || count<2,
     'aria-label':`${index+1}번 ${name} 순서 변경. 드래그하거나 위아래 방향키를 누르세요.`,
     'aria-describedby':'course-reorder-help',
@@ -45,12 +46,15 @@ export function useStopDrag(count: number, disabled: boolean, onMove: (from:numb
       let scroller=listRef.current?.parentElement;
       while (scroller && !(scroller.scrollHeight>scroller.clientHeight && /auto|scroll/.test(getComputedStyle(scroller).overflowY))) scroller=scroller.parentElement;
       drag.current={from:index,to:index,pointerId:event.pointerId,x:event.clientX,y:event.clientY,
+        startX:event.clientX,startY:event.clientY,moved:false,
         scroller:scroller || document.scrollingElement as HTMLElement};
       setPreview({from:index,to:index});
       frame.current=requestAnimationFrame(scroll);
     },
     onPointerMove:(event:PointerEvent<HTMLButtonElement>)=>{
       if (drag.current?.pointerId!==event.pointerId) return;
+      event.preventDefault();
+      if(Math.hypot(event.clientX-drag.current.startX,event.clientY-drag.current.startY)>=8)drag.current.moved=true;
       drag.current.x=event.clientX;drag.current.y=event.clientY;updateTarget();
     },
     onPointerUp:(event:PointerEvent<HTMLButtonElement>)=>{
@@ -60,10 +64,11 @@ export function useStopDrag(count: number, disabled: boolean, onMove: (from:numb
       const {from,to}=current;
       stop();
       if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
-      if (to>=0 && from!==to && !disabled) onMove(from,to);
+      if (current.moved && to>=0 && from!==to && !disabled) onMove(from,to);
     },
     onPointerCancel:stop,
     onLostPointerCapture:stop,
+    onContextMenu:(event:React.MouseEvent<HTMLButtonElement>)=>event.preventDefault(),
     onKeyDown:(event:React.KeyboardEvent<HTMLButtonElement>)=>{
       if (event.key==='Escape') {stop();return;}
       const to=event.key==='ArrowUp'?index-1:event.key==='ArrowDown'?index+1:-1;

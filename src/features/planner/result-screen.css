@@ -166,10 +166,14 @@
 @media (prefers-reduced-motion:reduce) { .result-screen .course-story { transition:none; } }
 
 .result-screen .reorder-help { margin:8px 0 12px; font-size:12px; color:var(--result-muted); }
-.result-screen .reorder-status { margin:0 0 12px; font-size:12px; line-height:1.6; color:var(--result-purple); }
-.result-screen .reorder-status:empty { display:none; }
-.result-screen .stop-drag-handle { position:relative; cursor:grab; touch-action:none; user-select:none; padding:0; min-width:32px; min-height:44px; flex-basis:32px; border-radius:14px; display:flex; flex-direction:column; justify-content:center; gap:1px; }
-.result-screen .stop-drag-handle span { font-size:12px; line-height:12px; opacity:.65; }
+.result-screen .reorder-status { margin:0 0 12px; min-height:38px; font-size:12px; line-height:1.6; color:var(--result-purple); }
+.result-screen .reorder-status:empty { visibility:hidden; }
+.result-screen .stop-transfer { align-items:center; }
+.result-screen .stop-drag-handle { position:relative; z-index:1; cursor:grab; touch-action:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; padding:8px; min-width:64px; min-height:52px; height:52px; flex-basis:64px; border-radius:14px; display:flex; flex-direction:row; align-items:center; justify-content:center; gap:8px; box-shadow:none; }
+.result-screen .stop-drag-handle span { font-size:20px; line-height:20px; opacity:.65; pointer-events:none; }
+.result-screen .stop-order-actions { display:flex; flex:0 0 94px; width:94px; gap:6px; margin-left:auto; }
+.result-screen .stop-order-actions button { width:44px; min-width:44px; max-width:44px; padding:0; flex:0 0 44px; min-height:44px; border:1px solid var(--result-line); border-radius:12px; color:var(--result-purple); background:white; font-size:20px; }
+.result-screen .stop-order-actions button:disabled { opacity:.3; }
 .result-screen .stop-drag-handle:disabled { cursor:default; opacity:.55; }
 .result-screen .stop-drag-handle:focus-visible { outline:2px solid var(--result-purple); outline-offset:3px; }
 .result-screen .is-dragging .stop-drag-handle { cursor:grabbing; background:var(--result-purple); color:white; }
