@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import { Link } from 'react-router-dom';
 import {
   checkAdminAccess,
+  approveAdminMapPlaces,
   listAdminMapPlaces,
   removeAdminMapPlaces,
   reviewAdminMapPlace,
@@ -9,7 +10,8 @@ import {
   type AdminMapPlaceType,
 } from '../../api/adminPlacesApi';
 import { ROUTES } from '../../routes';
-import { buildMapRemovalInput, filterAdminMapPlaces, MAP_DISTRICTS } from './mapPlaceSelection';
+import { buildMapReviewInput, filterAdminMapPlaces, MAP_DISTRICTS } from './mapPlaceSelection';
+import { kakaoMapUrl, naverMapUrl } from './mapPlaceLinks';
 
 const SEOUL_CENTER = { lat: 37.5665, lng: 126.9780 };
 const MAP_TYPE_OPTIONS: Array<{ type: AdminMapPlaceType; label: string; color: string }> = [
@@ -61,10 +63,6 @@ function displayAddress(place: AdminMapPlace) {
   return place.roadAddress || place.address || '주소 정보 없음';
 }
 
-function kakaoMapUrl(place: AdminMapPlace) {
-  return `https://map.kakao.com/link/map/${encodeURIComponent(place.name)},${place.latitude},${place.longitude}`;
-}
-
 function markerImageUrl(color: string) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="40" viewBox="0 0 30 40"><path fill="${color}" stroke="#fff" stroke-width="2" d="M15 1C7.3 1 1 7.2 1 15c0 10.2 14 24 14 24s14-13.8 14-24C29 7.2 22.7 1 15 1Z"/><circle cx="15" cy="15" r="5" fill="#fff"/></svg>`;
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
@@ -84,7 +82,7 @@ export default function PlaceMapAdmin() {
   const [selected, setSelected] = useState<AdminMapPlace | null>(null);
   const [loading, setLoading] = useState(false);
   const [reviewing, setReviewing] = useState<'approve' | 'remove' | null>(null);
-  const [removingAll, setRemovingAll] = useState(false);
+  const [bulkAction, setBulkAction] = useState<'approve' | 'remove' | null>(null);
   const mutationRef = useRef(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -162,7 +160,7 @@ export default function PlaceMapAdmin() {
   ])) as Record<AdminMapPlaceType, number>, [places]);
 
   const visiblePlaces = useMemo(() => filterAdminMapPlaces(places, enabledTypes, query, district), [enabledTypes, places, query, district]);
-  const busy = loading || Boolean(reviewing) || removingAll;
+  const busy = loading || Boolean(reviewing) || Boolean(bulkAction);
 
   const focusPlace = useCallback((place: AdminMapPlace) => {
     setSelected(place);
@@ -254,30 +252,34 @@ export default function PlaceMapAdmin() {
     }
   };
 
-  const removeSearchResults = async () => {
+  const reviewSearchResults = async (action: 'approve' | 'remove') => {
     if (busy || mutationRef.current || !query.trim() || !visiblePlaces.length) return;
+    const verb = action === 'approve' ? '승인' : '제거';
     if (visiblePlaces.length > 20000) {
-      setError('한 번에 20,000곳까지 제거할 수 있어요. 구 또는 분류를 선택해 범위를 좁혀 주세요.');
+      setError(`한 번에 20,000곳까지 ${verb}할 수 있어요. 구 또는 분류를 선택해 범위를 좁혀 주세요.`);
       return;
     }
-    const input = buildMapRemovalInput(places, enabledTypes, query, district);
+    const input = buildMapReviewInput(places, enabledTypes, query, district);
     const labels = MAP_TYPE_OPTIONS.filter(option => enabledTypes.includes(option.type)).map(option => option.label).join(', ');
-    if (!window.confirm(`“${input.query}” 검색 결과 ${input.placeIds.length.toLocaleString('ko-KR')}곳을 전부 제거할까요?\n지역: ${districtLabel}\n분류: ${labels}\n\n오른쪽 목록의 일부가 아닌, 지도에 표시된 검색 결과 전체입니다.\n제거한 장소는 노플랜 추천에서도 제외됩니다.`)) return;
+    const consequence = action === 'approve' ? '승인한 장소는 추천 대상으로 유지되고 검수 대기 지도에서 사라집니다.' : '제거한 장소는 노플랜 추천에서도 제외됩니다.';
+    if (!window.confirm(`“${input.query}” 검색 결과 ${input.placeIds.length.toLocaleString('ko-KR')}곳을 전부 ${verb}할까요?\n지역: ${districtLabel}\n분류: ${labels}\n\n오른쪽 목록의 일부가 아닌, 지도에 표시된 검색 결과 전체입니다.\n${consequence}`)) return;
     mutationRef.current = true;
-    setRemovingAll(true);
+    setBulkAction(action);
     setError('');
     setNotice('');
     try {
-      const result = await removeAdminMapPlaces(adminKey, adminId, input);
-      const removed = new Set(result.removedIds);
-      setPlaces(current => current.filter(place => !removed.has(place.id)));
-      setSelected(current => current && removed.has(current.id) ? null : current);
-      setNotice(`“${input.query}” 검색 결과 ${result.removedCount.toLocaleString('ko-KR')}곳 제거 완료 · 지도와 노플랜 추천에서 제외했습니다.`);
+      const result = action === 'approve'
+        ? await approveAdminMapPlaces(adminKey, adminId, input)
+        : await removeAdminMapPlaces(adminKey, adminId, input);
+      const reviewed = new Set('approvedIds' in result ? result.approvedIds : result.removedIds);
+      setPlaces(current => current.filter(place => !reviewed.has(place.id)));
+      setSelected(current => current && reviewed.has(current.id) ? null : current);
+      setNotice(`“${input.query}” 검색 결과 ${reviewed.size.toLocaleString('ko-KR')}곳 ${verb} 완료 · ${consequence}`);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : '검색 결과 전체 제거에 실패했습니다.');
+      setError(caught instanceof Error ? caught.message : `검색 결과 전체 ${verb}에 실패했습니다.`);
     } finally {
       mutationRef.current = false;
-      setRemovingAll(false);
+      setBulkAction(null);
     }
   };
 
@@ -358,10 +360,15 @@ export default function PlaceMapAdmin() {
         />
         <div className="admin-map-bulk-actions">
           <span className="admin-map-visible-count">지도 표시 {visiblePlaces.length.toLocaleString('ko-KR')}곳</span>
+          <button className="admin-secondary-button admin-map-approve-button" type="button" disabled={busy || !query.trim() || !visiblePlaces.length}
+            title={query.trim() ? '오른쪽 목록 개수와 관계없이 지도 검색 결과 전체를 승인합니다.' : '승인할 장소를 먼저 검색해 주세요.'}
+            onClick={() => void reviewSearchResults('approve')}>
+            {bulkAction === 'approve' ? '전체 승인 중…' : query.trim() ? `전부 승인 (${visiblePlaces.length.toLocaleString('ko-KR')}곳)` : '전부 승인'}
+          </button>
           <button className="admin-danger-button" type="button" disabled={busy || !query.trim() || !visiblePlaces.length}
             title={query.trim() ? '오른쪽 목록 개수와 관계없이 지도 검색 결과 전체를 제거합니다.' : '제거할 장소를 먼저 검색해 주세요.'}
-            onClick={() => void removeSearchResults()}>
-            {removingAll ? '전체 제거 중…' : query.trim() ? `전부 제거 (${visiblePlaces.length.toLocaleString('ko-KR')}곳)` : '전부 제거'}
+            onClick={() => void reviewSearchResults('remove')}>
+            {bulkAction === 'remove' ? '전체 제거 중…' : query.trim() ? `전부 제거 (${visiblePlaces.length.toLocaleString('ko-KR')}곳)` : '전부 제거'}
           </button>
         </div>
       </section>
@@ -386,6 +393,7 @@ export default function PlaceMapAdmin() {
                 <div><dt>DB 번호</dt><dd>{selected.id}</dd></div>
               </dl>
               <a className="admin-primary-button admin-map-external-link" href={kakaoMapUrl(selected)} target="_blank" rel="noopener noreferrer">카카오맵에서 보기</a>
+              <a className="admin-secondary-button admin-map-external-link admin-map-naver-link" href={naverMapUrl(selected)} target="_blank" rel="noopener noreferrer">네이버지도에서 보기</a>
               <div className="admin-map-review-actions">
                 <button className="admin-secondary-button admin-map-approve-button" type="button" disabled={busy} onClick={() => void reviewPlace('approve')}>
                   {reviewing === 'approve' ? '처리 중' : '승인'}
@@ -399,7 +407,7 @@ export default function PlaceMapAdmin() {
             <>
               <h2>{districtLabel} 검색 결과</h2>
               <p>{visiblePlaces.length.toLocaleString('ko-KR')}곳 중 가까이 볼 장소를 선택하세요.</p>
-              {visiblePlaces.length > 30 && <p>목록은 30곳만 미리 보여요. 전부 제거는 지도 검색 결과 {visiblePlaces.length.toLocaleString('ko-KR')}곳 모두에 적용돼요.</p>}
+              {visiblePlaces.length > 30 && <p>목록은 30곳만 미리 보여요. 전부 승인·제거는 지도 검색 결과 {visiblePlaces.length.toLocaleString('ko-KR')}곳 모두에 적용돼요.</p>}
               <div className="admin-map-search-results">
                 {visiblePlaces.slice(0, 30).map((place) => (
                   <button key={place.id} type="button" onClick={() => focusPlace(place)}>

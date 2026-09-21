@@ -304,6 +304,17 @@ export function removeAdminMapPlaces(
   );
 }
 
+export function approveAdminMapPlaces(
+  key: string,
+  adminId: string,
+  input: { placeIds: number[]; query: string; types: AdminMapPlaceType[]; district: string },
+) {
+  return adminJson<ApiEnvelope & { approvedCount: number; approvedIds: number[] }>(
+    '/api/admin/places/map/approve', key, adminId,
+    { method: 'POST', body: JSON.stringify(input) },
+  );
+}
+
 export function reviewAdminMapPlace(
   key: string,
   adminId: string,

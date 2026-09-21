@@ -5,7 +5,7 @@ import { mapPlaceDistrict } from '../src/pages/admin/mapPlaceSelection';
 import '../src/styles/index.css';
 
 // Local fixture only: every API and map call is intercepted, including mutations.
-const rows = [
+let rows = [
   { id: 1, name: '성수 음식점', primaryType: 'food', address: '서울 성동구 연무장길 1', latitude: 37.544, longitude: 127.055 },
   { id: 2, name: '성수 카페', primaryType: 'cafe', address: '서울 성동구 성수이로 1', latitude: 37.546, longitude: 127.058 },
   { id: 3, name: '건대 음식점', primaryType: 'food', address: '서울 광진구 능동로 1', latitude: 37.541, longitude: 127.070 },
@@ -13,6 +13,12 @@ const rows = [
   { id: 5, name: '성수 놀거리', primaryType: 'activity', address: '서울 성동구 성수이로 3', latitude: 37.547, longitude: 127.059 },
 ];
 window.fetch = async (url, init) => {
+  if (init?.method === 'POST' && String(url).endsWith('/map/approve')) {
+    const { placeIds } = JSON.parse(String(init.body));
+    const approvedIds = rows.filter(row => placeIds.includes(row.id)).map(row => row.id);
+    rows = rows.filter(row => !approvedIds.includes(row.id));
+    return Response.json({ success: true, approvedCount: approvedIds.length, approvedIds });
+  }
   if (init?.method === 'POST') return Response.json({ success: false, message: '로컬 검증에서는 저장하지 않습니다.' }, { status: 409 });
   const parsed = new URL(String(url), location.origin);
   const district = parsed.searchParams.get('district') || 'all';

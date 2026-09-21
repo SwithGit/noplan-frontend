@@ -27,3 +27,15 @@ test('a failed later page never returns a partially loaded map', async () => {
     ? { places: [{ id: 1 }], nextCursor: 1 } : { message: '조회 실패' } }));
   await assert.rejects(client.listAdminMapPlaces('test', 'test'), /조회 실패/);
 });
+
+test('approval submits confirmed IDs, search and district to the authenticated approval endpoint', async () => {
+  const input = { placeIds: [1, 2], query: '카페', types: ['cafe'], district: '성동구' };
+  const client = api(async (url, init) => {
+    assert.equal(new URL(url).pathname, '/api/admin/places/map/approve');
+    assert.equal(init.method, 'POST');
+    assert.equal(init.headers['x-admin-key'], 'test-key');
+    assert.deepEqual(JSON.parse(init.body), input);
+    return { ok: true, json: async () => ({ success: true, approvedIds: [1, 2], approvedCount: 2 }) };
+  });
+  assert.equal((await client.approveAdminMapPlaces('test-key', 'tester', input)).approvedCount, 2);
+});

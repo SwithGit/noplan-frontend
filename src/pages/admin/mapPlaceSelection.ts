@@ -45,10 +45,12 @@ export function filterAdminMapPlaces(places: AdminMapPlace[], types: AdminMapPla
       .some(value => String(value || '').toLocaleLowerCase('ko-KR').includes(normalized))));
 }
 
-export function buildMapRemovalInput(places: AdminMapPlace[], types: AdminMapPlaceType[], query: string, district = 'all') {
-  if (!query.trim()) throw new Error('제거할 장소를 먼저 검색해 주세요.');
+export function buildMapReviewInput(places: AdminMapPlace[], types: AdminMapPlaceType[], query: string, district = 'all') {
+  if (!query.trim()) throw new Error('처리할 장소를 먼저 검색해 주세요.');
   // Use the exact marker collection, never the sidebar's 30-row preview.
   const placeIds = filterAdminMapPlaces(places, types, query, district).map(place => place.id);
-  if (!placeIds.length) throw new Error('제거할 검색 결과가 없습니다.');
+  if (!placeIds.length) throw new Error('처리할 검색 결과가 없습니다.');
   return { placeIds, query: query.trim(), types: [...types], district };
 }
+
+export const buildMapRemovalInput = buildMapReviewInput;

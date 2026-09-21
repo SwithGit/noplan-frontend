@@ -1002,10 +1002,17 @@
   gap: 7px;
 }
 
-.admin-map-bulk-actions .admin-danger-button {
+.admin-map-bulk-actions .admin-danger-button,
+.admin-map-bulk-actions .admin-map-approve-button {
   min-height: 36px;
   padding: 8px 12px;
   white-space: nowrap;
+}
+
+.admin-map-naver-link {
+  margin-top: 8px;
+  border-color: #168b4e;
+  color: #137b45;
 }
 
 .admin-map-toolbar button:disabled,

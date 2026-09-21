@@ -49,3 +49,10 @@ test('district selection restricts markers, search and bulk removal to actual ad
 test('district menu includes all 25 unique Seoul districts', () => {
   assert.equal(new Set(box.exports.MAP_DISTRICTS.map(item => item.name)).size, 25);
 });
+
+test('approval and removal use the exact same full marker selection', () => {
+  const rows = Array.from({ length: 65 }, (_, i) => ({ ...place(i + 1), address: '서울 성동구' }));
+  const approval = box.exports.buildMapReviewInput(rows, ['hotplace'], '음수대', '성동구');
+  assert.equal(approval.placeIds.length, 65);
+  assert.equal(approval.placeIds.join(), buildMapRemovalInput(rows, ['hotplace'], '음수대', '성동구').placeIds.join());
+});
