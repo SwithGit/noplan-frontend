@@ -968,6 +968,25 @@
   white-space: nowrap;
 }
 
+.admin-map-bulk-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 7px;
+}
+
+.admin-map-bulk-actions .admin-danger-button {
+  min-height: 36px;
+  padding: 8px 12px;
+  white-space: nowrap;
+}
+
+.admin-map-toolbar button:disabled,
+.admin-map-toolbar input:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+}
+
 .admin-map-type-filters {
   display: flex;
   flex-wrap: wrap;

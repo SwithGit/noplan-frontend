@@ -115,3 +115,10 @@ test('이미 잘못 합쳐진 브라우저 작업본도 서버 버전이 같을 
   const bad=resolve(remote,local,remote,{[initial.conflicts[0].key]:'local'});assert.ok(exportsObject.tripMergeIssue(bad.document));
   const good=resolve(remote,local,remote,{[initial.conflicts[0].key]:'remote'});assert.equal(exportsObject.tripMergeIssue(good.document),'');assert.equal(good.document.days[0].blocks[1].places.length,1);
 });
+
+test('서로 다른 구간에 필수 방문을 동시에 지정하면 하루 한 곳을 선택하게 한다', () => {
+ const base = document(), left = copy(base), right = copy(base);
+ left.days[0].blocks[0].places = [{ id: 'required-a', tourism: { contentId: '1' }, requiredVisit: { start: '09:00', end: '12:00' } }];
+ right.days[0].blocks[1].places = [{ id: 'required-b', tourism: { contentId: '2' }, requiredVisit: { start: '13:00', end: '17:00' } }];
+ assert.equal(merge(base, left, right), null);
+});

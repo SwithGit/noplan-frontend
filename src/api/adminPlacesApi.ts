@@ -285,6 +285,17 @@ export function listAdminMapPlaces(
   }>(`/api/admin/places/map?${params}`, key, adminId);
 }
 
+export function removeAdminMapPlaces(
+  key: string,
+  adminId: string,
+  input: { placeIds: number[]; query: string; types: AdminMapPlaceType[] },
+) {
+  return adminJson<ApiEnvelope & { removedCount: number; removedIds: number[] }>(
+    '/api/admin/places/map/remove', key, adminId,
+    { method: 'POST', body: JSON.stringify(input) },
+  );
+}
+
 export function reviewAdminMapPlace(
   key: string,
   adminId: string,

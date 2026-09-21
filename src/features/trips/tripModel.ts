@@ -12,6 +12,7 @@ export interface TripPlace {
   durationMinutes: number;
   travelMinutes?: number;
   fixed: boolean;
+  requiredVisit?: { start: string; end: string };
   source: 'manual' | 'recommendation' | 'tourism';
   sourceUrl: string;
   candidateSource?: 'catalog' | 'live';

@@ -3,7 +3,7 @@ import { t as uiText } from '../../i18n/translate';
 import { useState, type FormEvent } from 'react';
 import { TripDialog } from './TripDialog';
 import { TripIcon } from './TripIcon';
-import { createTrip, dayCount, minutes, newId, outboundLabels, transportLabels, type TripBlock, type TripDay, type TripDocument, type TripPlace } from './tripModel';
+import { createTrip, dayCount, minutes, newId, outboundLabels, transportLabels, usedMinutes, type TripBlock, type TripDay, type TripDocument, type TripPlace } from './tripModel';
 
 export function PlaceForm({ place, onClose, onAdd }: { place?: TripPlace; onClose: () => void; onAdd: (place: TripPlace) => void }) {
   const [name, setName] = useState(place?.name || ''), [address, setAddress] = useState(place?.address || ''), [duration, setDuration] = useState(place?.durationMinutes || 60), [fixed, setFixed] = useState(place?.fixed || false);
@@ -28,7 +28,12 @@ export function BlockForm({ block, day, days, onClose, onSave }: { block: TripBl
     if (minutes(value.endTime) <= minutes(value.startTime)) return setError('종료 시각을 시작 시각보다 늦게 선택해 주세요.');
     if (targetDay.blocks.some(item => item.id !== value.id && minutes(item.startTime) < minutes(value.endTime) && minutes(value.startTime) < minutes(item.endTime))) return setError('다른 일정 구간과 시간이 겹쳐요. 시작·종료 시각을 조정해 주세요.');
     if (target !== day.id && targetDay.blocks.length >= 12) return setError('하루에 최대 12개 구간을 만들 수 있어요.');
-    onSave({ ...value, title: value.title.trim(), area: value.area.trim() }, target);
+    if (value.places.some(place => place.requiredVisit)) {
+      if (targetDay.blocks.some(item => item.id !== value.id && item.places.some(place => place.requiredVisit))) return setError('꼭 방문할 장소는 하루에 한 곳만 선택해 주세요.');
+      if (usedMinutes(value) > minutes(value.endTime) - minutes(value.startTime)) return setError('체류시간이 방문 시간대를 넘어요. 종료 시각을 조정해 주세요.');
+    }
+    const timesChanged = value.startTime !== block.startTime || value.endTime !== block.endTime;
+    onSave({ ...value, title: value.title.trim(), area: value.area.trim(), places: value.places.map(place => place.requiredVisit && timesChanged ? { ...place, requiredVisit: { start: value.startTime, end: value.endTime } } : place) }, target);
   };
   return <TripDialog title={uiText("일정 구간 정하기")} onClose={onClose}><form className="trip-form" onSubmit={submit}>
     <label>{uiText("구간 이름")}<input required maxLength={80} value={value.title} onChange={e => change({ title: e.target.value })} autoFocus /></label>

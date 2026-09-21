@@ -3,11 +3,13 @@ import { Link } from 'react-router-dom';
 import {
   checkAdminAccess,
   listAdminMapPlaces,
+  removeAdminMapPlaces,
   reviewAdminMapPlace,
   type AdminMapPlace,
   type AdminMapPlaceType,
 } from '../../api/adminPlacesApi';
 import { ROUTES } from '../../routes';
+import { buildMapRemovalInput, filterAdminMapPlaces } from './mapPlaceSelection';
 
 const SEOUL_CENTER = { lat: 37.5665, lng: 126.9780 };
 const MAP_TYPE_OPTIONS: Array<{ type: AdminMapPlaceType; label: string; color: string }> = [
@@ -77,6 +79,8 @@ export default function PlaceMapAdmin() {
   const [selected, setSelected] = useState<AdminMapPlace | null>(null);
   const [loading, setLoading] = useState(false);
   const [reviewing, setReviewing] = useState<'approve' | 'remove' | null>(null);
+  const [removingAll, setRemovingAll] = useState(false);
+  const mutationRef = useRef(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [truncated, setTruncated] = useState(false);
@@ -148,15 +152,8 @@ export default function PlaceMapAdmin() {
     places.filter((place) => place.primaryType === type).length,
   ])) as Record<AdminMapPlaceType, number>, [places]);
 
-  const visiblePlaces = useMemo(() => {
-    const normalizedQuery = query.trim().toLocaleLowerCase('ko-KR');
-    return places.filter((place) => {
-      if (!enabledTypes.includes(place.primaryType)) return false;
-      if (!normalizedQuery) return true;
-      return [place.name, place.detailType, place.categoryLabel, place.address, place.roadAddress]
-        .some((value) => String(value || '').toLocaleLowerCase('ko-KR').includes(normalizedQuery));
-    });
-  }, [enabledTypes, places, query]);
+  const visiblePlaces = useMemo(() => filterAdminMapPlaces(places, enabledTypes, query), [enabledTypes, places, query]);
+  const busy = loading || Boolean(reviewing) || removingAll;
 
   const focusPlace = useCallback((place: AdminMapPlace) => {
     setSelected(place);
@@ -225,8 +222,9 @@ export default function PlaceMapAdmin() {
   };
 
   const reviewPlace = async (action: 'approve' | 'remove') => {
-    if (!selected || reviewing) return;
+    if (!selected || busy || mutationRef.current) return;
     if (action === 'remove' && !window.confirm(`${selected.name}을(를) 추천 장소에서 제거할까요?\n제거 후 노플랜 코스에 추천되지 않습니다.`)) return;
+    mutationRef.current = true;
     setReviewing(action);
     setError('');
     setNotice('');
@@ -241,7 +239,31 @@ export default function PlaceMapAdmin() {
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : '장소 검수 처리에 실패했습니다.');
     } finally {
+      mutationRef.current = false;
       setReviewing(null);
+    }
+  };
+
+  const removeSearchResults = async () => {
+    if (busy || mutationRef.current || !query.trim() || !visiblePlaces.length) return;
+    const input = buildMapRemovalInput(places, enabledTypes, query);
+    const labels = MAP_TYPE_OPTIONS.filter(option => enabledTypes.includes(option.type)).map(option => option.label).join(', ');
+    if (!window.confirm(`“${input.query}” 검색 결과 ${input.placeIds.length.toLocaleString('ko-KR')}곳을 전부 제거할까요?\n분류: ${labels}\n\n오른쪽 목록의 일부가 아닌, 지도에 표시된 검색 결과 전체입니다.\n제거한 장소는 노플랜 추천에서도 제외됩니다.`)) return;
+    mutationRef.current = true;
+    setRemovingAll(true);
+    setError('');
+    setNotice('');
+    try {
+      const result = await removeAdminMapPlaces(adminKey, adminId, input);
+      const removed = new Set(result.removedIds);
+      setPlaces(current => current.filter(place => !removed.has(place.id)));
+      setSelected(current => current && removed.has(current.id) ? null : current);
+      setNotice(`“${input.query}” 검색 결과 ${result.removedCount.toLocaleString('ko-KR')}곳 제거 완료 · 지도와 노플랜 추천에서 제외했습니다.`);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : '검색 결과 전체 제거에 실패했습니다.');
+    } finally {
+      mutationRef.current = false;
+      setRemovingAll(false);
     }
   };
 
@@ -267,8 +289,8 @@ export default function PlaceMapAdmin() {
         <div className="admin-header-actions">
           <Link className="admin-secondary-button admin-map-nav-link" to={ROUTES.placeAdmin}>등록·검수</Link>
           <span className="admin-user-chip">{adminId}</span>
-          <button className="admin-quiet-button" type="button" onClick={() => void loadPlaces()} disabled={loading}>{loading ? '불러오는 중' : '새로고침'}</button>
-          <button className="admin-quiet-button" type="button" onClick={() => {
+          <button className="admin-quiet-button" type="button" onClick={() => { setSelected(null); void loadPlaces(); }} disabled={busy}>{loading ? '불러오는 중' : '새로고침'}</button>
+          <button className="admin-quiet-button" type="button" disabled={busy} onClick={() => {
             sessionStorage.removeItem('noplanAdminKey');
             sessionStorage.removeItem('noplanAdminId');
             setUnlocked(false);
@@ -276,8 +298,8 @@ export default function PlaceMapAdmin() {
         </div>
       </header>
 
-      {(notice || error) && <div className={`admin-alert ${error ? 'error' : 'success'}`}>{error || notice}</div>}
-      {truncated && <div className="admin-alert error">표시 한도 20,000곳에 도달했습니다. 분류 필터를 사용해 주세요.</div>}
+      {(notice || error) && <div role={error ? 'alert' : 'status'} className={`admin-alert ${error ? 'error' : 'success'}`}>{error || notice}</div>}
+      {truncated && <div className="admin-alert error">지도 조회 한도 20,000곳에 도달했습니다. 검색·전체 제거는 현재 지도에 불러온 장소에 적용됩니다. 처리 후 새로고침하면 나머지를 불러올 수 있습니다.</div>}
 
       <section className="admin-map-toolbar">
         <div className="admin-map-summary">
@@ -289,6 +311,7 @@ export default function PlaceMapAdmin() {
             <button
               className={enabledTypes.includes(option.type) ? 'active' : ''}
               key={option.type}
+              disabled={busy}
               onClick={() => toggleType(option.type)}
               style={{ '--marker-color': option.color } as CSSProperties}
               type="button"
@@ -300,10 +323,20 @@ export default function PlaceMapAdmin() {
         <input
           className="admin-map-search"
           value={query}
-          onChange={(event) => setQuery(event.target.value)}
+          disabled={busy}
+          maxLength={200}
+          aria-label="지도 장소 검색"
+          onChange={(event) => { setQuery(event.target.value); setSelected(null); }}
           placeholder="장소명·주소·소분류 검색"
         />
-        <span className="admin-map-visible-count">지도 표시 {visiblePlaces.length.toLocaleString('ko-KR')}곳</span>
+        <div className="admin-map-bulk-actions">
+          <span className="admin-map-visible-count">지도 표시 {visiblePlaces.length.toLocaleString('ko-KR')}곳</span>
+          <button className="admin-danger-button" type="button" disabled={busy || !query.trim() || !visiblePlaces.length}
+            title={query.trim() ? '오른쪽 목록 개수와 관계없이 지도 검색 결과 전체를 제거합니다.' : '제거할 장소를 먼저 검색해 주세요.'}
+            onClick={() => void removeSearchResults()}>
+            {removingAll ? '전체 제거 중…' : query.trim() ? `전부 제거 (${visiblePlaces.length.toLocaleString('ko-KR')}곳)` : '전부 제거'}
+          </button>
+        </div>
       </section>
 
       <section className="admin-map-workspace">
@@ -327,10 +360,10 @@ export default function PlaceMapAdmin() {
               </dl>
               <a className="admin-primary-button admin-map-external-link" href={kakaoMapUrl(selected)} target="_blank" rel="noopener noreferrer">카카오맵에서 보기</a>
               <div className="admin-map-review-actions">
-                <button className="admin-secondary-button admin-map-approve-button" type="button" disabled={Boolean(reviewing)} onClick={() => void reviewPlace('approve')}>
+                <button className="admin-secondary-button admin-map-approve-button" type="button" disabled={busy} onClick={() => void reviewPlace('approve')}>
                   {reviewing === 'approve' ? '처리 중' : '승인'}
                 </button>
-                <button className="admin-danger-button" type="button" disabled={Boolean(reviewing)} onClick={() => void reviewPlace('remove')}>
+                <button className="admin-danger-button" type="button" disabled={busy} onClick={() => void reviewPlace('remove')}>
                   {reviewing === 'remove' ? '처리 중' : '제거'}
                 </button>
               </div>
@@ -339,6 +372,7 @@ export default function PlaceMapAdmin() {
             <>
               <h2>검색 결과</h2>
               <p>{visiblePlaces.length.toLocaleString('ko-KR')}곳 중 가까이 볼 장소를 선택하세요.</p>
+              {visiblePlaces.length > 30 && <p>목록은 30곳만 미리 보여요. 전부 제거는 지도 검색 결과 {visiblePlaces.length.toLocaleString('ko-KR')}곳 모두에 적용돼요.</p>}
               <div className="admin-map-search-results">
                 {visiblePlaces.slice(0, 30).map((place) => (
                   <button key={place.id} type="button" onClick={() => focusPlace(place)}>

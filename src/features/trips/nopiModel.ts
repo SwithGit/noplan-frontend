@@ -9,7 +9,7 @@ export type Purpose = '발견' | '데이트' | '친구모임' | '가족여행' |
 export interface PlanningFacts { menu: string; hours: string; closed: string }
 export interface NopiAttraction extends TourismAttraction { planning?: PlanningFacts | null; support?: TravelSupport; centralRank?: number; relatedRank?: number }
 export interface CourseNode { place: TripPlace; imageUrl?: string; imageLicense?: string; reason?: string; planning?: PlanningFacts | null; notBefore?: number; initialNotBefore?: number; originalNotes?: string }
-export interface NopiOptions { date: string; start: string; end: string; transport: TripDocument['transport']; purpose: Purpose; district: string; needs?: TravelNeeds }
+export interface NopiOptions { date: string; start: string; end: string; transport: TripDocument['transport']; purpose: Purpose; district: string; needs?: TravelNeeds; anchor?: CourseNode }
 
 export function tourismNode(place: NopiAttraction, duration = 90): CourseNode {
   return { place: { id: newId(), name: place.name, address: place.address, type: foodKind(place) === 'cafe' ? '카페' : place.type, lat: place.lat, lng: place.lng, durationMinutes: duration, fixed: true, source: 'tourism', sourceUrl: place.sourceUrl, priceNeedsCheck: true, tourism: { contentId: place.contentId, contentTypeId: place.contentTypeId } }, imageUrl: place.imageUrl, imageLicense: place.imageLicense, planning: place.planning };
@@ -92,6 +92,7 @@ export function suggestCourse(catalog: NopiAttraction[], options: NopiOptions, e
   const available = minutes(options.end) - minutes(options.start), limit = courseDistanceLimit(options.transport);
   if (!limit) throw Error('대중교통 자동 코스는 아직 지원하지 않아요. 이동수단을 도보 또는 차량으로 변경해 주세요.');
   if (available < 180 || available > 840) throw Error('노피 코스는 하루 3~14시간으로 설정해 주세요.');
+  if (options.anchor) return suggestAnchoredCourse(catalog, options, excluded, rejectedEdges, variant);
   // Apply only to automatic suggestions; search and manually added stops stay available.
   const departmentStore = (place: NopiAttraction) => place.contentTypeId === '38'
     && (place.classification === 'SH01' || /백화점|더현대/.test(place.name.replace(/\s/g, '')));
@@ -221,9 +222,78 @@ export function suggestCourse(catalog: NopiAttraction[], options: NopiOptions, e
   throw Error(`${courseDistanceLabel(options.transport)} 이내에서 연결할 가까운 장소가 부족해요. 거리를 넓히지 않았어요. 다른 권역을 선택하거나 직접 장소를 담아 주세요.`);
 }
 
+// Insert nearby stops before/after the required visit without moving its window.
+// All candidate scoring is local; the routing layer verifies only the final orders.
+function suggestAnchoredCourse(catalog: NopiAttraction[], options: NopiOptions, excluded: Record<string, string>, rejected: Set<string>, variant: number): CourseNode[] {
+  const anchor: CourseNode = { ...options.anchor!, initialNotBefore: undefined };
+  const origin = anchor.place;
+  if (!origin.requiredVisit || !origin.tourism || origin.lat == null || origin.lng == null) throw Error('꼭 방문할 장소의 위치와 시간대를 다시 선택해 주세요.');
+  if (origin.tourism.contentTypeId === '25') throw Error('여행코스 전체 대신 꼭 방문할 개별 장소를 선택해 주세요.');
+  if (excludedPlace(origin, excluded)) throw Error('꼭 방문할 장소가 다른 날짜에 이미 담겨 있어요.');
+  const source = catalog.find(p => p.contentId === origin.tourism!.contentId);
+  anchor.planning = source?.planning ?? anchor.planning;
+  if (source && closedOn(source, options.date)) throw Error('꼭 방문할 장소의 휴무일이에요. 방문 날짜나 장소를 바꿔 주세요.');
+  if (!evaluateNeeds(source?.support, options.needs).eligible) throw Error('꼭 방문할 장소의 필수 여행 조건을 확인할 수 없어요. 조건이나 장소를 확인해 주세요.');
+  const anchorErrors = scheduleCourse([anchor], options.start, options.end, [], {}, options.date).errors;
+  if (anchorErrors.length) throw Error(anchorErrors[0]);
+  const limit = courseDistanceLimit(options.transport), center = { lat: origin.lat, lng: origin.lng };
+  const pool = catalog.filter(p => p.contentId !== origin.tourism!.contentId && p.contentTypeId !== '25'
+    && Number.isFinite(p.lat) && Number.isFinite(p.lng) && (!options.district || p.district === options.district)
+    && distance(center, p) >= AUTO_STOP_SEPARATION_METERS && distance(center, p) <= limit
+    && !excludedPlace({ ...p, tourism: { contentId: p.contentId, contentTypeId: p.contentTypeId } }, excluded)
+    && evaluateNeeds(p.support, options.needs).eligible && !closedOn(p, options.date)
+    && !(p.contentTypeId === '38' && (p.classification === 'SH01' || /백화점|더현대/.test(p.name.replace(/\s/g, ''))))
+    && !/캠핑|야영|골프|컨트리클럽|스키|썰매|물놀이장|수영장|등산|산$|산\(울산\)/.test(p.name)
+    && (p.contentTypeId !== '39' || foodKind(p) !== 'unknown'));
+  const score = (p: NopiAttraction) => preference(p, options.purpose) + evaluateNeeds(p.support, options.needs).score * .3
+    + Math.log1p(p.searchCount || 0) * .1 + (p.demographicShare || 0) * .02 - distance(center, p) / limit * 3;
+  const ranked = pool.toSorted((a, b) => score(b) - score(a) || a.contentId.localeCompare(b.contentId)).slice(0, 48);
+  const scores = new Map(ranked.map(p => [p.contentId, score(p)]));
+  const kind = (node: CourseNode) => node.place.type === '카페' ? 'cafe' : node.place.tourism?.contentTypeId === '39' ? 'meal' : 'visit';
+  const estimate = (nodes: CourseNode[]) => courseLegs(nodes).map(leg => {
+    const meters = distance(leg.from, leg.to);
+    return { id: leg.id, status: 'ok' as const, distanceMeters: meters, durationMinutes: Math.ceil(meters / (options.transport === 'walk' ? 65 : 400)) + (options.transport === 'car' ? 5 : 0) };
+  });
+  let beam = [{ nodes: [anchor], value: 0 }];
+  for (let count = 1; count < targetCourseCount(options); count++) {
+    const next: typeof beam = [], seen = new Set<string>();
+    for (const path of beam) for (const p of ranked) {
+      if (path.nodes.some(n => n.place.tourism?.contentId === p.contentId || distance({ lat: n.place.lat!, lng: n.place.lng! }, p) < AUTO_STOP_SEPARATION_METERS || distance({ lat: n.place.lat!, lng: n.place.lng! }, p) > limit)) continue;
+      const role = foodKind(p), meals = path.nodes.filter(n => kind(n) === 'meal').length;
+      if (role === 'cafe' && path.nodes.some(n => kind(n) === 'cafe')) continue;
+      if (role === 'meal' && meals >= (minutes(options.end) >= 1140 ? 2 : 1)) continue;
+      const duration = role === 'meal' ? 60 : role === 'cafe' ? 40 : 60;
+      const mealStarts = role === 'meal' ? [690, ...(minutes(options.end) >= 1140 ? [1080] : [])] : [0];
+      for (const mealStart of mealStarts) for (let at = 0; at <= path.nodes.length; at++) {
+        const node = { ...tourismNode(p, duration), ...(mealStart ? { notBefore: mealStart } : {}), reason: '꼭 방문할 장소 주변으로 연결했어요.' };
+        const nodes = [...path.nodes.slice(0, at), node, ...path.nodes.slice(at)];
+        const key = nodes.map(n => `${n.place.tourism!.contentId}@${n.notBefore || 0}`).join(':');
+        if (seen.has(key)) continue;
+        seen.add(key);
+        if (nodes.slice(1).some((n, i) => rejected.has(edgeId(nodes[i].place.tourism!.contentId, n.place.tourism!.contentId)))) continue;
+        const routes = estimate(nodes), schedule = scheduleCourse(nodes, options.start, options.end, routes, {}, options.date);
+        if (schedule.errors.length) continue;
+        // Avoid two adjacent restaurants for the same meal window.
+        const mealStops = schedule.stops.filter(s => kind(s.node) === 'meal');
+        if (mealStops.length === 2 && mealStops[1].arrival - mealStops[0].arrival < 180) continue;
+        const anchorIndex = nodes.findIndex(n => n.place.id === origin.id);
+        const balanced = Number(anchorIndex > 0) + Number(anchorIndex < nodes.length - 1);
+        const value = nodes.reduce((sum, n) => sum + (scores.get(n.place.tourism!.contentId) || 0), 0) + balanced * 4
+          + new Set(nodes.map(kind)).size * 2 - routes.reduce((sum, r) => sum + r.distanceMeters / limit, 0) * 2
+          - schedule.stops.reduce((sum, s) => sum + s.wait, 0) / 120;
+        next.push({ nodes, value });
+      }
+    }
+    if (!next.length) break;
+    beam = next.sort((a, b) => b.value - a.value).slice(0, 8);
+  }
+  return beam[Math.min(variant % 3, beam.length - 1)].nodes;
+}
+
 // Keep the starting place; compare up to three short, time-feasible orders.
 // Only the selected set (at most six places) is permuted, bounding route API use.
 export function courseOrderOptions(nodes: CourseNode[], options: NopiOptions): CourseNode[][] {
+  if (options.anchor) return [nodes];
   if (nodes.length < 3 || nodes.length > 6) return [nodes];
   const choices: { nodes: CourseNode[]; meters: number }[] = [];
   const visit = (ordered: CourseNode[], remaining: CourseNode[]) => {
@@ -255,7 +325,8 @@ export function scheduleCourse(nodes: CourseNode[], start: string, end: string, 
     const travel = index ? route?.durationMinutes ?? manualTravel[id] : 0;
     if (travel == null) errors.push(`${index + 1}번째 장소까지 이동시간을 확인해 주세요.`);
     cursor += travel ?? 0;
-    const timing = visitTime(Math.max(cursor, node.notBefore || 0, node.initialNotBefore || 0), node.place.durationMinutes, node.planning, date);
+    const required = node.place.requiredVisit;
+    const timing = visitTime(Math.max(cursor, node.notBefore || 0, node.initialNotBefore || 0, required ? minutes(required.start) : 0), node.place.durationMinutes, node.planning, date);
     const wait = timing.arrival - cursor;
     cursor = timing.arrival;
     if (!timing.fits) errors.push(`${node.place.name}의 안내된 운영시간을 넘어요. 시간이나 장소를 바꿔 주세요.`);
@@ -264,6 +335,7 @@ export function scheduleCourse(nodes: CourseNode[], start: string, end: string, 
     if (!Number.isInteger(node.place.durationMinutes) || node.place.durationMinutes < 10 || node.place.durationMinutes > 600) errors.push('머무는 시간은 10~600분으로 입력해 주세요.');
     if (node.place.type === '카페' && node.place.durationMinutes < 30) errors.push('카페는 최소 30분으로 잡아 주세요.');
     cursor += node.place.durationMinutes;
+    if (required && cursor > minutes(required.end)) errors.push(`${node.place.name}의 선택한 방문 시간대를 넘어요. 시간이나 체류시간을 조정해 주세요.`);
     return { node, arrival, departure: cursor, wait, travel, route, manual: index > 0 && !route && travel != null };
   });
   if (cursor > minutes(end) || cursor > 1439) errors.push('종료 시간을 넘어요. 장소나 체류시간을 줄이거나 종료 시간을 늘려 주세요.');

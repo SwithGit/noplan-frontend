@@ -15,6 +15,8 @@
 .nopi-generate img{width:27px;height:27px;object-fit:contain}
 .nopi-status{padding:9px 28px;color:#897991;display:flex;gap:16px;align-items:center;font-size:11px;background:#fff;flex-shrink:0;min-height:34px;flex-wrap:wrap}
 .nopi-status>span{margin-left:auto;color:#7551ad}
+.nopi-required-visit{margin:10px 28px;padding:12px 16px;background:#f5f0ff;border:1px solid #e4d8ff;border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:13px;flex-wrap:wrap}
+.nopi-required-visit p{margin:5px 0 0;line-height:1.6;color:#716580}
 .nopi-workbench{display:grid;grid-template-columns:minmax(360px,1fr) minmax(500px,.95fr);flex:1;min-height:0;border-top:1px solid #eee8f5}
 .nopi-map-pane{position:relative;min-height:280px;overflow:hidden;background:#f2f0f6}
 .nopi-map-canvas{height:100%;min-height:0;overflow:hidden}
@@ -107,3 +109,17 @@
   .nopi-has-course .nopi-footer{padding:10px 24px}
 }
 @media(max-width:800px){.nopi-common,.nopi-days-panel{padding:14px 16px}.nopi-section-heading{flex-wrap:wrap;gap:6px}.nopi-section-heading>div{flex-wrap:wrap;gap:6px}.nopi-common-fields,.nopi-day-fields{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.nopi-selected-day{padding:12px}.nopi-day-tabs>button{flex-basis:185px}.nopi-setup-dialog.trip-dialog{width:100vw;height:100dvh}.nopi-setup-empty{padding:14px 16px;flex-wrap:wrap}.nopi-setup-empty>img{width:36px;height:36px}.nopi-setup-empty>div{flex:1}.nopi-plan-controls{max-height:55dvh}}
+/* A required-visit notice must never squeeze the mobile route canvas to zero. */
+@media(max-width:800px){
+  .nopi-has-course.trip-dialog{overflow-y:auto;overscroll-behavior:contain}
+  .nopi-has-course .nopi-plan-controls{max-height:none;overflow:visible;flex:none}
+  .nopi-has-course .nopi-workbench{display:block;overflow:visible;flex:none}
+  .nopi-has-course .nopi-map-pane{height:230px;min-height:230px}
+  .nopi-has-course .nopi-route-pane{overflow:visible}
+  .nopi-has-course .nopi-common,.nopi-has-course .nopi-days-panel{padding:10px 16px}
+  .nopi-has-course .nopi-day-tabs>button{padding:8px 12px;gap:4px}
+  .nopi-has-course .nopi-selected-day-compact>.nopi-section-heading{display:none}
+  .nopi-has-course .nopi-day-compact{flex-wrap:wrap;gap:8px}
+  .nopi-required-visit{margin:8px 16px;padding:10px 12px;font-size:12px}
+  .nopi-has-course .nopi-footer{position:sticky;bottom:0;z-index:2}
+}

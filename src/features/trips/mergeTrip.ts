@@ -32,6 +32,7 @@ const validBlock = (block: Record<string, unknown>) => !Array.isArray(block.plac
 );
 const validBlocks = (blocks: unknown[]) => {
   if (blocks.length > 12) return false;
+  if (blocks.flatMap(b => object(b) && Array.isArray(b.places) ? b.places : []).filter(p => object(p) && p.requiredVisit).length > 1) return false;
   const timed = blocks.filter((b): b is Record<string, unknown> => object(b) && typeof b.startTime === 'string' && typeof b.endTime === 'string')
     .sort((a, b) => String(a.startTime).localeCompare(String(b.startTime)));
   return !timed.some((b, i) => String(b.endTime) <= String(b.startTime) || i > 0 && String(b.startTime) < String(timed[i - 1].endTime));

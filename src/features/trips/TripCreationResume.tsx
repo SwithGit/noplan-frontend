@@ -23,7 +23,7 @@ export function TripCreationResume({ user }: { user: UserSession | null }) {
       clearPendingTripCreation(pending.trip.id);
       clearTripCreation(pending.sourceUserId);
       clearTripCreation(user.userId);
-      navigate(tripRoute(trip.id), { replace: true, state: { initialTrip: trip, focusDayId: pending.focusDayId, focusBlockId: pending.focusBlockId } });
+      navigate(tripRoute(trip.id), { replace: true, state: { initialTrip: trip, focusDayId: pending.focusDayId, focusBlockId: pending.focusBlockId, openPlanner: trip.document.days.some(day => day.blocks.some(block => block.places.some(place => place.requiredVisit))) } });
     }).catch(cause => { if (active) { setLoginRequired(cause instanceof ApiError && cause.status === 401); setError(cause instanceof Error ? cause.message : '여행을 저장하지 못했어요. 입력한 조건은 유지돼요.'); } });
     return () => { active = false; };
   }, [user, pending, attempt, navigate]);

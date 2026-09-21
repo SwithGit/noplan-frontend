@@ -47,7 +47,7 @@ export function TripWorkspace({ user }: { user: UserSession | null }) {
   const [storageError, setStorageError] = useState('');
   const [dayId, setDayId] = useState((location.state as {focusDayId?:string}|null)?.focusDayId || seed?.document.days[0]?.id || '');
   const [blockId, setBlockId] = useState((location.state as {focusBlockId?:string}|null)?.focusBlockId || seed?.document.days[0]?.blocks[0]?.id || '');
-  const [dialog, setDialog] = useState<'searchPlace' | 'block' | 'settings' | 'tourism' | 'sharing' | 'dayRoute' | 'planner' | 'overview' | null>(null);
+  const [dialog, setDialog] = useState<'searchPlace' | 'block' | 'settings' | 'tourism' | 'sharing' | 'dayRoute' | 'planner' | 'overview' | null>((location.state as { openPlanner?: boolean } | null)?.openPlanner ? 'planner' : null);
   const [resolving, setResolving] = useState(false);
   const [dismissedConflict, setDismissedConflict] = useState('');
   const [plannerConflict, setPlannerConflict] = useState<{base:TripDocument;local:TripDocument;overview:boolean;activeDayId:string}|null>(null);

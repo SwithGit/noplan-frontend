@@ -309,6 +309,7 @@
 .trip-home-tourism p { margin: 0; font-size: 13px; color: #716d80; line-height: 1.65; }
 .tourism-home-actions { display: flex; align-items: center; gap: 14px; }
 .tourism-home-schedule { width: 100%; }
+.trip-home-tourism > .support-discovery { width: 100%; margin-top: 0; }
 .tourism-home-schedule .trip-field { margin: 0; }
 .tourism-home-schedule input { width: 100%; min-width: 0; height: 42px; padding: 10px 12px; border: 1px solid #e8ddef; border-radius: 9px; background: #fefcff; color: #685171; font: inherit; font-size: 14px; }
 .tourism-anchor-label { margin: 0 21px 12px; color: #8466b1; font-size: 12px; font-weight: 600; }

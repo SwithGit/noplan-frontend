@@ -15,6 +15,7 @@ import { TripIcon } from './TripIcon';
 import { DayRouteMap } from './DayRouteMap';
 import { PlacePicker } from './PlacePicker';
 import { placeKeys, replacementNotes } from './placeIdentity';
+import { attractionFromPlace } from './tourismModel';
 import { clock, shortDate, transportLabels, type TripDay, type TripDocument } from './tripModel';
 import { courseDistanceLabel, courseDistanceLimit } from './coursePolicy';
 import { generateNearbyCourse } from './nopiRouting';
@@ -66,6 +67,7 @@ export function NopiCoursePlanner({ document: sourceDocument, dayId: initialDayI
   const catalogKey = `${catalogRetry}:${catalogQuery}`;
   const catalog = catalogResponse?.key === catalogKey ? catalogResponse.data : undefined;
   const nodes = useMemo(() => draftNodes.map(node => { const source = catalog?.items.find(item => item.contentId === node.place.tourism?.contentId); return source ? { ...node, imageUrl: source.imageUrl, imageLicense: source.imageLicense, planning: source.planning } : node; }), [draftNodes, catalog]);
+  const requiredNode = nodes.find(node => node.place.requiredVisit);
   const exclusions = nopiDraftExclusions(document, drafts, dayId);
   const routeKey = nopiRouteKey(draft);
   const currentRoutes = routesResponse?.key === routeKey ? routesResponse : undefined;
@@ -117,12 +119,16 @@ export function NopiCoursePlanner({ document: sourceDocument, dayId: initialDayI
       if (hasTravelNeeds(needs) && support.unavailable && !support.items.some(item => evaluateNeeds(item, needs).eligible)) throw Error('여행 조건 정보를 불러오지 못했어요. 잠시 후 다시 확인해 주세요.');
       controller.signal.throwIfAborted();
       const centers = new Map(discovery?.items.map(p => [p.contentId, p.centralRank]) || []);
-      const anchor = discovery?.items.find(p => !(p.contentTypeId === '38' && (p.classification === 'SH01' || /백화점|더현대/.test(p.name))) && evaluateNeeds(byId.get(p.contentId), needs).eligible);
-      const related = anchor ? await getDiscovery(destination, anchor.contentId, controller.signal).catch(() => undefined) : undefined;
+      const anchorId = requiredNode?.place.tourism?.contentId || discovery?.items.find(p => !(p.contentTypeId === '38' && (p.classification === 'SH01' || /백화점|더현대/.test(p.name))) && evaluateNeeds(byId.get(p.contentId), needs).eligible)?.contentId;
+      const related = anchorId ? await getDiscovery(destination, anchorId, controller.signal).catch(() => undefined) : undefined;
       controller.signal.throwIfAborted();
       const relatedRanks = new Map(related?.items.map(p => [p.contentId, p.relatedRank]) || []);
       const candidates = catalog.items.map(place => ({ ...place, support: byId.get(place.contentId), centralRank: centers.get(place.contentId), relatedRank: relatedRanks.get(place.contentId) }));
-      const result = await generateNearbyCourse(candidates, options, exclusions, (transport, legs, signal) => getDayRoutes(transport, legs, signal, diagnostic.operationId), controller.signal, variant);
+      if (requiredNode && !candidates.some(place => place.contentId === requiredNode.place.tourism?.contentId)) {
+        const place = attractionFromPlace(requiredNode.place);
+        candidates.push({ ...place, planning: requiredNode.planning, support: byId.get(place.contentId), centralRank: undefined, relatedRank: undefined });
+      }
+      const result = await generateNearbyCourse(candidates, { ...options, anchor: requiredNode }, exclusions, (transport, legs, signal) => getDayRoutes(transport, legs, signal, diagnostic.operationId), controller.signal, variant);
       if (controller.signal.aborted) return;
       diagnostic.finish('success', { resultCount: result.nodes.length, placeIds: result.nodes.flatMap(node => node.place.tourism ? [node.place.tourism.contentId] : []), distanceMeters: Math.round(result.meters), partial: Boolean(result.notice) });
       patchDay({ nodes: result.nodes, manualTravel: {}, edited: true, variant: variant + 1, notice: [result.notice, support.partial ? '일부 장소의 조건만 확인했어요. 필수 조건은 유지하고, 확인된 선호 시설을 우선 반영했어요.' : '', discovery?.status !== 'ok' ? '관광지 연결 정보 없이 기본 추천으로 구성했어요.' : ''].filter(Boolean).join(' ') }); setActive(result.nodes[0].place.id); setCommonExpanded(false); setDaySettingsOpen(false);
@@ -173,6 +179,7 @@ export function NopiCoursePlanner({ document: sourceDocument, dayId: initialDayI
         </section>
       </div>
       <div className="nopi-feedback">
+      {requiredNode && <div className="nopi-required-visit"><div><strong>{uiText('꼭 방문할 장소')} · {requiredNode.place.name}</strong><p>{requiredNode.place.requiredVisit!.start}–{requiredNode.place.requiredVisit!.end} · {uiText('이 장소와 방문 시간대를 유지하며 주변 코스를 채워요.')}</p></div><button type="button" className="trip-text-link" disabled={busy} onClick={() => updateNodes(nodes.map(node => node.place.id === requiredNode.place.id ? { ...node, place: { ...node.place, requiredVisit: undefined } } : node))}>{uiText('필수 방문 해제')}</button></div>}
       {options.transport === 'transit' && <p className="trip-alert">{uiText("저장한 대중교통 설정을 유지했어요. 자동 코스를 이용하려면 이동수단을 도보 또는 차량으로 변경해 주세요.")}</p>}
       {generationNotice && <p className="trip-alert" role="status">{uiText(generationNotice)}</p>}
       <div className="nopi-status" role="status">{uiText(busy ? '가까운 장소와 실제 이동시간을 확인하고 있어요…' : '날짜를 오가도 작업 중인 코스는 유지돼요.')}<span>{uiText("✓ 다른 날짜에 담은 장소 제외")}{uiText(otherDayCount > 0 ? ` · ${otherDayCount}곳` : '')}</span>{busy && <button className="trip-text-link" type="button" onClick={() => { generation.current?.abort(); setBusy(false); }}>{uiText("추천 중단")}</button>}</div>
@@ -203,6 +210,6 @@ export function NopiCoursePlanner({ document: sourceDocument, dayId: initialDayI
       </div> : <div className="nopi-setup-empty"><img src={nopi} alt="" /><div><strong>{uiText("이날의 첫 코스를 만들어볼까요?")}</strong><span>{uiText("위 버튼으로 추천받거나 가고 싶은 장소를 직접 담아보세요.")}</span></div><button className="trip-button" type="button" disabled={busy || disabled} onClick={() => setPicker(0)}>{uiText("장소 담기")}</button></div>}
       <footer className="nopi-footer"><div><strong>{uiText(changedDayCount ? `${changedDayCount}일의 코스 · 반영 준비 중` : `${document.days.length}일의 여행을 하루씩 채워요`)}</strong><span>{uiText("날짜 카드를 눌러 다른 날도 만들고, 작성한 일정을 한 번에 반영해요.")}</span></div><button className="trip-button" type="button" disabled={busy || routeLoading || disabled || (!changedDayCount && !needsEdited)} onClick={() => apply(false)}>{uiText("작성한 일정 반영")}</button><button className="trip-button primary" type="button" disabled={busy || routeLoading || disabled || (!changedDayCount && !document.days.some(d => d.blocks.some(b => b.places.length)))} onClick={() => apply(true)}>{uiText("반영하고 전체 일정 보기")}<TripIcon name="arrow" /></button></footer>
     </TripDialog>
-    {picker != null && <PlacePicker needs={needs} destination={document.destination} initial={selectedNode?.place} excluded={disabledPlaces} context={uiText(`DAY ${dayIndex + 1} · ${selectedNode ? '장소 변경' : '새 장소 담기'}`)} onClose={() => setPicker(null)} onSelect={(place, attraction) => { const node: CourseNode = attraction ? tourismNode(catalog?.items.find(item => item.contentId === attraction.contentId) || attraction, place.durationMinutes) : { place }; updateNodes(picker < nodes.length ? nodes.map((item, index) => index === picker ? { ...node, originalNotes: replacementNotes(item.originalNotes) } : item) : [...nodes, node]); setActive(node.place.id); setPicker(null); }} />}
+    {picker != null && <PlacePicker needs={needs} destination={document.destination} initial={selectedNode?.place} excluded={disabledPlaces} context={uiText(`DAY ${dayIndex + 1} · ${selectedNode ? '장소 변경' : '새 장소 담기'}`)} onClose={() => setPicker(null)} onSelect={(place, attraction) => { const node: CourseNode = attraction ? { ...tourismNode(catalog?.items.find(item => item.contentId === attraction.contentId) || attraction, place.durationMinutes), place } : { place }; updateNodes(picker < nodes.length ? nodes.map((item, index) => index === picker ? { ...node, originalNotes: replacementNotes(item.originalNotes) } : item) : [...nodes, node]); setActive(node.place.id); setPicker(null); }} />}
   </>;
 }

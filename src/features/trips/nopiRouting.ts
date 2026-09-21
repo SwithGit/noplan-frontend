@@ -65,6 +65,12 @@ export async function generateNearbyCourse(catalog: NopiAttraction[], options: N
     if (best) return { ...best, notice: [replacedUnavailable ? '경로를 확인할 수 없는 구간을 제외하고 이동 가능한 코스로 구성했어요.' : '', best.nodes.length < targetCourseCount(options) ? `가까운 후보가 부족해 ${best.nodes.length}곳으로 구성했어요. ${courseDistanceLabel(options.transport)} 제한은 그대로 지켰어요.` : ''].filter(Boolean).join(' ') };
     if (serviceFailure) throw Error(serviceFailure);
   }
+  if (options.anchor) {
+    const nodes = [{ ...options.anchor, initialNotBefore: undefined }];
+    const errors = scheduleCourse(nodes, options.start, options.end, [], {}, options.date).errors;
+    if (errors.length) throw Error(errors[0]);
+    return { nodes, routes: [] as DayRouteResult[], meters: 0, notice: '선택한 장소는 유지했어요. 방문 시간과 이동거리 조건에 맞는 주변 코스를 확인하지 못해 이 장소만 담았어요.' };
+  }
   if (replacedUnavailable) throw Error('경로를 확인할 수 없는 구간이 반복돼 코스를 완성하지 못했어요. 다른 권역을 선택하거나 장소를 직접 담아 주세요.');
   if (timeRejected && !distanceRejected) throw Error('이동·방문 시간을 합치면 설정한 시간 안에 코스를 구성하기 어려워요. 여행 시간을 늘리거나 장소를 직접 담아 주세요.');
   throw Error(`${courseDistanceLabel(options.transport)} 이내의 실제 경로로 연결하기 어려워요. 거리를 넓히지 않았어요. 다른 권역을 선택하거나 장소를 직접 담아 주세요.`);
