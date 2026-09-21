@@ -3,6 +3,10 @@ import { apiJson } from './client';
 
 export interface TourismRegion { id: string; name: string; districts: string[] }
 export interface TourismCourseList {
+  locale?: Locale;
+  requestedLocale?: Locale;
+  translationStatus?: 'original' | 'translated' | 'unavailable';
+  translationSource?: 'machine';
   items: (Pick<TourismAttraction, 'contentId' | 'name' | 'address' | 'imageUrl' | 'imageLicense'> & {
     region: string; regionName: string; description?: string; duration?: string; stops?: string[]; imagePlace?: string;
   })[];
@@ -12,10 +16,10 @@ export interface TourismCourseList {
   totalPages: number;
   regions: { id: string; name: string; count: number }[];
 }
-export function getTourismCourses(region: string, keyword: string, page: number, signal: AbortSignal) {
-  const params = new URLSearchParams({ region, keyword, page: String(page) });
+export function getTourismCourses(region: string, keyword: string, page: number, signal: AbortSignal, locale: Locale = getLocale()) {
+  const params = new URLSearchParams({ region, keyword, page: String(page), locale });
   return apiJson<TourismCourseList>(`/api/tourism/courses?${params}`, {
-    signal: AbortSignal.any([signal, AbortSignal.timeout(15000)]),
+    signal: AbortSignal.any([signal, AbortSignal.timeout(locale === 'ko' ? 15000 : 120000)]),
   });
 }
 export function getTourismRegions(signal?: AbortSignal) {
@@ -66,19 +70,21 @@ export interface TourismDetail {
   locale?: Locale;
   requestedLocale?: Locale;
   translationStatus?: 'translated' | 'missing' | 'unavailable';
+  translationSource?: 'machine';
+  localizedImagePlace?: string;
   localizedName?: string;
   localizedAddress?: string;
   overview: string;
   homepage: string;
   facts: { label: string; value: string }[];
   extras: { label: string; value: string }[];
-  course: { duration: string; distance: string; stops: { name: string; description: string }[] } | null;
+  course: { duration: string; distance: string; stops: { name: string; originalName?: string; description: string }[] } | null;
   partial: boolean;
   sourceLabel: string;
 }
 
 export function getTourismDetail(id: string, type: TourismAttraction['contentTypeId'], signal: AbortSignal, locale: Locale = getLocale()) {
   return apiJson<TourismDetail>(`/api/tourism/${encodeURIComponent(id)}?type=${type}&locale=${locale}`, {
-    signal: AbortSignal.any([signal, AbortSignal.timeout(15000)]),
+    signal: AbortSignal.any([signal, AbortSignal.timeout(type === '25' && locale !== 'ko' ? 120000 : 15000)]),
   });
 }

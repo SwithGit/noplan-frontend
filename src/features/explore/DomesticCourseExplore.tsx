@@ -29,7 +29,7 @@ export function DomesticCourseExplore() {
   const region = params.get('region') || '';
   const rawPage = Number(params.get('page') || 1);
   const page = Number.isInteger(rawPage) && rawPage > 0 && rawPage <= 3000 ? rawPage : 1;
-  const key = JSON.stringify([region, query.trim(), page, retry]);
+  const key = JSON.stringify([locale, region, query.trim(), page, retry]);
   const current = result?.key === key ? result : undefined;
   const data = current?.data;
   const loading = !current;
@@ -38,12 +38,12 @@ export function DomesticCourseExplore() {
     const controller = new AbortController();
     // Cancel obsolete pages so a slow response cannot replace a new filter.
     const timer = window.setTimeout(() => {
-      getTourismCourses(region, query.trim(), page, controller.signal)
+      getTourismCourses(region, query.trim(), page, controller.signal, locale)
         .then(data => { if (!controller.signal.aborted) { setResult({ key, data }); setRegions(data.regions); } })
         .catch(() => { if (!controller.signal.aborted) setResult({ key, error: true }); });
     }, 250);
     return () => { window.clearTimeout(timer); controller.abort(); };
-  }, [region, query, page, key]);
+  }, [locale, region, query, page, key]);
 
   const update = (field: string, value: string) => {
     const next = new URLSearchParams(params);
@@ -80,8 +80,9 @@ export function DomesticCourseExplore() {
       {loading && <p className="domestic-explore-count" role="status">{t('여행 코스를 불러오고 있어요…')}</p>}
       {current?.error && <div className="domestic-explore-empty" role="alert"><p>{t('코스를 불러오지 못했어요. 다시 시도해 주세요.')}</p><button type="button" onClick={() => setRetry(value => value + 1)}>{t('다시 불러오기')}</button></div>}
       {data && <>
+        {locale !== 'ko' && data.total > 0 && <p className="domestic-translation-note" role="status">{t(data.translationStatus === 'translated' ? '자동 번역 · 정확한 내용은 공식 원문을 확인해 주세요.' : '번역을 불러오지 못해 원문을 표시하고 있어요.')}{data.translationStatus !== 'translated' && <button type="button" onClick={() => setRetry(value => value + 1)}>{t('다시 불러오기')}</button>}</p>}
         <p className="domestic-explore-count" role="status">{t('추천코스')} · {data.total}{data.total > 0 && ` · ${(data.page - 1) * data.pageSize + 1}–${Math.min(data.page * data.pageSize, data.total)} / ${data.total}`}</p>
-        {data.items.length ? <div className="home-courses-grid">{data.items.map(item => <HomeCourseCard key={item.contentId} course={toCourse(item)} onSelect={setSelected} />)}</div> : <div className="domestic-explore-empty"><h2>{t('조건에 맞는 추천코스가 없어요.')}</h2><p>{t('다른 지역이나 검색어로 찾아보세요.')}</p><button type="button" onClick={reset}>{t('검색 초기화')}</button></div>}
+        {data.items.length ? <div className="home-courses-grid">{data.items.map(item => <HomeCourseCard key={`${locale}-${item.contentId}`} course={toCourse(item)} onSelect={setSelected} />)}</div> : <div className="domestic-explore-empty"><h2>{t('조건에 맞는 추천코스가 없어요.')}</h2><p>{t('다른 지역이나 검색어로 찾아보세요.')}</p><button type="button" onClick={reset}>{t('검색 초기화')}</button></div>}
         {totalPages > 1 && <nav className="domestic-explore-pagination" aria-label={t('코스 페이지')}>
           <button type="button" disabled={activePage === 1} onClick={() => goToPage(activePage - 1)}>{t('이전')}</button>
           {firstPage > 1 && <><button type="button" onClick={() => goToPage(1)}>1</button>{firstPage > 2 && <span>…</span>}</>}

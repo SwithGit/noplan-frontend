@@ -1,4 +1,5 @@
 import { PublicText } from '../../i18n/PublicText';
+import { useLocale } from '../../i18n/locale';
 import { t as uiText } from '../../i18n/translate';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -72,21 +73,25 @@ export function HomeExhibitionBanner() {
 }
 
 export function HomeCourseDetail({ course, onClose }: { course: HomeCourse; onClose: () => void }) {
-  const [result, setResult] = useState<{ detail?: TourismDetail; error?: string }>({});
+  const locale = useLocale();
+  const [result, setResult] = useState<{ key?: string; detail?: TourismDetail; error?: string }>({});
   const [retry, setRetry] = useState(0);
+  const requestKey = `${course.id}:${locale}:${retry}`;
   useEffect(() => {
     const controller = new AbortController();
-    getTourismDetail(course.id, '25', controller.signal).then(detail => { if (!controller.signal.aborted) setResult({ detail }); }).catch(() => { if (!controller.signal.aborted) setResult({ error: '코스 상세를 불러오지 못했어요. 다시 시도해 주세요.' }); });
+    getTourismDetail(course.id, '25', controller.signal, locale).then(detail => { if (!controller.signal.aborted) setResult({ key: requestKey, detail }); }).catch(() => { if (!controller.signal.aborted) setResult({ key: requestKey, error: '코스 상세를 불러오지 못했어요. 다시 시도해 주세요.' }); });
     return () => controller.abort();
-  }, [course.id, retry]);
-  const detail = result.detail;
+  }, [course.id, locale, requestKey]);
+  const detail = result.key === requestKey ? result.detail : undefined;
+  const error = result.key === requestKey ? result.error : undefined;
   return <TripDialog title={uiText("추천 여행코스")} onClose={onClose} className="home-course-dialog">
-    <div className="home-course-detail-cover"><HomePhoto src={course.image} alt={course.imagePlace} /><small>{uiText("© 한국관광공사")}{course.license && ` · ${uiText("공공누리")} ${uiText(course.license)}`} · {course.imagePlace}</small></div>
-    <div className="home-course-detail-body"><span className="trip-eyebrow">{uiText(course.region)}{uiText(" · 한국관광공사 추천코스")}</span><h2>{uiText(course.title)}</h2>
-      {!detail && !result.error && <p role="status">{uiText("여행 코스를 불러오고 있어요…")}</p>}
-      {result.error && <div className="trip-alert" role="alert">{uiText(result.error)}<button type="button" onClick={() => { setResult({}); setRetry(value => value + 1); }}>{uiText("다시 불러오기")}</button></div>}
+    <div className="home-course-detail-cover"><HomePhoto src={course.image} alt="" /><small>{uiText("© 한국관광공사")}{course.license && ` · ${uiText("공공누리")} ${uiText(course.license)}`}{(detail || locale === 'ko') && ` · ${detail?.localizedImagePlace || uiText(course.imagePlace)}`}</small></div>
+    <div className="home-course-detail-body"><span className="trip-eyebrow">{uiText(course.region)}{uiText(" · 한국관광공사 추천코스")}</span><h2>{detail?.localizedName || uiText(locale !== 'ko' && !detail ? '추천 여행코스' : course.title)}</h2>
+      {!detail && !error && <p role="status">{uiText("여행 코스를 불러오고 있어요…")}</p>}
+      {error && <div className="trip-alert" role="alert">{uiText(error)}<button type="button" onClick={() => setRetry(value => value + 1)}>{uiText("다시 불러오기")}</button></div>}
+      {detail && locale !== 'ko' && (detail.translationSource === 'machine' || detail.translationStatus !== 'translated') && <p className="trip-muted" role="status">{uiText(detail.translationStatus === 'translated' ? '자동 번역 · 정확한 내용은 공식 원문을 확인해 주세요.' : '번역을 불러오지 못해 원문을 표시하고 있어요.')}{detail.translationStatus !== 'translated' && <button className="trip-text-link" type="button" onClick={() => setRetry(value => value + 1)}>{uiText('다시 불러오기')}</button>}</p>}
       {detail && <><p className="home-course-overview">{detail.overview.replaceAll('\\n', '\n')}</p><div className="home-course-facts">{detail.course?.duration && <span><TripIcon name="clock" />{detail.course.duration}</span>}{detail.course?.distance && <span><TripIcon name="map" />{detail.course.distance}</span>}</div>
-        <h3>{uiText("이렇게 둘러보세요")}</h3><ol className="home-course-stops">{detail.course?.stops.map((stop, at) => <li key={`${at}-${stop.name}`}><span>{String(at + 1).padStart(2, '0')}</span><div><h4>{stop.name}</h4><p>{stop.description.replaceAll('\\n', '\n')}</p><a href={`https://map.naver.com/p/search/${encodeURIComponent(`${uiText(course.region)} ${stop.name}`)}`} target="_blank" rel="noreferrer">{uiText("네이버지도에서 보기 ↗")}</a></div></li>)}</ol>
+        <h3>{uiText("이렇게 둘러보세요")}</h3><ol className="home-course-stops">{detail.course?.stops.map((stop, at) => <li key={`${at}-${stop.name}`}><span>{String(at + 1).padStart(2, '0')}</span><div><h4>{stop.name}</h4><p>{stop.description.replaceAll('\\n', '\n')}</p><a href={`https://map.naver.com/p/search/${encodeURIComponent(`${course.region} ${stop.originalName || stop.name}`)}`} target="_blank" rel="noreferrer">{uiText("네이버지도에서 보기 ↗")}</a></div></li>)}</ol>
         {detail.partial && <p className="trip-muted">{uiText("일부 상세정보를 불러오지 못했어요.")}</p>}
       </>}
       <p className="trip-footnote">{uiText("한국관광공사 제공 코스로, 실제 이용자의 여행 후기는 아니에요. 운영시간과 이동 방법은 방문 전에 확인해 주세요.")}</p>
@@ -95,6 +100,7 @@ export function HomeCourseDetail({ course, onClose }: { course: HomeCourse; onCl
 }
 
 export function HomeCourseCard({ course, onSelect }: { course: HomeCourse; onSelect: (course: HomeCourse) => void }) {
+  useLocale();
   return <button type="button" className="home-course-card" onClick={() => onSelect(course)}>
     <div className="home-course-cover"><HomePhoto src={course.image} alt={uiText(course.imagePlace)} /><span className="home-course-badge">{uiText("추천코스")}</span><small>{uiText("© 한국관광공사")}{course.license && ` · ${uiText("공공누리")} ${uiText(course.license)}`}</small></div>
     <div className="home-course-copy"><span className="home-course-meta"><TripIcon name="pin" />{uiText(course.region)}{course.duration && ` · ${uiText(course.duration)}`}</span><h3>{uiText(course.title)}</h3><p>{uiText(course.description)}</p><div className="home-course-footer"><span>{course.stops.slice(0, 3).map(name=>uiText(name)).join(' → ')}</span><b>{uiText("코스 보기 ")}<TripIcon name="arrow" /></b></div></div>
