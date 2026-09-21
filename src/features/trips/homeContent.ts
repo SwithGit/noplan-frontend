@@ -8,7 +8,17 @@ export const homeCourses = [
   { id: '2022929', region: '서울', title: '낮도 밤도 좋은 서울 산책', description: '광화문에서 남산까지, 도심의 다른 표정', duration: '', stops: ['광화문', '청계천', '남산서울타워'], image: 'https://tong.visitkorea.or.kr/cms/resource/72/3069472_image2_1.JPG', imagePlace: '광화문', license: '3유형' },
   { id: '2394381', region: '울산', title: '몽돌 소리 따라 울산 바다', description: '바다를 곁에 두고 이어가는 해안 여행', duration: '7시간', stops: ['강동몽돌해변', '신명·정자해변', '화암 주상절리'], image: 'https://tong.visitkorea.or.kr/cms/resource/81/4075481_image2_1.jpg', imagePlace: '강동몽돌해변', license: '1유형' },
 ] as const;
-export type HomeCourse = typeof homeCourses[number];
+export interface HomeCourse {
+  id: string;
+  region: string;
+  title: string;
+  description: string;
+  duration: string;
+  stops: readonly string[];
+  image: string;
+  imagePlace: string;
+  license: string;
+}
 
 export function currentFestivalBanners(events: TravelEvent[], today: string) {
   const current = events.filter(event => event.kind === 'festival' && event.status !== 'cancelled' && event.startDate <= today && event.endDate >= today && event.imageUrl);

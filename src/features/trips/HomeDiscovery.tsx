@@ -27,7 +27,7 @@ function useHomeFestivals() {
 
 function HomePhoto({ src, alt, eager = false }: { src: string; alt: string; eager?: boolean }) {
   const [failed, setFailed] = useState(false);
-  return failed ? <span className="home-photo-fallback"><TripIcon name="map" /><span>{uiText("여행의 새로운 발견")}</span></span> : <img src={src} alt={alt} loading={eager ? 'eager' : 'lazy'} fetchPriority={eager ? 'high' : 'auto'} referrerPolicy="no-referrer" onError={() => setFailed(true)} />;
+  return failed || !src ? <span className="home-photo-fallback"><TripIcon name="map" /><span>{uiText("여행의 새로운 발견")}</span></span> : <img src={src} alt={alt} loading={eager ? 'eager' : 'lazy'} fetchPriority={eager ? 'high' : 'auto'} referrerPolicy="no-referrer" onError={() => setFailed(true)} />;
 }
 
 export function HomeHero() {
@@ -81,7 +81,7 @@ export function HomeCourseDetail({ course, onClose }: { course: HomeCourse; onCl
   }, [course.id, retry]);
   const detail = result.detail;
   return <TripDialog title={uiText("추천 여행코스")} onClose={onClose} className="home-course-dialog">
-    <div className="home-course-detail-cover"><HomePhoto src={course.image} alt={course.imagePlace} /><small>{uiText("사진 © 한국관광공사 · 공공누리 ")}{uiText(course.license)} · {course.imagePlace}</small></div>
+    <div className="home-course-detail-cover"><HomePhoto src={course.image} alt={course.imagePlace} /><small>{uiText("© 한국관광공사")}{course.license && ` · ${uiText("공공누리")} ${uiText(course.license)}`} · {course.imagePlace}</small></div>
     <div className="home-course-detail-body"><span className="trip-eyebrow">{uiText(course.region)}{uiText(" · 한국관광공사 추천코스")}</span><h2>{uiText(course.title)}</h2>
       {!detail && !result.error && <p role="status">{uiText("여행 코스를 불러오고 있어요…")}</p>}
       {result.error && <div className="trip-alert" role="alert">{uiText(result.error)}<button type="button" onClick={() => { setResult({}); setRetry(value => value + 1); }}>{uiText("다시 불러오기")}</button></div>}
@@ -96,7 +96,7 @@ export function HomeCourseDetail({ course, onClose }: { course: HomeCourse; onCl
 
 export function HomeCourseCard({ course, onSelect }: { course: HomeCourse; onSelect: (course: HomeCourse) => void }) {
   return <button type="button" className="home-course-card" onClick={() => onSelect(course)}>
-    <div className="home-course-cover"><HomePhoto src={course.image} alt={uiText(course.imagePlace)} /><span className="home-course-badge">{uiText("추천코스")}</span><small>{uiText("© 한국관광공사 · 공공누리 ")}{uiText(course.license)}</small></div>
+    <div className="home-course-cover"><HomePhoto src={course.image} alt={uiText(course.imagePlace)} /><span className="home-course-badge">{uiText("추천코스")}</span><small>{uiText("© 한국관광공사")}{course.license && ` · ${uiText("공공누리")} ${uiText(course.license)}`}</small></div>
     <div className="home-course-copy"><span className="home-course-meta"><TripIcon name="pin" />{uiText(course.region)}{course.duration && ` · ${uiText(course.duration)}`}</span><h3>{uiText(course.title)}</h3><p>{uiText(course.description)}</p><div className="home-course-footer"><span>{course.stops.slice(0, 3).map(name=>uiText(name)).join(' → ')}</span><b>{uiText("코스 보기 ")}<TripIcon name="arrow" /></b></div></div>
   </button>;
 }

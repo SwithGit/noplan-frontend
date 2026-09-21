@@ -2,6 +2,22 @@ import { getLocale, type Locale } from '../i18n/locale';
 import { apiJson } from './client';
 
 export interface TourismRegion { id: string; name: string; districts: string[] }
+export interface TourismCourseList {
+  items: (Pick<TourismAttraction, 'contentId' | 'name' | 'address' | 'imageUrl' | 'imageLicense'> & {
+    region: string; regionName: string; description?: string; duration?: string; stops?: string[]; imagePlace?: string;
+  })[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+  regions: { id: string; name: string; count: number }[];
+}
+export function getTourismCourses(region: string, keyword: string, page: number, signal: AbortSignal) {
+  const params = new URLSearchParams({ region, keyword, page: String(page) });
+  return apiJson<TourismCourseList>(`/api/tourism/courses?${params}`, {
+    signal: AbortSignal.any([signal, AbortSignal.timeout(15000)]),
+  });
+}
 export function getTourismRegions(signal?: AbortSignal) {
   return apiJson<{ items: TourismRegion[] }>('/api/tourism/regions', { signal });
 }

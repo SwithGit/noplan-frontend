@@ -7,6 +7,7 @@ import { AppTopBar } from '../../components/ui/AppTopBar';
 import { Chip } from '../../components/ui/Chip';
 import MapBoard from '../../components/MapBoard';
 import { NopiBubble } from '../../components/ui/NopiBubble';
+import { NopiCheckNote } from '../../components/ui/NopiCheckNote';
 import { PlaceVisual } from '../../components/ui/PlaceVisual';
 import { CrowdingStatus } from '../../components/ui/CrowdingStatus';
 import { kakaoPlaceUrl } from '../../utils/placeMap';
@@ -276,7 +277,7 @@ export function PlaceDetailScreen() {
       )}
 
       {place.businessStatus !== 'open' && place.businessStatus !== 'closed' && (
-        <p className="inline-message">{uiText("영업시간을 확인하지 못한 장소예요. 방문 전 아래 카카오맵에서 영업시간과 라스트오더를 확인해 주세요.")}</p>
+        <p className="inline-message"><NopiCheckNote>{uiText("영업시간을 확인하지 못한 장소예요. 방문 전 아래 카카오맵에서 영업시간과 라스트오더를 확인해 주세요.")}</NopiCheckNote></p>
       )}
       <section className="external-map-links" aria-label={uiText("외부 지도에서 장소 보기")}>
         <button type="button" onClick={() => openExternalMap(place, 'naver')}>{uiText("네이버지도에서 보기")}</button>

@@ -4,6 +4,7 @@ import { normalizeNeeds, hasTravelNeeds, evaluateNeeds, type TravelNeeds } from 
 import { getSupportCatalog, getDiscovery } from '../../api/travelSupportApi';
 import { TourismText } from '../../i18n/TourismText';
 import { t as uiText } from '../../i18n/translate';
+import { NopiCheckNote } from '../../components/ui/NopiCheckNote';
 import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from 'react';
 import { apiJson } from '../../api/client';
 import { beginPcOperation, diagnosticReason } from '../../api/pcDiagnostics';
@@ -190,6 +191,7 @@ export function NopiCoursePlanner({ document: sourceDocument, dayId: initialDayI
               {node.imageUrl && <small className="nopi-photo-credit">{uiText("사진 © 한국관광공사")}{uiText(node.imageLicense === 'Type3' ? ' · 공공누리 3유형' : node.imageLicense === 'Type1' ? ' · 공공누리 1유형' : '')}</small>}
               {!routeLoading && wait > 0 && <p className="nopi-reason">{wait}{uiText("분 여유 · 예정된 방문 시간에 맞춰 이동해요.")}</p>}{node.reason && <p className="nopi-reason">{uiText(node.reason)}</p>}
               {node.planning && <details className="nopi-facts"><summary>{uiText("운영시간·메뉴 확인")}</summary>{node.planning.menu && <p>{uiText("메뉴 · ")}{node.planning.menu}</p>}<p>{uiText("운영 · ")}{uiText(node.planning.hours || '정보 없음')}</p><p>{uiText("휴무 · ")}{uiText(node.planning.closed || '정보 없음')}</p><small>{uiText("임시 휴무·예약 여부는 지도에서 확인해 주세요.")}</small></details>}
+              {!node.planning?.hours && <p className="nopi-hours-note"><NopiCheckNote>{uiText('영업시간 미확인 · 방문 전 확인해 주세요.')}</NopiCheckNote></p>}
               <TravelSupportPanel contentId={node.place.tourism?.contentId} needs={needs} />
               <div className="nopi-stop-actions"><label>{uiText("머무는 시간")}<input type="number" aria-label={uiText(`${node.place.name} 체류시간`)} min={node.place.type === '카페' ? 30 : 10} max={600} value={node.place.durationMinutes} disabled={busy} onChange={e => updateNodes(nodes.map((item, i) => i === index ? { ...item, place: { ...item.place, durationMinutes: Number(e.target.value) } } : item))} />{uiText("분")}</label><button type="button" className="trip-text-link" disabled={busy} onClick={() => setPicker(index)}>{uiText("장소 변경·상세")}</button><a href={`https://map.naver.com/p/search/${encodeURIComponent(`${node.place.name} ${node.place.address}`)}`} target="_blank" rel="noreferrer">{uiText("지도 ↗")}</a><div><button type="button" aria-label={uiText(`${node.place.name} 위로`)} disabled={busy || !index} onClick={() => { const copy = [...nodes]; [copy[index - 1], copy[index]] = [copy[index], copy[index - 1]]; updateNodes(copy); }}><TripIcon name="up" /></button><button type="button" aria-label={uiText(`${node.place.name} 아래로`)} disabled={busy || index === nodes.length - 1} onClick={() => { const copy = [...nodes]; [copy[index + 1], copy[index]] = [copy[index], copy[index + 1]]; updateNodes(copy); }}><TripIcon name="down" /></button><button type="button" aria-label={uiText(`${node.place.name} 제거`)} disabled={busy} onClick={() => updateNodes(nodes.filter((_, i) => i !== index))}><TripIcon name="close" /></button></div></div>
             </article>

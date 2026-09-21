@@ -12,3 +12,9 @@
 .domestic-explore-empty { padding: 65px 20px; text-align: center; border: 1px dashed #d9c8eb; border-radius: 18px; }
 .domestic-explore-empty h2 { font-size: 20px; }.domestic-explore-empty p { color: #857893; font-size: 14px; }
 .domestic-explore :is(button, input):focus-visible { outline: 3px solid #bea4ea; outline-offset: 3px; }
+.domestic-explore-filters small { margin-left: 3px; opacity: .75; }
+.domestic-explore-pagination { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 32px; }
+.domestic-explore-pagination button { min-width: 40px; min-height: 40px; padding: 8px 12px; border: 1px solid #e1d5f2; border-radius: 10px; background: #fff; color: #755795; font: inherit; cursor: pointer; }
+.domestic-explore-pagination button[aria-current=page] { color: #fff; background: #7952c9; border-color: #7952c9; }
+.domestic-explore-pagination button:disabled { opacity: .4; cursor: default; }
+.domestic-explore-heading { scroll-margin-top: 100px; }

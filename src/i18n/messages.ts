@@ -1,6 +1,11 @@
 // Korean source text is the stable message key. Stored form values and place IDs
 // remain unchanged; only presentation text passes through this dictionary.
 export const messages: Record<string, readonly [string, string, string]> = {
+  '지역 또는 코스 이름 검색': ['Search by region or course name', '搜索地区或路线名称', '地域・コース名で検索'],
+  '코스 페이지': ['Course pages', '路线分页', 'コースのページ'],
+  '코스를 불러오지 못했어요. 다시 시도해 주세요.': ['Could not load courses. Please try again.', '无法加载路线，请重试。', 'コースを読み込めませんでした。もう一度お試しください。'],
+  '© 한국관광공사': ['© Korea Tourism Organization', '© 韩国观光公社', '© 韓国観光公社'],
+  '공공누리': ['KOGL', 'KOGL', 'KOGL'],
   '지역, 코스 이름 또는 방문 장소 검색': ['Search by region, course or stop', '搜索地区、路线或游览地点', '地域・コース名・訪問場所で検索'],
   '지역 선택': ['Choose a region', '选择地区', '地域を選択'],
   '조건에 맞는 추천코스가 없어요.': ['No recommended courses match your filters.', '没有符合条件的推荐路线。', '条件に合うおすすめコースがありません。'],

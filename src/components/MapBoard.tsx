@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { jellyRouteLayers, nopiMapImages } from './nopiMapTheme';
+import { jellyRouteLayers, nopiMarkerAppearance } from './nopiMapTheme';
 import './nopiMap.css';
 
 interface CourseItem {
@@ -171,17 +171,17 @@ function MapBoard({ className, courseList, userLocation }: MapBoardProps) {
 
     markers.forEach((marker, index) => {
       const position = new kakaoMaps.LatLng(marker.lat, marker.lng);
-      const arrival = index === markers.length - 1;
+      const appearance = nopiMarkerAppearance(markers, index);
       const content = document.createElement('button');
       content.type = 'button';
-      content.className = `nopi-map-pin ${arrival ? 'is-arrival' : ''}`;
+      content.className = `nopi-map-pin ${appearance.className}`;
       content.setAttribute('aria-label', `${index + 1}. ${marker.title}`);
       content.setAttribute('aria-pressed', 'false');
       const avatar = document.createElement('span');
       avatar.className = 'nopi-map-avatar';
       avatar.setAttribute('aria-hidden', 'true');
       const image = document.createElement('img');
-      image.src = arrival ? nopiMapImages.arrival : nopiMapImages.stop;
+      image.src = appearance.image;
       image.alt = ''; image.draggable = false;
       avatar.append(image);
       const label = document.createElement('span');

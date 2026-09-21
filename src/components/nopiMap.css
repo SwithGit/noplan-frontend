@@ -2,11 +2,11 @@
 .nopi-map-pin::before { content: ''; position: absolute; width: 52px; height: 15px; left: 12px; bottom: 0; border: 2px solid #a68ace; border-radius: 48% 56% 45% 54%; background: radial-gradient(ellipse at 40% 20%, #f3eaffcf, #bca0ead9); box-shadow: 0 3px 5px #65409d26; }
 .nopi-map-avatar { position: absolute; inset: 0; overflow: hidden; pointer-events: none; transform-origin: 50% 95%; filter: drop-shadow(0 2px 2px #56328220); }
 .nopi-map-avatar img { position: absolute; width: 80px; height: 80px; max-width: none; left: -2px; top: 9px; object-fit: contain; }
-.nopi-map-pin:not(.is-arrival)::before { width: 36px; height: 11px; left: 18px; }
-.nopi-map-pin.is-arrival .nopi-map-avatar img { width: 96px; height: 96px; left: -10px; top: -13px; }
-.nopi-map-pin.is-arrival::before { width: 44px; left: 16px; }
+.nopi-map-pin.is-stop::before { width: 36px; height: 11px; left: 18px; }
+.nopi-map-pin:is(.is-arrival, .is-departure) .nopi-map-avatar img { width: 96px; height: 96px; left: -10px; top: -13px; }
+.nopi-map-pin:is(.is-arrival, .is-departure)::before { width: 44px; left: 16px; }
 .nopi-map-label { position: absolute; display: flex; align-items: center; gap: 5px; left: 56px; top: 4px; padding: 4px 9px 4px 4px; border: 1px solid #e5daf4; border-radius: 18px; background: #fffffff2; box-shadow: 0 2px 9px #51307920; white-space: nowrap; }
-.nopi-map-pin:not(.is-arrival) .nopi-map-label { left: 51px; top: 23px; }
+.nopi-map-pin.is-stop .nopi-map-label { left: 51px; top: 23px; }
 .nopi-map-label b { display: grid; place-items: center; width: 23px; height: 23px; flex-shrink: 0; border-radius: 50%; background: #ede4fa; color: #7850bc; font-size: 12px; }
 .nopi-map-label span { display: block; max-width: 112px; overflow: hidden; text-overflow: ellipsis; font-size: 11px; font-weight: 600; }
 .nopi-map-pin.active .nopi-map-label { border-color: #8961c7; box-shadow: 0 3px 12px #7651b440; }
@@ -17,13 +17,15 @@
 @keyframes nopi-map-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px) rotate(-2deg); } }
 @media (max-width: 700px) {
   .nopi-map-avatar img { width: 60px; height: 60px; left: 8px; top: 25px; }
-  .nopi-map-pin.is-arrival .nopi-map-avatar img { width: 76px; height: 76px; left: 0; top: 4px; }
-  .nopi-map-pin:not(.is-arrival)::before { width: 28px; height: 9px; left: 22px; }
-  .nopi-map-pin.is-arrival::before { width: 34px; height: 11px; left: 19px; }
+  .nopi-map-pin:is(.is-arrival, .is-departure) .nopi-map-avatar img { width: 76px; height: 76px; left: 0; top: 4px; }
+  .nopi-map-pin.is-stop::before { width: 28px; height: 9px; left: 22px; }
+  .nopi-map-pin:is(.is-arrival, .is-departure)::before { width: 34px; height: 11px; left: 19px; }
   .nopi-map-label { gap: 3px; left: 47px; top: 19px; padding: 3px 6px 3px 3px; }
-  .nopi-map-pin:not(.is-arrival) .nopi-map-label { left: 44px; top: 34px; }
+  .nopi-map-pin.is-stop .nopi-map-label { left: 44px; top: 34px; }
   .nopi-map-label b { width: 20px; height: 20px; font-size: 11px; }
   .nopi-map-label span { max-width: 60px; font-size: 10px; }
   .nopi-map-pin.active .nopi-map-label span { max-width: 96px; }
 }
 @media (prefers-reduced-motion: reduce) { .nopi-map-pin.active .nopi-map-avatar { animation: none; } }
+
+.nopi-map-pin.faces-right .nopi-map-avatar img { transform: scaleX(-1); }

@@ -2,7 +2,7 @@ import { t as uiText } from '../../i18n/translate';
 import { useEffect, useState } from 'react';
 import { CustomOverlayMap, Map, Polyline, ZoomControl } from 'react-kakao-maps-sdk';
 import type { RoutePoint } from './dayRouteModel';
-import { jellyRouteLayers, nopiMapImages } from '../../components/nopiMapTheme';
+import { jellyRouteLayers, nopiMarkerAppearance } from '../../components/nopiMapTheme';
 import '../../components/nopiMap.css';
 
 export interface DayMapPoint extends RoutePoint { id: string; name: string; number: number }
@@ -44,11 +44,11 @@ export function DayRouteMap({ points, activeId, onSelect, focusActive = false, f
   return <Map center={points[0]} style={{ width: '100%', height: '100%' }} onCreate={setMap}>
     <ZoomControl position="RIGHT" />
     {showPath && points.length > 1 && jellyRouteLayers.map(layer => <Polyline key={layer.strokeWeight} path={points} {...layer} strokeStyle="solid" />)}
-    {points.map((point, index) => <CustomOverlayMap key={point.id} position={point} yAnchor={1} zIndex={activeId === point.id ? 5 : 3} clickable>
-      <button type="button" className={`nopi-map-pin ${index === points.length - 1 ? 'is-arrival' : ''} ${activeId === point.id ? 'active' : ''}`} onClick={() => onSelect(point.id)} aria-pressed={activeId === point.id} aria-label={uiText(`${point.number}. ${point.name} 일정 보기`)}>
-        <span className="nopi-map-avatar" aria-hidden="true"><img src={index === points.length - 1 ? nopiMapImages.arrival : nopiMapImages.stop} alt="" draggable={false} /></span>
+    {points.map((point, index) => { const appearance = nopiMarkerAppearance(points, index); return <CustomOverlayMap key={point.id} position={point} yAnchor={1} zIndex={activeId === point.id ? 5 : 3} clickable>
+      <button type="button" className={`nopi-map-pin ${appearance.className} ${activeId === point.id ? 'active' : ''}`} onClick={() => onSelect(point.id)} aria-pressed={activeId === point.id} aria-label={uiText(`${point.number}. ${point.name} 일정 보기`)}>
+        <span className="nopi-map-avatar" aria-hidden="true"><img src={appearance.image} alt="" draggable={false} /></span>
         <span className="nopi-map-label"><b>{point.number}</b><span>{point.name}</span></span>
       </button>
-    </CustomOverlayMap>)}
+    </CustomOverlayMap>; })}
   </Map>;
 }

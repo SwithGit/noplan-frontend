@@ -10,6 +10,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Chip } from '../../components/ui/Chip';
 import { AppTopBar } from '../../components/ui/AppTopBar';
 import { NopiBubble } from '../../components/ui/NopiBubble';
+import { NopiCheckNote } from '../../components/ui/NopiCheckNote';
 import { PlaceVisual } from '../../components/ui/PlaceVisual';
 import { CrowdingStatus } from '../../components/ui/CrowdingStatus';
 import companionFamilyImage from '../../assets/nopi/가족.png';
@@ -1958,7 +1959,7 @@ export function ResultScreen() {
                     </div>
                     <span className="stop-arrow" aria-hidden="true">›</span>
                   </button>
-                  {place.businessStatus !== 'open' && place.businessStatus !== 'closed' && <p className="stop-hours-warning">{uiText("영업시간 미확인 · 방문 전 확인해 주세요.")}<a href={kakaoPlaceUrl(place)} target="_blank" rel="noopener noreferrer">{uiText("카카오맵에서 영업시간 확인 ↗")}</a>
+                  {place.businessStatus !== 'open' && place.businessStatus !== 'closed' && <p className="stop-hours-warning"><NopiCheckNote>{uiText("영업시간 미확인 · 방문 전 확인해 주세요.")}<a href={kakaoPlaceUrl(place)} target="_blank" rel="noopener noreferrer">{uiText("카카오맵에서 영업시간 확인 ↗")}</a></NopiCheckNote>
                   </p>}
                   {place.estimatedCost && <p className="stop-price"><span>{uiText("1인 예상")}</span><strong>{uiText(place.estimatedCost.status==='estimated' ? place.estimatedCost.min===place.estimatedCost.max ? `${place.estimatedCost.min?.toLocaleString()}원` : `${place.estimatedCost.min?.toLocaleString()}~${place.estimatedCost.max?.toLocaleString()}원` : '가격 확인 필요')}</strong></p>}
                   {place.type !== 'hotplace' && (place.catalogRating != null || place.catalogReviewCount != null) && <p className="stop-rating">{place.catalogRating != null && <>★ {place.catalogRating.toFixed(1)} </>}<span>{place.catalogReviewCount != null && <>{uiText("리뷰 ")}{place.catalogReviewCount.toLocaleString('ko-KR')} · </>}{uiText("노플랜 수집 정보")}</span></p>}
