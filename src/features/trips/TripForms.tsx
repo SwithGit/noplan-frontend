@@ -29,7 +29,7 @@ export function BlockForm({ block, day, days, onClose, onSave }: { block: TripBl
     if (targetDay.blocks.some(item => item.id !== value.id && minutes(item.startTime) < minutes(value.endTime) && minutes(value.startTime) < minutes(item.endTime))) return setError('다른 일정 구간과 시간이 겹쳐요. 시작·종료 시각을 조정해 주세요.');
     if (target !== day.id && targetDay.blocks.length >= 12) return setError('하루에 최대 12개 구간을 만들 수 있어요.');
     if (value.places.some(place => place.requiredVisit)) {
-      if (targetDay.blocks.some(item => item.id !== value.id && item.places.some(place => place.requiredVisit))) return setError('꼭 방문할 장소는 하루에 한 곳만 선택해 주세요.');
+      if (value.places.some(place => place.requiredVisit && place.tourism) && targetDay.blocks.some(item => item.id !== value.id && item.places.some(place => place.requiredVisit && place.tourism))) return setError('꼭 방문할 장소는 하루에 한 곳만 선택해 주세요.');
       if (usedMinutes(value) > minutes(value.endTime) - minutes(value.startTime)) return setError('체류시간이 방문 시간대를 넘어요. 종료 시각을 조정해 주세요.');
     }
     const timesChanged = value.startTime !== block.startTime || value.endTime !== block.endTime;

@@ -8,14 +8,30 @@ import { excludedPlace, placeKeys } from './placeIdentity';
 export type Purpose = '발견' | '데이트' | '친구모임' | '가족여행' | '자연산책' | '문화여행';
 export interface PlanningFacts { menu: string; hours: string; closed: string }
 export interface NopiAttraction extends TourismAttraction { planning?: PlanningFacts | null; support?: TravelSupport; centralRank?: number; relatedRank?: number }
-export interface CourseNode { place: TripPlace; imageUrl?: string; imageLicense?: string; reason?: string; planning?: PlanningFacts | null; notBefore?: number; initialNotBefore?: number; originalNotes?: string }
+export interface CourseNode { place: TripPlace; imageUrl?: string; imageLicense?: string; reason?: string; planning?: PlanningFacts | null; notBefore?: number; initialNotBefore?: number; originalNotes?: string; eventTimeNeedsConfirmation?: boolean }
 export interface NopiOptions { date: string; start: string; end: string; transport: TripDocument['transport']; purpose: Purpose; district: string; needs?: TravelNeeds; anchor?: CourseNode }
 
 export function tourismNode(place: NopiAttraction, duration = 90): CourseNode {
   return { place: { id: newId(), name: place.name, address: place.address, type: foodKind(place) === 'cafe' ? '카페' : place.type, lat: place.lat, lng: place.lng, durationMinutes: duration, fixed: true, source: 'tourism', sourceUrl: place.sourceUrl, priceNeedsCheck: true, tourism: { contentId: place.contentId, contentTypeId: place.contentTypeId } }, imageUrl: place.imageUrl, imageLicense: place.imageLicense, planning: place.planning };
 }
 export function dayNodes(day: TripDay): CourseNode[] {
-  return [...day.blocks].sort((a, b) => a.startTime.localeCompare(b.startTime)).flatMap(block => block.places.map((place, index) => ({ place: { ...place, travelMinutes: undefined }, initialNotBefore: minutes(block.startTime), originalNotes: index === 0 ? block.notes : undefined })));
+  return [...day.blocks].sort((a, b) => a.startTime.localeCompare(b.startTime)).flatMap(block => {
+    let cursor = minutes(block.startTime);
+    return block.places.map((place, index) => {
+      cursor += place.travelMinutes ?? (index ? 15 : 0);
+      const start = cursor; cursor += place.durationMinutes;
+      return { place: { ...place, travelMinutes: undefined, ...((place.event || place.fixed && !place.tourism) && !place.requiredVisit ? { requiredVisit: { start: clock(start), end: clock(Math.min(1439, cursor)) } } : {}) }, initialNotBefore: minutes(block.startTime), originalNotes: index === 0 ? block.notes : undefined, ...(place.event && !place.requiredVisit ? { eventTimeNeedsConfirmation: true } : {}) };
+    });
+  });
+}
+export const courseNodeKey = (node: CourseNode) => node.place.tourism?.contentId || (node.place.event ? `event:${node.place.event.id}` : `place:${node.place.id}`);
+export function requiredCourseAnchor(nodes: CourseNode[]): CourseNode | undefined {
+  const required = nodes.filter(node => node.place.requiredVisit || node.place.event);
+  if (required.length > 1) throw Error('축제나 필수 방문 장소가 여러 곳인 날은 자동 재추천을 지원하지 않아요. 기존 일정은 유지했어요. 직접 편집해 주세요.');
+  const anchor = required[0];
+  if (anchor?.eventTimeNeedsConfirmation) throw Error('기존 축제의 방문 시간을 먼저 확인해 주세요. 기존 일정은 유지했어요.');
+  if (anchor && (anchor.place.lat == null || anchor.place.lng == null || !Number.isFinite(anchor.place.lat) || !Number.isFinite(anchor.place.lng))) throw Error('행사장 또는 필수 장소의 위치를 확인할 수 없어 주변 코스를 만들지 않았어요. 기존 일정은 유지했어요.');
+  return anchor;
 }
 export function tripExclusions(document: TripDocument, exceptDayId?: string, exceptPlaceId?: string): Record<string, string> {
   const result: Record<string, string> = {};
@@ -227,17 +243,17 @@ export function suggestCourse(catalog: NopiAttraction[], options: NopiOptions, e
 function suggestAnchoredCourse(catalog: NopiAttraction[], options: NopiOptions, excluded: Record<string, string>, rejected: Set<string>, variant: number): CourseNode[] {
   const anchor: CourseNode = { ...options.anchor!, initialNotBefore: undefined };
   const origin = anchor.place;
-  if (!origin.requiredVisit || !origin.tourism || origin.lat == null || origin.lng == null) throw Error('꼭 방문할 장소의 위치와 시간대를 다시 선택해 주세요.');
-  if (origin.tourism.contentTypeId === '25') throw Error('여행코스 전체 대신 꼭 방문할 개별 장소를 선택해 주세요.');
+  if (!origin.requiredVisit || (!origin.tourism && !origin.event && !origin.fixed) || origin.lat == null || origin.lng == null || !Number.isFinite(origin.lat) || !Number.isFinite(origin.lng)) throw Error('꼭 방문할 장소의 위치와 시간대를 다시 선택해 주세요.');
+  if (origin.tourism?.contentTypeId === '25') throw Error('여행코스 전체 대신 꼭 방문할 개별 장소를 선택해 주세요.');
   if (excludedPlace(origin, excluded)) throw Error('꼭 방문할 장소가 다른 날짜에 이미 담겨 있어요.');
-  const source = catalog.find(p => p.contentId === origin.tourism!.contentId);
+  const source = catalog.find(p => p.contentId === origin.tourism?.contentId);
   anchor.planning = source?.planning ?? anchor.planning;
   if (source && closedOn(source, options.date)) throw Error('꼭 방문할 장소의 휴무일이에요. 방문 날짜나 장소를 바꿔 주세요.');
-  if (!evaluateNeeds(source?.support, options.needs).eligible) throw Error('꼭 방문할 장소의 필수 여행 조건을 확인할 수 없어요. 조건이나 장소를 확인해 주세요.');
+  if (origin.tourism && !evaluateNeeds(source?.support, options.needs).eligible) throw Error('꼭 방문할 장소의 필수 여행 조건을 확인할 수 없어요. 조건이나 장소를 확인해 주세요.');
   const anchorErrors = scheduleCourse([anchor], options.start, options.end, [], {}, options.date).errors;
   if (anchorErrors.length) throw Error(anchorErrors[0]);
   const limit = courseDistanceLimit(options.transport), center = { lat: origin.lat, lng: origin.lng };
-  const pool = catalog.filter(p => p.contentId !== origin.tourism!.contentId && p.contentTypeId !== '25'
+  const pool = catalog.filter(p => p.contentId !== origin.tourism?.contentId && p.contentTypeId !== '25'
     && Number.isFinite(p.lat) && Number.isFinite(p.lng) && (!options.district || p.district === options.district)
     && distance(center, p) >= AUTO_STOP_SEPARATION_METERS && distance(center, p) <= limit
     && !excludedPlace({ ...p, tourism: { contentId: p.contentId, contentTypeId: p.contentTypeId } }, excluded)
@@ -267,10 +283,10 @@ function suggestAnchoredCourse(catalog: NopiAttraction[], options: NopiOptions, 
       for (const mealStart of mealStarts) for (let at = 0; at <= path.nodes.length; at++) {
         const node = { ...tourismNode(p, duration), ...(mealStart ? { notBefore: mealStart } : {}), reason: '꼭 방문할 장소 주변으로 연결했어요.' };
         const nodes = [...path.nodes.slice(0, at), node, ...path.nodes.slice(at)];
-        const key = nodes.map(n => `${n.place.tourism!.contentId}@${n.notBefore || 0}`).join(':');
+        const key = nodes.map(n => `${courseNodeKey(n)}@${n.notBefore || 0}`).join(':');
         if (seen.has(key)) continue;
         seen.add(key);
-        if (nodes.slice(1).some((n, i) => rejected.has(edgeId(nodes[i].place.tourism!.contentId, n.place.tourism!.contentId)))) continue;
+        if (nodes.slice(1).some((n, i) => rejected.has(edgeId(courseNodeKey(nodes[i]), courseNodeKey(n))))) continue;
         const routes = estimate(nodes), schedule = scheduleCourse(nodes, options.start, options.end, routes, {}, options.date);
         if (schedule.errors.length) continue;
         // Avoid two adjacent restaurants for the same meal window.
@@ -278,7 +294,7 @@ function suggestAnchoredCourse(catalog: NopiAttraction[], options: NopiOptions, 
         if (mealStops.length === 2 && mealStops[1].arrival - mealStops[0].arrival < 180) continue;
         const anchorIndex = nodes.findIndex(n => n.place.id === origin.id);
         const balanced = Number(anchorIndex > 0) + Number(anchorIndex < nodes.length - 1);
-        const value = nodes.reduce((sum, n) => sum + (scores.get(n.place.tourism!.contentId) || 0), 0) + balanced * 4
+        const value = nodes.reduce((sum, n) => sum + (scores.get(courseNodeKey(n)) || 0), 0) + balanced * 4
           + new Set(nodes.map(kind)).size * 2 - routes.reduce((sum, r) => sum + r.distanceMeters / limit, 0) * 2
           - schedule.stops.reduce((sum, s) => sum + s.wait, 0) / 120;
         next.push({ nodes, value });
@@ -326,6 +342,8 @@ export function scheduleCourse(nodes: CourseNode[], start: string, end: string, 
     if (travel == null) errors.push(`${index + 1}번째 장소까지 이동시간을 확인해 주세요.`);
     cursor += travel ?? 0;
     const required = node.place.requiredVisit;
+    if (node.place.event && date && (date < node.place.event.startDate || date > node.place.event.endDate)) errors.push('축제 개최 기간 안의 방문 날짜를 선택해 주세요.');
+    if (required && (!/^([01]\d|2[0-3]):[0-5]\d$/.test(required.start) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(required.end) || required.end <= required.start)) errors.push('필수 방문 시간대를 확인해 주세요.');
     const timing = visitTime(Math.max(cursor, node.notBefore || 0, node.initialNotBefore || 0, required ? minutes(required.start) : 0), node.place.durationMinutes, node.planning, date);
     const wait = timing.arrival - cursor;
     cursor = timing.arrival;

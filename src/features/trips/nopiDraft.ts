@@ -18,7 +18,7 @@ export interface NopiDayDraft {
 }
 export function createNopiDrafts(document: TripDocument): Record<string, NopiDayDraft> {
   return Object.fromEntries(document.days.map(day => [day.id, {
-    nodes: dayNodes(day), start: day.blocks[0]?.startTime || '09:00',
+    nodes: dayNodes(day), start: day.blocks.some(block => block.places.some(place => place.event)) ? [...day.blocks.map(block => block.startTime), '09:00'].sort()[0] : day.blocks[0]?.startTime || '09:00',
     end: day.blocks.filter(block => block.places.length).reduce((last, block) => block.endTime > last ? block.endTime : last, '18:00'),
     transport: effectiveTransport(document, day), manualTravel: {}, variant: 0, edited: false, error: '', notice: '',
   }]));

@@ -1,4 +1,11 @@
 export const travelMessages: Record<string, readonly [string, string, string]> = {
+  '꼭 방문할 축제·행사': ['Must-visit festival or event', '必去节庆·活动', '必ず訪れるお祭り・イベント'],
+  '공식 행사 시간': ['Official event hours', '官方活动时间', '公式イベント時間'],
+  '방문 시작 시간': ['Visit start time', '到访开始时间', '訪問開始時刻'],
+  '공식 행사 시간을 확인하고 방문할 시간을 직접 선택해 주세요.': ['Check the official event hours and choose your visit time.', '请确认官方活动时间，并选择到访时间。', '公式の開催時間を確認して、訪問時刻を選んでください。'],
+  '기존 일정의 임시 시간이에요. 공식 행사 시간을 확인하고 방문 시간을 확정해 주세요.': ['This is a provisional time from your existing plan. Check the official event hours and confirm your visit time.', '这是原行程中的暂定时间，请确认官方活动时间后确定到访时间。', '以前の日程の仮の時刻です。公式の開催時間を確認して訪問時刻を確定してください。'],
+  '이 시간으로 확정': ['Confirm this time', '确认此时间', 'この時刻で確定'],
+  '행사 운영·예약·동반 조건은 공식 안내에서 확인해 주세요.': ['Check the official event information for hours, reservations and admission requirements.', '请通过官方说明确认开放、预约及同行条件。', '開催・予約・同伴条件は公式案内でご確認ください。'],
   '꼭 방문할 장소 · 선택사항': ['Must-visit place · Optional', '必去地点 · 可选', '必ず訪れたい場所・任意'],
   '꼭 방문할 장소': ['Must-visit place', '必去地点', '必ず訪れたい場所'],
   '꼭 가고 싶은 장소가 있나요?': ['Is there a place you really want to visit?', '有一定想去的地方吗？', 'ぜひ行きたい場所はありますか？'],

@@ -1,6 +1,6 @@
 import type { DayRouteResult } from '../../api/dayRouteApi';
 import { courseDistanceLabel, courseDistanceLimit } from './coursePolicy';
-import { courseLegs, courseOrderOptions, edgeId, scheduleCourse, suggestCourse, targetCourseCount, type CourseNode, type NopiAttraction, type NopiOptions } from './nopiModel';
+import { courseLegs, courseNodeKey, courseOrderOptions, edgeId, scheduleCourse, suggestCourse, targetCourseCount, type CourseNode, type NopiAttraction, type NopiOptions } from './nopiModel';
 
 type QueryRoutes = (transport: NopiOptions['transport'], legs: ReturnType<typeof courseLegs>, signal: AbortSignal) => Promise<{ legs: DayRouteResult[] }>;
 export function routeWithinLimit(route: DayRouteResult, transport: NopiOptions['transport']) {
@@ -18,8 +18,8 @@ export async function generateNearbyCourse(catalog: NopiAttraction[], options: N
     let best: { nodes: CourseNode[]; routes: DayRouteResult[]; meters: number } | undefined;
     let serviceFailure: string | undefined;
     for (const nodes of courseOrderOptions(suggested, options)) {
-      if (nodes.some(node => unroutable.has(node.place.tourism!.contentId))) continue;
-      if (nodes.slice(1).some((node, i) => rejected.has(edgeId(nodes[i].place.tourism!.contentId, node.place.tourism!.contentId)))) continue;
+      if (nodes.some(node => unroutable.has(courseNodeKey(node)))) continue;
+      if (nodes.slice(1).some((node, i) => rejected.has(edgeId(courseNodeKey(nodes[i]), courseNodeKey(node))))) continue;
       signal.throwIfAborted();
       const legs = courseLegs(nodes), cacheKey = (leg: typeof legs[number]) => JSON.stringify([leg.from, leg.to]);
       const missing = legs.filter(leg => !cache.has(cacheKey(leg)));
@@ -43,7 +43,7 @@ export async function generateNearbyCourse(catalog: NopiAttraction[], options: N
       }
       failures.forEach(route => {
         const index = legs.findIndex(leg => leg.id === route.id);
-        const from = nodes[index].place.tourism!.contentId, to = nodes[index + 1].place.tourism!.contentId;
+        const from = courseNodeKey(nodes[index]), to = courseNodeKey(nodes[index + 1]);
         rejected.add(edgeId(from, to));
         // Near-identical endpoints cannot be fixed by reversing their order.
         if (route.providerResultCode === 104) rejected.add(edgeId(to, from));
@@ -56,7 +56,7 @@ export async function generateNearbyCourse(catalog: NopiAttraction[], options: N
       const over = routes.filter(r => !routeWithinLimit(r, options.transport));
       if (over.some(route => route.distanceMeters! > courseDistanceLimit(options.transport))) distanceRejected = true;
       if (over.some(route => route.durationMinutes! > (options.transport === 'walk' ? 40 : 60))) timeRejected = true;
-      over.forEach(r => { const index = legs.findIndex(leg => leg.id === r.id); rejected.add(edgeId(nodes[index].place.tourism!.contentId, nodes[index + 1].place.tourism!.contentId)); });
+      over.forEach(r => { const index = legs.findIndex(leg => leg.id === r.id); rejected.add(edgeId(courseNodeKey(nodes[index]), courseNodeKey(nodes[index + 1]))); });
       if (over.length) continue;
       if (scheduleCourse(nodes, options.start, options.end, routes, {}, options.date).errors.length) { timeRejected = true; continue; }
       const meters = routes.reduce((sum, r) => sum + r.distanceMeters!, 0);

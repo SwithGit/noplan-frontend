@@ -18,8 +18,9 @@ export function PlacePicker({ needs, destination, initial, context, excluded = {
     validatePickedPlace(place);
     const duplicate = excludedPlace(place, excluded);
     if (duplicate) throw Error(`${duplicate} · 이미 담은 장소예요.`);
-    if (initial?.requiredVisit && (!place.tourism || place.tourism.contentTypeId === '25')) throw Error('필수 방문을 유지하려면 추천 관광지에서 개별 장소를 골라 주세요.');
-    onSelect(initial?.requiredVisit ? { ...place, requiredVisit: initial.requiredVisit } : place, attraction);
+    if (initial?.event && place.event?.id !== initial.event.id) throw Error('축제를 다른 장소로 바꾸려면 먼저 일정에서 축제를 직접 삭제해 주세요.');
+    if (initial?.tourism && initial.requiredVisit && (!place.tourism || place.tourism.contentTypeId === '25')) throw Error('필수 방문을 유지하려면 추천 관광지에서 개별 장소를 골라 주세요.');
+    onSelect(initial?.requiredVisit ? { ...place, fixed: true, requiredVisit: initial.requiredVisit } : place, attraction);
   };
   return direct ? <DirectPlacePicker needs={needs} destination={destination} initial={initial} context={uiText(context)} excluded={excluded} onClose={onClose} onRecommended={() => setDirect(false)} onSelect={select} />
     : <TourismPicker needs={needs} destination={destination} initial={initial?.tourism ? attractionFromPlace(initial) : undefined} initialDuration={initial?.durationMinutes || 75} context={uiText(context)} disabledPlaces={excluded} onClose={onClose} onDirectSearch={() => setDirect(true)} onSelect={(attraction, duration) => select(tourismNode(attraction, duration).place, attraction)} />;

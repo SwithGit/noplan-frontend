@@ -77,3 +77,58 @@ test('selection -> persistence -> draft -> generation -> saved day -> reopen ret
  const again = await routing.generateNearbyCourse(catalog, { ...base, anchor: kept }, {}, query, new AbortController().signal);
  assert.ok(again.nodes.some(n => n.place.id === original.id));
 });
+
+function eventAnchor() {
+ const node = anchor('15:00','17:00');
+ delete node.place.tourism;
+ node.place.source='manual'; node.place.durationMinutes=120;
+ node.place.event={id:'tourapi-88',startDate:'2026-09-20',endDate:'2026-09-25',hours:'공연별 상이'};
+ return node;
+}
+test('festival metadata and exact chosen time survive repeat recommendation, apply and reopen',async()=>{
+ let required=eventAnchor();
+ for(let repeat=0;repeat<3;repeat++) {
+  const result=await routing.generateNearbyCourse(catalog,{...base,anchor:required},{},query,new AbortController().signal,repeat);
+  const schedule=model.scheduleCourse(result.nodes,base.start,base.end,result.routes,{},base.date);
+  assert.equal(schedule.errors.length,0);
+  const stop=schedule.stops.find(s=>s.node.place.event);
+  assert.equal(stop.arrival,900);assert.equal(stop.departure,1020);
+  assert.equal(result.nodes.filter(n=>n.place.event).length,1);
+  assert.ok(result.nodes.length>=3);
+  assert.equal(stop.node.place.event.id,'tourapi-88');
+  const saved=model.courseDay({id:'day',date:base.date,blocks:[]},result.nodes,base.start,base.end,result.routes,{});
+  required=model.requiredCourseAnchor(model.dayNodes(JSON.parse(JSON.stringify(saved))));
+  assert.equal(required.place.event.hours,'공연별 상이');
+ }
+});
+test('legacy festivals are retained and require time confirmation; offsets reflect earlier stops',()=>{
+ const event=eventAnchor().place;delete event.requiredVisit;
+ const day={id:'day',date:base.date,blocks:[{id:'block',startTime:'13:00',endTime:'17:00',notes:'',places:[{...model.tourismNode(catalog[1],60).place},event]}]};
+ const nodes=model.dayNodes(day),legacy=nodes[1];
+ assert.equal(legacy.place.requiredVisit.start,'14:15');assert.equal(legacy.place.requiredVisit.end,'16:15');
+ assert.throws(()=>model.requiredCourseAnchor(nodes),/먼저 확인/);
+ legacy.eventTimeNeedsConfirmation=false;
+ assert.equal(model.requiredCourseAnchor(nodes).place.event.id,event.event.id);
+ assert.equal(event.requiredVisit,undefined);
+});
+test('pinned manual places are protected without treating auto tourism nodes as additional anchors',async()=>{
+ const place={...eventAnchor().place};delete place.event;delete place.requiredVisit;
+ const nodes=model.dayNodes({date:base.date,blocks:[{startTime:'15:00',endTime:'17:00',places:[place]}]});
+ const required=model.requiredCourseAnchor(nodes);
+ assert.equal(required.place.requiredVisit.start,'15:00');
+ const result=await routing.generateNearbyCourse(catalog,{...base,anchor:required},{},query,new AbortController().signal);
+ assert.ok(result.nodes.some(n=>n.place.id===place.id));
+ assert.equal(model.requiredCourseAnchor(result.nodes).place.id,place.id);
+});
+test('multiple protected stops, unknown location and dates outside festival period never overwrite a draft',async()=>{
+ const event=eventAnchor(),before=JSON.stringify(event);
+ assert.throws(()=>model.requiredCourseAnchor([event,anchor()]),/여러 곳/);
+ assert.throws(()=>model.requiredCourseAnchor([{...event,place:{...event.place,lat:null}}]),/위치/);
+ await assert.rejects(routing.generateNearbyCourse(catalog,{...base,date:'2026-09-30',anchor:event},{},query,new AbortController().signal),/개최 기간/);
+ assert.equal(JSON.stringify(event),before);
+});
+test('festival routing failures keep the festival and do not assume tourism ids exist',async()=>{
+ const event=eventAnchor();let calls=0;
+ const result=await routing.generateNearbyCourse(catalog,{...base,anchor:event},{},async(_,legs)=>{calls++;return{legs:legs.map(l=>({id:l.id,status:'unavailable',reason:'no_route',providerResultCode:102}))};},new AbortController().signal);
+ assert.equal(result.nodes[0].place.event.id,'tourapi-88');assert.equal(result.nodes.length,1);assert.ok(calls<=3);
+});
