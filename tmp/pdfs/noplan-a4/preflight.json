@@ -1,0 +1,18 @@
+{
+  "pdf_pages": 2,
+  "trim_mm": [
+    297,
+    210
+  ],
+  "bleed_mm": 3,
+  "CMYK_images": 20,
+  "qr_decoded": [
+    "https://noplan.live/event"
+  ],
+  "required_instruction_text": "passed",
+  "visual_check": "Outside and inside PDF raster proofs inspected",
+  "source_resolution_ppi": {
+    "map": 198,
+    "inside": 128
+  }
+}

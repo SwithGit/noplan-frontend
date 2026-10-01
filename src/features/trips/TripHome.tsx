@@ -13,6 +13,7 @@ import { TripIcon } from './TripIcon';
 import { HomeExhibitionBanner, HomeHero, HomeTravelCourses } from './HomeDiscovery';
 import { TripCreateForm } from './TripCreateForm';
 import './trips.css';
+import { StampEventBanner } from '../stampEvent/StampEventBanner';
 
 export function TripHome({ user, libraryOnly=false }: { user: UserSession | null; libraryOnly?:boolean }) {
   const desktop = useDesktop();
@@ -81,6 +82,7 @@ export function TripHome({ user, libraryOnly=false }: { user: UserSession | null
       <div className="travel-hero-copy"><span className="trip-eyebrow">YOUR NEXT LITTLE ESCAPE</span><h1>{uiText("가고 싶은 곳에서,")}<br />{uiText("우리다운 여행으로.")}</h1><p>{uiText("큰 일정은 가볍게 정하고")}<br />{uiText("그 사이의 좋은 순간은 노피와 채워보세요.")}</p><a href="#trip-create" className="travel-hero-link">{uiText("새로운 여행을 시작해요 ")}<TripIcon name="arrow" /></a></div>
       <span className="travel-hero-stamp">Less planning.<br /><b>More memories.</b></span>
     </section>}
+    {desktop && !libraryOnly && <StampEventBanner />}
     {(!libraryOnly || !desktop) && <TripCreateForm key={user?.userId || 'guest'} user={user} />}
     <div className="trip-home-caption"><span>{uiText("노피 코스는 도보 1km·차량 7km 이내의 실제 경로로 연결해요. 가까운 후보가 부족하면 거리를 자동으로 늘리지 않고 안내해요.")}</span>{!desktop && <Link to={ROUTES.quickHome}>{uiText("지금 주변 코스만 찾기 ")}<TripIcon name="arrow" /></Link>}</div>
     {desktop && !libraryOnly && <><HomeExhibitionBanner /><HomeTravelCourses /></>}

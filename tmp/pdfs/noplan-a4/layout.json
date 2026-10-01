@@ -1,0 +1,28 @@
+{
+  "trim_mm": [
+    297,
+    210
+  ],
+  "media_mm": [
+    303,
+    216
+  ],
+  "bleed_mm": 3,
+  "outside_folds_mm": [
+    97,
+    197
+  ],
+  "inside_folds_mm": [
+    100,
+    200
+  ],
+  "qr_url": "https://noplan.live/event",
+  "qr_top_left_mm": [
+    207.73841319717204,
+    162.98507462686567
+  ],
+  "qr_size_mm": 20.125687352710134,
+  "map_source_ppi": 198.04263959390863,
+  "inside_source_ppi": 127.51313131313131,
+  "cmyk_profile": "Japan Color 2001 Coated"
+}

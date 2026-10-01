@@ -41,6 +41,8 @@ import { readPendingTripCreation } from './features/trips/pendingTripCreation';
 import { EventsPage } from './features/events/EventsPage';
 import { EventDetail } from './features/events/EventDetail';
 import type { UserSession } from './types/noplan';
+import { StampEventPage } from './features/stampEvent/StampEventPage';
+import { EVENT_PARTICIPATED, EVENT_RETURN, startEventSession } from './api/stampEventApi';
 
 const appFullPagePaths = [
   ROUTES.login,
@@ -105,15 +107,30 @@ function AppRoutes() {
   const navigate = useNavigate();
   const { loadPlan } = usePlanner();
   const [user, setUser] = useState<UserSession | null>(() => readUserSession());
+  const [authReady, setAuthReady] = useState(false);
+
+  useEffect(() => {
+    if (!user || !authReady) return;
+    try {
+      if (localStorage.getItem(EVENT_PARTICIPATED)) void startEventSession().catch(() => undefined);
+    } catch { /* Visiting the event page also merges the HttpOnly guest session. */ }
+  }, [user, authReady]);
 
   useEffect(() => {
     if (!user || location.pathname !== ROUTES.appHome) return;
+    if (!authReady) return;
+    try {
+      if (sessionStorage.getItem(EVENT_RETURN) === '/event/stamps') {
+        sessionStorage.removeItem(EVENT_RETURN);
+        navigate('/event/stamps', { replace: true }); return;
+      }
+    } catch { /* The home event banner is still available. */ }
     if (readPendingTripCreation()) { navigate(`${ROUTES.newTrip}?resume=1`, { replace: true }); return; }
     try {
       const token = sessionStorage.getItem(PENDING_TRIP_INVITE);
       if (token && /^[a-zA-Z0-9_-]{43}$/.test(token)) navigate(`${ROUTES.tripJoin}#${token}`, { replace: true });
     } catch { /* A user can reopen the original invitation if session storage is unavailable. */ }
-  }, [user, location.pathname, navigate]);
+  }, [user, authReady, location.pathname, navigate]);
 
   useEffect(() => {
     const syncUser = () => setUser(readUserSession());
@@ -125,6 +142,7 @@ function AppRoutes() {
     let cancelled = false;
     fetchAuthSession().then((session) => {
       if (cancelled) return;
+      setAuthReady(true);
       if (session === undefined) return;
       if (!session) window.localStorage.removeItem('loggedInUser');
       setUser(session);
@@ -188,6 +206,9 @@ function AppRoutes() {
   const routes = (
     <Routes>
       <Route path={ROUTES.landing} element={<LandingEntry />} />
+      <Route path="/event" element={<StampEventPage user={user} />} />
+      <Route path="/event/stamps" element={<StampEventPage user={user} />} />
+      <Route path="/event/:id" element={<StampEventPage user={user} />} />
       {import.meta.env.DEV && <Route path={ROUTES.landingPreview} element={<LandingPage />} />}
 
       <Route path={ROUTES.appHome} element={<HomeEntry user={user} />} />
