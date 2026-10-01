@@ -46,3 +46,17 @@
 .ne-invalid h1{font-size:23px}.ne-invalid p{font-size:14px;margin:18px 0;line-height:1.7}
 @media(min-width:1024px){.trip-home>.ne-banner{max-width:600px;margin:28px auto}.nopi-event-page{margin-top:20px;margin-bottom:20px;border-radius:26px;overflow:hidden;min-height:calc(100dvh - 40px)}}
 @media(max-width:360px){.ne-content{padding-inline:16px}.ne-hero h1{font-size:28px}.ne-card-hero h1{font-size:26px}.ne-hero-art{width:42%}.ne-guide h3{font-size:20px}.ne-guide>p{font-size:12px}.ne-banner{padding:20px}}
+.ne-arrival{position:relative;width:100%;height:100%;isolation:isolate}
+.ne-arrival>img{opacity:0;transform-origin:50% 75%}
+.ne-arrival-ready>img{animation:ne-nopi-arrive 1100ms both}
+.ne-arrival-sparkles{position:absolute;inset:0;pointer-events:none}
+.ne-arrival-sparkles i{position:absolute;left:50%;top:50%;font-style:normal;font-size:19px;color:#a17af9;opacity:0;line-height:1;--x:-47px;--y:-38px;--turn:-18deg}
+.ne-arrival-sparkles i:nth-child(2){--x:38px;--y:-43px;--turn:22deg;color:#cfacf9;font-size:24px}
+.ne-arrival-sparkles i:nth-child(3){--x:48px;--y:8px;--turn:14deg;color:#eda7cf;font-size:12px}
+.ne-arrival-sparkles i:nth-child(4){--x:-40px;--y:30px;--turn:-10deg;color:#c2a3f7;font-size:14px}
+.ne-arrival-sparkles i:nth-child(5){--x:13px;--y:-53px;--turn:0deg;color:#f3ca75;font-size:21px}
+.ne-arrival-sparkles i:nth-child(6){--x:30px;--y:40px;--turn:0deg;color:#b8a2f0;font-size:17px}
+.ne-arrival-ready .ne-arrival-sparkles i{animation:ne-nopi-sparkle 850ms 140ms both}
+@keyframes ne-nopi-arrive{0%{opacity:0;transform:translateY(9px) scale(.65) rotate(-7deg)}28%{opacity:1;transform:translateY(-5px) scale(1.1) rotate(4deg)}48%{transform:translateY(2px) scale(.97,1.03) rotate(-2deg)}68%{transform:translateY(-2px) scale(1.025) rotate(1deg)}85%,100%{opacity:1;transform:translateY(0) scale(1) rotate(0)}}
+@keyframes ne-nopi-sparkle{0%{opacity:0;transform:translate(-50%,-50%) scale(.25)}28%{opacity:1}70%{opacity:.8}100%{opacity:0;transform:translate(calc(-50% + var(--x)),calc(-50% + var(--y))) scale(1) rotate(var(--turn))}}
+@media(prefers-reduced-motion:reduce){.ne-arrival-ready>img{animation:ne-nopi-arrive 1ms both}.ne-arrival-ready .ne-arrival-sparkles{display:none}}

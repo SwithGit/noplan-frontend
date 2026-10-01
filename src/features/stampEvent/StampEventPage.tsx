@@ -6,6 +6,7 @@ import { ROUTES } from '../../routes';
 import { EventDialog } from './EventDialog';
 import { EventGuide } from './EventGuide';
 import { EventScanner } from './EventScanner';
+import { StampArrival } from './StampArrival';
 import { STAMP_IDS, stampImage } from './eventModel';
 import './stampEvent.css';
 
@@ -19,6 +20,8 @@ export function StampEventPage({ user }: { user: UserSession | null }) {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [reload, setReload] = useState(0);
+  // Kept only in this mounted page, never in history/storage: refreshes cannot replay it.
+  const [newStamp, setNewStamp] = useState<number | null>(null);
   const [modal, setModal] = useState<'start' | 'guide' | 'scan' | null>(null);
   const notice = (location.state as { stampNotice?: string } | null)?.stampNotice;
 
@@ -26,9 +29,11 @@ export function StampEventPage({ user }: { user: UserSession | null }) {
     if (!isCard || invalid) return;
     let cancelled = false;
     setBusy(true); setError('');
+    if (id) setNewStamp(null);
     enterStampCard(user?.userId || 'guest', id ? Number(id) : undefined).then(result => {
       if (cancelled) return;
       setState(result);
+      if (id && !result.alreadyCollected) setNewStamp(Number(id));
       if (id) navigate('/event/stamps', { replace: true, state: { stampNotice: result.alreadyCollected ? '이미 만난 노피예요. 다른 노피를 찾아보세요!' : `노피 ${id} 스탬프를 찍었어요!` } });
     }).catch(cause => { if (!cancelled) setError(cause instanceof Error ? cause.message : '스탬프를 불러오지 못했어요.'); })
       .finally(() => { if (!cancelled) setBusy(false); });
@@ -82,7 +87,7 @@ export function StampEventPage({ user }: { user: UserSession | null }) {
             <section className="ne-panel ne-stamp-card" aria-label="나의 스탬프">
               <header><h2>✧ 나의 스탬프</h2><strong>{count} / 5</strong></header>
               <progress max={5} value={count} aria-label={`스탬프 ${count}개 수집`} />
-              <div className="ne-stamp-grid">{STAMP_IDS.map(stamp => { const collected = state.stamps.includes(stamp); return <div key={stamp} className={`ne-stamp ${collected ? 'collected' : ''}`}><div className="ne-stamp-circle">{collected ? <img src={stampImage(stamp)} alt={`노피 ${stamp} 스탬프`} /> : <span aria-hidden="true">?</span>}</div><strong>노피 {stamp}</strong><small>{collected ? '✓ 수집 완료' : '아직 못 만났어요'}</small></div>; })}</div>
+              <div className="ne-stamp-grid">{STAMP_IDS.map(stamp => { const collected = state.stamps.includes(stamp); return <div key={stamp} className={`ne-stamp ${collected ? 'collected' : ''}`}><div className="ne-stamp-circle">{collected ? newStamp === stamp && !id && !busy ? <StampArrival id={stamp} onFinish={() => setNewStamp(null)} /> : <img src={stampImage(stamp)} alt={`노피 ${stamp} 스탬프`} /> : <span aria-hidden="true">?</span>}</div><strong>노피 {stamp}</strong><small>{collected ? '✓ 수집 완료' : '아직 못 만났어요'}</small></div>; })}</div>
             </section>
             {complete ? <section className={`ne-completion ${redeemed ? 'redeemed' : ''}`}>
               <h2>{redeemed ? '경품 수령을 완료했어요!' : '미션 완료!'}</h2>

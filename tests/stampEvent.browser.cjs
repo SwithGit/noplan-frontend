@@ -32,6 +32,12 @@ async function main() {
       return ['127.0.0.1', 'localhost'].includes(url.hostname) || ['data:', 'blob:'].includes(url.protocol) ? route.continue() : route.abort();
     });
     const page = await context.newPage();
+    await page.addInitScript(() => {
+      window.__nopiArrivals = [];
+      document.addEventListener('animationstart', event => {
+        if (event.animationName === 'ne-nopi-arrive') window.__nopiArrivals.push(event.target.alt);
+      });
+    });
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     const screenshot = async name => { await page.screenshot({ path: path.join(output, `${name}.png`), fullPage: true }); };
@@ -42,10 +48,19 @@ async function main() {
     await page.getByRole('button', { name: '비회원으로 시작하기' }).click();
     await ready('0 / 5'); await screenshot('02-empty');
     await page.goto('http://127.0.0.1:5181/event/1');
-    await ready('1 / 5'); await screenshot('03-one-stamp');
+    await ready('1 / 5');
+    await page.waitForFunction(() => window.__nopiArrivals.length === 1);
+    assert.deepEqual(await page.evaluate(() => window.__nopiArrivals), ['노피 1 스탬프']);
+    await page.evaluate(() => document.getAnimations().forEach(animation => { animation.pause(); animation.currentTime = 380; }));
+    await screenshot('03-arrival-animation');
+    await page.evaluate(() => document.getAnimations().forEach(animation => animation.play()));
+    await page.locator('.ne-arrival').waitFor({ state: 'detached' });
+    await screenshot('03-one-stamp');
     await page.reload(); await ready('1 / 5');
+    assert.deepEqual(await page.evaluate(() => window.__nopiArrivals), []);
     await page.goto('http://127.0.0.1:5181/event/1');
     await ready('1 / 5'); await page.getByText(/이미 만난 노피/).waitFor();
+    assert.deepEqual(await page.evaluate(() => window.__nopiArrivals), []);
     await page.getByRole('button', { name: /참여 방법 보기/ }).click();
     for (let i = 1; i <= 5; i++) {
       await page.getByText(`STEP 0${i}`, { exact: true }).waitFor();
@@ -100,9 +115,12 @@ async function main() {
     await failPage.getByText('테스트 통신 실패').waitFor();
     assert.ok(failPage.url().endsWith('/event/3'));
     await failPage.unroute('**/api/stamp-event/stamps/3');
+    await failPage.emulateMedia({ reducedMotion: 'reduce' });
     await failPage.getByRole('button', { name: '다시 시도하기' }).click();
     await failPage.getByText('1 / 5', { exact: true }).waitFor();
     assert.equal(await failPage.locator('.ne-stamp.collected strong').innerText(), '노피 3');
+    await failPage.locator('.ne-arrival').waitFor({ state: 'detached' });
+    assert.equal(await failPage.locator('.ne-stamp.collected img').evaluate(img => getComputedStyle(img).opacity), '1');
     assert.equal(await failPage.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     for (const id of [1, 2, 4, 5]) { await failPage.goto(`http://127.0.0.1:5181/event/${id}`); await failPage.waitForURL('**/event/stamps'); }
     await failPage.getByRole('button', { name: '수령 완료', exact: true }).click();
