@@ -207,7 +207,7 @@ export function MyPageView({ onLogout, user, active = true }: MyPageViewProps) {
           <div className="list-state-card compact"><span className="loading-spinner" /><p>{uiText("코스를 불러오는 중이에요")}</p></div>
         ) : activeCourses.length === 0 ? (
           <div className="my-empty-state">
-            <p>{uiText(activeTab === 'saved' ? '아직 저장한 코스가 없어요. 탐색에서 마음에 드는 서울 코스를 찾아보세요.' : '최근 본 코스가 아직 없어요.')}</p>
+            <p>{uiText(activeTab === 'saved' ? '아직 저장한 코스가 없어요. 탐색에서 마음에 드는 코스를 찾아보세요.' : '최근 본 코스가 아직 없어요.')}</p>
             {activeTab === 'saved' && <button type="button" onClick={() => navigate(ROUTES.explore)}>{uiText("탐색으로 이동")}</button>}
           </div>
         ) : (

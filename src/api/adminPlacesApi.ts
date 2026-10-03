@@ -276,11 +276,12 @@ export async function listAdminMapPlaces(
   adminId: string,
   types: AdminMapPlaceType[] = ['food', 'cafe', 'activity', 'drink', 'hotplace'],
   district = 'all',
+  reviewStatus: 'pending' | 'approved' = 'pending',
 ) {
   const places = new Map<number, AdminMapPlace>();
   let cursor = 0;
   do {
-    const params = new URLSearchParams({ types: types.join(','), district, afterId: String(cursor) });
+    const params = new URLSearchParams({ types: types.join(','), district, reviewStatus, afterId: String(cursor) });
     const page = await adminJson<ApiEnvelope & {
       places: AdminMapPlace[]; nextCursor: number | null; truncated: boolean;
     }>(`/api/admin/places/map?${params}`, key, adminId);

@@ -7,7 +7,7 @@ import { LandingBrand } from './LandingBrand';
 
 const navigationItems = [
   { href: '#desktop-travel', label: '국내 여행' },
-  { href: '#mobile-course', label: '서울 주변 코스' },
+  { href: '#mobile-course', label: '서울·울산 주변 코스' },
   { href: '#local-content', label: '발견의 즐거움' },
 ];
 

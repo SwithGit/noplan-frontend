@@ -7,7 +7,7 @@ import { LandingHero } from './LandingHero';
 import { LandingSections } from './LandingSections';
 import './landing.css';
 
-const landingDescription = 'PC에서는 국내 관광지 중심의 여행과 팀 플래닝을, 모바일에서는 서울의 맛집·카페·놀거리 주변 코스를 추천하는 노플랜입니다.';
+const landingDescription = 'PC에서는 국내 관광지 중심의 여행과 팀 플래닝을, 모바일에서는 서울·울산의 맛집·카페·놀거리 주변 코스를 추천하는 노플랜입니다.';
 
 export default function LandingPage() {
   const locale = useLocale();

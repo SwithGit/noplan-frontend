@@ -29,8 +29,18 @@ export const MAP_DISTRICTS = [
   { name: '중랑구', lat: 37.6063, lng: 127.0927 },
 ];
 
+export const ULSAN_MAP_DISTRICTS = [
+  { name: '울산 중구', lat: 35.5694, lng: 129.3325 },
+  { name: '울산 남구', lat: 35.5438, lng: 129.3301 },
+  { name: '울산 동구', lat: 35.5047, lng: 129.4163 },
+  { name: '울산 북구', lat: 35.5827, lng: 129.3616 },
+  { name: '울산 울주군', lat: 35.5220, lng: 129.2420 },
+];
+
 export function mapPlaceDistrict(place: AdminMapPlace) {
   for (const address of [place.roadAddress, place.address]) {
+    const ulsan = String(address || '').trim().match(/^울산(?:광역시)?\s+(\S+(?:구|군))(?:\s|$)/);
+    if (ulsan && ULSAN_MAP_DISTRICTS.some(d => d.name === `울산 ${ulsan[1]}`)) return `울산 ${ulsan[1]}`;
     const match = String(address || '').trim().match(/^서울(?:특별시)?\s+(\S+구)(?:\s|$)/);
     if (match && MAP_DISTRICTS.some(district => district.name === match[1])) return match[1];
   }
@@ -39,7 +49,7 @@ export function mapPlaceDistrict(place: AdminMapPlace) {
 
 export function filterAdminMapPlaces(places: AdminMapPlace[], types: AdminMapPlaceType[], query: string, district = 'all') {
   const normalized = query.trim().toLocaleLowerCase('ko-KR');
-  return places.filter(place => (district === 'all' || mapPlaceDistrict(place) === district)
+  return places.filter(place => (district === 'all' ? !String(mapPlaceDistrict(place)).startsWith('울산 ') : district === 'ulsan' ? String(mapPlaceDistrict(place)).startsWith('울산 ') : mapPlaceDistrict(place) === district)
     && types.includes(place.primaryType) && (!normalized
     || [place.name, place.detailType, place.categoryLabel, place.address, place.roadAddress]
       .some(value => String(value || '').toLocaleLowerCase('ko-KR').includes(normalized))));

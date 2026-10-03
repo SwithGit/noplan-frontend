@@ -10,7 +10,7 @@ import {
   type AdminMapPlaceType,
 } from '../../api/adminPlacesApi';
 import { ROUTES } from '../../routes';
-import { buildMapReviewInput, filterAdminMapPlaces, MAP_DISTRICTS } from './mapPlaceSelection';
+import { buildMapReviewInput, filterAdminMapPlaces, MAP_DISTRICTS, ULSAN_MAP_DISTRICTS } from './mapPlaceSelection';
 import { kakaoMapUrl, naverMapUrl } from './mapPlaceLinks';
 
 const SEOUL_CENTER = { lat: 37.5665, lng: 126.9780 };
@@ -75,8 +75,10 @@ export default function PlaceMapAdmin() {
   const [places, setPlaces] = useState<AdminMapPlace[]>([]);
   const [district, setDistrict] = useState('all');
   const districtRef = useRef('all');
+  const [reviewStatus, setReviewStatus] = useState<'pending' | 'approved'>('pending');
+  const reviewStatusRef = useRef<'pending' | 'approved'>('pending');
   const loadVersionRef = useRef(0);
-  const districtLabel = district === 'all' ? '서울 전체' : district;
+  const districtLabel = district === 'all' ? '서울 전체' : district === 'ulsan' ? '울산 전체' : district;
   const [enabledTypes, setEnabledTypes] = useState<AdminMapPlaceType[]>(() => MAP_TYPE_OPTIONS.map((item) => item.type));
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<AdminMapPlace | null>(null);
@@ -99,7 +101,7 @@ export default function PlaceMapAdmin() {
     setNotice('');
     setError('');
     try {
-      const result = await listAdminMapPlaces(key, id || 'team', undefined, region);
+      const result = await listAdminMapPlaces(key, id || 'team', undefined, region, reviewStatusRef.current);
       if (version !== loadVersionRef.current) return;
       setPlaces(result.places.map((place) => ({
         ...place,
@@ -216,9 +218,9 @@ export default function PlaceMapAdmin() {
     if (visiblePlaces.length > 1 && (query.trim() || district !== 'all')) map.setBounds(bounds);
     else if (visiblePlaces.length === 1) focusPlace(visiblePlaces[0]);
     else {
-      const center = MAP_DISTRICTS.find(item => item.name === district) || SEOUL_CENTER;
+      const center = [...MAP_DISTRICTS, ...ULSAN_MAP_DISTRICTS].find(item => item.name === district) || (district === 'ulsan' ? { lat: 35.5396, lng: 129.3115 } : SEOUL_CENTER);
       map.setCenter(new kakaoMaps.LatLng(center.lat, center.lng));
-      map.setLevel(district === 'all' ? 9 : 7);
+      map.setLevel(['all','ulsan'].includes(district) ? 9 : 7);
     }
   }, [district, focusPlace, query, sdkReady, unlocked, visiblePlaces]);
 
@@ -253,7 +255,7 @@ export default function PlaceMapAdmin() {
   };
 
   const reviewSearchResults = async (action: 'approve' | 'remove') => {
-    if (busy || mutationRef.current || !query.trim() || !visiblePlaces.length) return;
+    if (reviewStatus === 'approved' || busy || mutationRef.current || !query.trim() || !visiblePlaces.length) return;
     const verb = action === 'approve' ? '승인' : '제거';
     if (visiblePlaces.length > 20000) {
       setError(`한 번에 20,000곳까지 ${verb}할 수 있어요. 구 또는 분류를 선택해 범위를 좁혀 주세요.`);
@@ -288,7 +290,7 @@ export default function PlaceMapAdmin() {
       <main className="admin-login-page">
         <section className="admin-login-panel">
           <div className="admin-brand-mark">NP</div>
-          <div><p className="admin-eyebrow">NoPlan operations</p><h1>서울 장소 지도</h1><p>기존 장소 관리자 계정으로 접속합니다.</p></div>
+          <div><p className="admin-eyebrow">NoPlan operations</p><h1>장소 지도</h1><p>기존 장소 관리자 계정으로 접속합니다.</p></div>
           <label>팀원 이름<input value={adminId} onChange={(event) => setAdminId(event.target.value)} placeholder="예: 지혁" /></label>
           <label>관리자 키<input type="password" value={adminKey} onChange={(event) => setAdminKey(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && void unlock()} /></label>
           {error && <p className="admin-alert error">{error}</p>}
@@ -301,7 +303,7 @@ export default function PlaceMapAdmin() {
   return (
     <main className="place-admin-page admin-map-page">
       <header className="place-admin-header">
-        <div><p className="admin-eyebrow">NoPlan Seoul catalog</p><h1>서울 등록 장소 지도</h1></div>
+        <div><p className="admin-eyebrow">NoPlan place catalog</p><h1>등록 장소 지도</h1></div>
         <div className="admin-header-actions">
           <Link className="admin-secondary-button admin-map-nav-link" to={ROUTES.placeAdmin}>등록·검수</Link>
           <span className="admin-user-chip">{adminId}</span>
@@ -322,7 +324,7 @@ export default function PlaceMapAdmin() {
       <section className="admin-map-toolbar">
         <div className="admin-map-summary">
           <strong>{places.length.toLocaleString('ko-KR')}곳</strong>
-          <span>{districtLabel} · 검수 대기 장소</span>
+          <span>{districtLabel} · {reviewStatus === 'pending' ? '검수 대기 장소' : '승인된 장소'}</span>
         </div>
         <label className="admin-map-district">지역
           <select aria-label="지도 지역 선택" value={district} disabled={busy} onChange={event => {
@@ -333,7 +335,17 @@ export default function PlaceMapAdmin() {
           }}>
             <option value="all">서울 전체</option>
             {MAP_DISTRICTS.map(item => <option key={item.name} value={item.name}>{item.name}</option>)}
+            <option value="ulsan">울산 전체</option>
+            {ULSAN_MAP_DISTRICTS.map(item => <option key={item.name} value={item.name}>{item.name}</option>)}
           </select>
+        </label>
+        <label className="admin-map-district">승인 상태
+          <select aria-label="지도 승인 상태 선택" value={reviewStatus} disabled={busy} onChange={event => {
+            const next = event.target.value as 'pending' | 'approved';
+            reviewStatusRef.current = next;
+            setReviewStatus(next);
+            void loadPlaces();
+          }}><option value="pending">검수 대기</option><option value="approved">승인된 장소</option></select>
         </label>
         <div className="admin-map-type-filters" aria-label="장소 분류 필터">
           {MAP_TYPE_OPTIONS.map((option) => (
@@ -360,12 +372,12 @@ export default function PlaceMapAdmin() {
         />
         <div className="admin-map-bulk-actions">
           <span className="admin-map-visible-count">지도 표시 {visiblePlaces.length.toLocaleString('ko-KR')}곳</span>
-          <button className="admin-secondary-button admin-map-approve-button" type="button" disabled={busy || !query.trim() || !visiblePlaces.length}
+          <button className="admin-secondary-button admin-map-approve-button" type="button" disabled={reviewStatus === 'approved' || busy || !query.trim() || !visiblePlaces.length}
             title={query.trim() ? '오른쪽 목록 개수와 관계없이 지도 검색 결과 전체를 승인합니다.' : '승인할 장소를 먼저 검색해 주세요.'}
             onClick={() => void reviewSearchResults('approve')}>
             {bulkAction === 'approve' ? '전체 승인 중…' : query.trim() ? `전부 승인 (${visiblePlaces.length.toLocaleString('ko-KR')}곳)` : '전부 승인'}
           </button>
-          <button className="admin-danger-button" type="button" disabled={busy || !query.trim() || !visiblePlaces.length}
+          <button className="admin-danger-button" type="button" disabled={reviewStatus === 'approved' || busy || !query.trim() || !visiblePlaces.length}
             title={query.trim() ? '오른쪽 목록 개수와 관계없이 지도 검색 결과 전체를 제거합니다.' : '제거할 장소를 먼저 검색해 주세요.'}
             onClick={() => void reviewSearchResults('remove')}>
             {bulkAction === 'remove' ? '전체 제거 중…' : query.trim() ? `전부 제거 (${visiblePlaces.length.toLocaleString('ko-KR')}곳)` : '전부 제거'}
@@ -373,6 +385,7 @@ export default function PlaceMapAdmin() {
         </div>
       </section>
 
+      {reviewStatus === 'approved' && <p className="admin-alert">승인된 가게를 조회 중입니다. 검색 결과 일괄 검수는 검수 대기 목록에서 이용할 수 있습니다.</p>}
       <section className="admin-map-workspace">
         <div className="admin-map-canvas-wrap">
           {!sdkReady && <div className="admin-map-loading">카카오맵을 불러오는 중입니다.</div>}
@@ -395,7 +408,7 @@ export default function PlaceMapAdmin() {
               <a className="admin-primary-button admin-map-external-link" href={kakaoMapUrl(selected)} target="_blank" rel="noopener noreferrer">카카오맵에서 보기</a>
               <a className="admin-secondary-button admin-map-external-link admin-map-naver-link" href={naverMapUrl(selected)} target="_blank" rel="noopener noreferrer">네이버지도에서 보기</a>
               <div className="admin-map-review-actions">
-                <button className="admin-secondary-button admin-map-approve-button" type="button" disabled={busy} onClick={() => void reviewPlace('approve')}>
+                <button className="admin-secondary-button admin-map-approve-button" type="button" disabled={busy || reviewStatus === 'approved'} onClick={() => void reviewPlace('approve')}>
                   {reviewing === 'approve' ? '처리 중' : '승인'}
                 </button>
                 <button className="admin-danger-button" type="button" disabled={busy} onClick={() => void reviewPlace('remove')}>

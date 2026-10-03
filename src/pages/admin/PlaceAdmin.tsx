@@ -504,7 +504,7 @@ export default function PlaceAdmin() {
       <header className="place-admin-header">
         <div><p className="admin-eyebrow">NoPlan place catalog</p><h1>장소 등록·검수</h1></div>
         <div className="admin-header-actions">
-          <Link className="admin-secondary-button admin-map-nav-link" to={ROUTES.placeAdminMap}>서울 장소 지도</Link>
+          <Link className="admin-secondary-button admin-map-nav-link" to={ROUTES.placeAdminMap}>장소 지도</Link>
           <div className="admin-segmented" aria-label="관리 지역">
             {REGION_OPTIONS.map((region) => <button className={regionKey === region.key ? 'active' : ''} key={region.key} type="button" onClick={() => changeRegion(region.key)}>{region.label}</button>)}
           </div>

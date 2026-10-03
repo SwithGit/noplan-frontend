@@ -12,12 +12,12 @@ export function LandingHero() {
         <a className="landing-button" href={ROUTES.appHome}>{t('노플랜 시작하기')}<span aria-hidden="true">↗</span></a>
         <a className="landing-text-link" href="#how-it-works">{t('서비스 알아보기')}<span aria-hidden="true">↓</span></a>
       </div>
-      <small className="landing-coverage">{t('PC에서는 국내 관광지로 떠나는 여행을,')}<br />{t('모바일에서는 서울의 가까운 맛집과 놀거리를 만나보세요.')}</small>
+      <small className="landing-coverage">{t('PC에서는 국내 관광지로 떠나는 여행을,')}<br />{t('모바일에서는 서울·울산의 가까운 맛집과 놀거리를 만나보세요.')}</small>
     </div>
     <div className="landing-product-visual">
       <span className="landing-visual-orbit" aria-hidden="true" />
       <figure className="landing-hero-desktop"><LandingScreen device="desktop" eager /><figcaption>PC <span>· {t('함께 준비하는 국내 여행')}</span></figcaption></figure>
-      <figure className="landing-hero-mobile"><LandingScreen device="mobile" eager /><figcaption>MOBILE <span>· {t('지금, 서울에서')}</span></figcaption></figure>
+      <figure className="landing-hero-mobile"><LandingScreen device="mobile" eager /><figcaption>MOBILE <span>· {t('지금, 내 주변에서')}</span></figcaption></figure>
       <span className="landing-visual-note">{t('계획 없어도 좋은 하루')} <span aria-hidden="true">✦</span></span>
     </div>
   </section>;

@@ -17,7 +17,7 @@ export function LandingSections() {
       <span className="landing-kicker">LESS PLANNING, MORE MEMORIES</span>
       <h2>{t('여행을 준비하는 날도,')}<br />{t('문득 나서고 싶은 날도.')}<br /><em>{t('노플랜과, 우리답게.')}</em></h2>
       <p>{t('멀리 떠나는 설렘과 가까이에서 발견하는 즐거움.')}<br />{t('서로 다른 여행의 시작을, 노플랜이 함께해요.')}</p>
-      <div className="landing-mode-links"><a href="#desktop-travel">PC · {t('국내 여행')} <span aria-hidden="true">→</span></a><a href="#mobile-course">MOBILE · {t('서울 주변 코스')} <span aria-hidden="true">→</span></a></div>
+      <div className="landing-mode-links"><a href="#desktop-travel">PC · {t('국내 여행')} <span aria-hidden="true">→</span></a><a href="#mobile-course">MOBILE · {t('서울·울산 주변 코스')} <span aria-hidden="true">→</span></a></div>
     </section>
     <section className="landing-section landing-desktop-section" id="desktop-travel">
       <div className="landing-container">
@@ -55,9 +55,9 @@ export function LandingSections() {
       <div className="landing-container landing-feature-grid">
         <div className="landing-feature-copy" data-reveal>
           <span className="landing-kicker">02 / MOBILE · RIGHT HERE, RIGHT NOW</span><h2>{t('“우리 이제 뭐 하지?”')}<br /><em>{t('그 한마디면 충분해요.')}</em></h2>
-          <p>{t('지금 있는 곳, 함께하는 사람, 하고 싶은 것.')}<br />{t('시간과 예산, 걷고 싶은 거리까지 알려주면')}<br />{t('서울의 가까운 맛집과 카페, 놀거리를 코스로 이어드려요.')}</p>
+          <p>{t('지금 있는 곳, 함께하는 사람, 하고 싶은 것.')}<br />{t('시간과 예산, 걷고 싶은 거리까지 알려주면')}<br />{t('서울·울산의 가까운 맛집과 카페, 놀거리를 코스로 이어드려요.')}</p>
           <div className="landing-preference-tags">{['맛집', '카페', '놀거리', '술·야간'].map(label => <span key={label}>{t(label)}</span>)}</div>
-          <span className="landing-feature-note">{t('모바일 주변 코스는 현재 서울에서 제공해요.')}</span>
+          <span className="landing-feature-note">{t('모바일 주변 코스는 현재 서울·울산에서 제공해요.')}</span>
           <a className="landing-text-link" href={ROUTES.appHome}>{t('지금 갈 곳 찾아보기')} <span aria-hidden="true">↗</span></a>
         </div>
         <div className="landing-mobile-showcase" data-reveal><span className="landing-mobile-halo" aria-hidden="true" /><LandingScreen device="mobile" /><span className="landing-floating-tag landing-tag-time"><TripIcon name="clock" />{t('지금부터 저녁까지')}</span><span className="landing-floating-tag landing-tag-people"><TripIcon name="people" />{t('친구랑, 우리 취향대로')}</span></div>

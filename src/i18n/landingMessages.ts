@@ -1,4 +1,14 @@
 export const landingMessages: Record<string, readonly [string, string, string]> = {
+  "서울에서 울산까지, 좋은 곳을 만나보세요.": ["Discover great places, from Seoul to Ulsan.", "从首尔到蔚山，发现好去处。", "ソウルから蔚山まで、素敵な場所に出会いましょう。"],
+  "서울·울산에서 수집한 가게 정보로 주변 코스를 추천해요.": ["Nearby routes use places collected in Seoul and Ulsan.", "根据首尔和蔚山收集的店铺信息推荐周边路线。", "ソウル・蔚山で収集したお店の情報から周辺コースをご提案します。"],
+  "서울·울산 주변 코스": ["Local routes in Seoul & Ulsan", "首尔·蔚山周边路线", "ソウル・蔚山の周辺コース"],
+  "모바일에서는 서울·울산의 가까운 맛집과 놀거리를 만나보세요.": ["On mobile, discover food and fun nearby in Seoul and Ulsan.", "在手机上发现首尔和蔚山附近的美食与好去处。", "モバイルではソウル・蔚山の身近なグルメや遊びを見つけましょう。"],
+  "지금, 내 주변에서": ["Right here, right now", "此刻，就在身边", "今、この近くで"],
+  "서울·울산의 가까운 맛집과 카페, 놀거리를 코스로 이어드려요.": ["Connect nearby restaurants, cafés and activities in Seoul and Ulsan.", "串联首尔和蔚山附近的餐厅、咖啡馆与游玩地点。", "ソウル・蔚山の身近なグルメやカフェ、遊びをコースでつなぎます。"],
+  "모바일 주변 코스는 현재 서울·울산에서 제공해요.": ["Mobile local routes are available in Seoul and Ulsan.", "手机周边路线目前支持首尔和蔚山。", "モバイルの周辺コースは現在ソウル・蔚山で提供しています。"],
+  "전국 행사 탐색이 가능하며, AI 주변 코스 추천은 현재 서울·울산의 도보 코스를 지원해요.": ["Explore events nationwide. AI local routes currently support walking in Seoul and Ulsan.", "可探索全国活动，AI周边路线目前支持首尔和蔚山的步行路线。", "全国のイベントを探せます。AI周辺コースは現在ソウル・蔚山の徒歩コースに対応しています。"],
+  "아직 저장한 코스가 없어요. 탐색에서 마음에 드는 코스를 찾아보세요.": ["No saved routes yet. Explore to find one you like.", "还没有收藏的路线，去探索喜欢的路线吧。", "保存したコースはまだありません。探索からお気に入りを見つけましょう。"],
+
   "내 취향에 맞는 국내 코스 추천": [
     "Korea, your way",
     "符合你喜好的韩国旅行路线",

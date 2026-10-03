@@ -56,3 +56,17 @@ test('approval and removal use the exact same full marker selection', () => {
   assert.equal(approval.placeIds.length, 65);
   assert.equal(approval.placeIds.join(), buildMapRemovalInput(rows, ['hotplace'], '음수대', '성동구').placeIds.join());
 });
+
+test('Ulsan selection isolates district names shared with Seoul', () => {
+  const rows = [
+    {...place(1),address:'울산광역시 중구 번영로 1'},
+    {...place(2),address:'서울 중구 세종대로 1'},
+    {...place(3),address:'울산광역시 동구 봉수로 1'},
+    {...place(4),address:'울산 울주군 청량읍 1'},
+  ];
+  assert.equal(filterAdminMapPlaces(rows,['hotplace'],'','ulsan').map(p=>p.id).join(),'1,3,4');
+  assert.equal(filterAdminMapPlaces(rows,['hotplace'],'','울산 중구').map(p=>p.id).join(),'1');
+  assert.equal(filterAdminMapPlaces(rows,['hotplace'],'','중구').map(p=>p.id).join(),'2');
+  assert.equal(filterAdminMapPlaces(rows,['hotplace'],'','all').map(p=>p.id).join(),'2');
+  assert.equal(box.exports.ULSAN_MAP_DISTRICTS.length,5);
+});
